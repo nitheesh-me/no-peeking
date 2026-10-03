@@ -325,7 +325,11 @@ button { font-family: inherit; color: inherit; }
 }
 .fixed-phase .fp-list { display: none; margin-top: 6px; }
 .fixed-phase.open .fp-list { display: flex; flex-direction: column; gap: 4px; }
-.fixed-phase .card { filter: grayscale(0.9); opacity: 0.7; cursor: default; }
+.fixed-phase .card { cursor: default; position: relative; box-shadow: none; }
+.fixed-phase .fp-head { font-weight: 700; color: var(--ink2); }
+.fixed-phase .fp-list { color: var(--ink); }
+.fixed-phase .fp-head::after { content: ' ▸'; }
+.fixed-phase.open .fp-head::after { content: ' ▾'; }
 
 .card {
   position: relative;
@@ -543,8 +547,8 @@ button { font-family: inherit; color: inherit; }
 .controls .btn.small { padding: 6px 10px; }
 .controls .btn.primary, .controls .btn.go { font-size: 15px; padding: 8px 14px; min-height: 40px; }
 .timeline { flex: 1 1 60px; min-width: 50px; }
-.prog-col.fixed-only { flex: none; width: 128px; min-width: 0; }
-.prog-col.fixed-only .fixed-phase.open { position: relative; z-index: 3; width: 240px; background: var(--paper); box-shadow: var(--shadow-soft); }
+.prog-col.fixed-only { flex: none; width: 190px; min-width: 0; }
+.prog-col.fixed-only .fixed-phase.open { background: var(--paper2); }
 .fixed-phase .card { font-size: 13px; min-height: 30px; padding: 4px 8px; }
 @media (max-width: 860px) { .controls { flex-wrap: wrap; } }
 

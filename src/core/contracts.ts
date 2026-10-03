@@ -189,6 +189,12 @@ export interface AudioAPI {
   /** Full syndrome chord (Lights Out). */
   syndromeChord(bits: (0 | 1)[]): void;
   setVolumes(v: { master?: number; music?: number; sfx?: number }): void;
+  // ── v0.2 additions ──
+  /** Speech babble ("Qubblese"): call once per revealed character of a dialogue line. Audio decides throttling,
+   *  syllable shape from the letters, speaker voice, and end-of-line inflection (?, !, …). `index` = char index in line. */
+  voice?(who: Speaker, ch: string, index: number, line: string): void;
+  /** Volume for voices (default ~0.5 of sfx). */
+  setVoiceVolume?(v: number): void;
 }
 
 /** Implemented by src/art/ (Art Designer). Pure canvas drawing; all coordinates in screen px. */
@@ -222,6 +228,30 @@ export interface ArtAPI {
   /** DOM-friendly portrait (data URL / SVG string) for dialogue boxes. */
   portrait(who: Speaker, mood?: DialogueLine['mood']): string;
   palette: Record<string, string>;
+  // ── v0.2 additions ──
+  /** Grounded daycare ROOM diorama (replaces the floating island): floor + two back walls (window with sky/moon, shelves, nightlight, door). Fills the play area. */
+  drawRoom?(ctx: CanvasRenderingContext2D, cols: number, rows: number, iso: IsoFn, t: number, night: number): void;
+  /** The caretaker (player avatar): sleepy kid in pyjamas + nightcap who performs the cards. Anchor = feet. */
+  drawCaretaker?(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, v: CaretakerVisual, t: number): void;
+  /** Level-map primitives (night-sky dream map). */
+  drawMapBackdrop?(ctx: CanvasRenderingContext2D, w: number, h: number, t: number): void;
+  drawMapIsland?(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, chapter: number, color: string, unlocked: boolean, t: number): void;
+  drawMapNode?(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, v: MapNodeVisual, t: number): void;
+  drawMapPath?(ctx: CanvasRenderingContext2D, pts: { x: number; y: number }[], progress: number, t: number): void;
+}
+export interface CaretakerVisual {
+  action: 'idle' | 'tiptoe' | 'boop' | 'shush' | 'spin' | 'peek' | 'listen' | 'press' | 'cheer' | 'facepalm' | 'yawn';
+  /** 0..1 progress through the action (wind-up → contact → recover; contact at ~0.5) */
+  phase: number;
+  facing: -1 | 1;
+  flashlight?: boolean; // PEEK
+}
+export interface MapNodeVisual {
+  id: string; title: string;
+  state: 'locked' | 'open' | 'done' | 'current';
+  stars: number; // 0..3
+  color: string;
+  hover?: boolean;
 }
 export type IsoFn = (gx: number, gy: number, gz?: number) => { x: number; y: number };
 

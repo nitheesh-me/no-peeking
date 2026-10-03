@@ -94,12 +94,12 @@ export class Editor {
       const cnt = h('span', { class: 'cnt' });
       col.appendChild(h('div', { class: 'prog-col-head' }, h('span', { class: 'ttl' }, title), cnt));
       if (fixed?.length) {
-        const fp = h('div', { class: 'fixed-phase' },
-          h('div', null, editable ? `▸ ${fixed.length} cards run first (Schrödi wrote these)` : `▸ ${fixed.length} cards by Schrödi (read only). Click to peek at the code.`));
+        const fp = h('div', { class: 'fixed-phase' + (fixed.length <= 10 ? ' open' : '') },
+          h('div', { class: 'fp-head' }, `🔒 Schrödi's ${editable ? 'part (runs first)' : 'routine'} · ${fixed.length} cards`));
         const list = h('div', { class: 'fp-list' });
         fixed.forEach((op) => list.appendChild(this.cardEl(op, { readonly: true })));
         fp.appendChild(list);
-        fp.addEventListener('click', () => fp.classList.toggle('open'));
+        fp.firstElementChild!.addEventListener('click', () => fp.classList.toggle('open'));
         this.fixedBoxes.set(ph, fp);
         col.appendChild(fp);
       }
@@ -380,7 +380,7 @@ export class Editor {
   private applyCurrent(): void {
     this.el.querySelectorAll('.card.current').forEach((n) => n.classList.remove('current'));
     const ref = this.current;
-    if (ref?.part !== 'fixed') for (const b of this.fixedBoxes.values()) if (b.parentElement?.classList.contains('fixed-only')) b.classList.remove('open');
+    // fixed routines stay open so players can watch them run
     if (!ref || ref.phase === 'night') return;
     let cardEl: Element | undefined;
     if (ref.part === 'fixed') {
