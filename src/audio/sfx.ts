@@ -373,8 +373,7 @@ export const SFX: Record<SfxName, Sfx> = {
 
 /** Default per-sfx gain trims (balance). */
 export const SFX_GAIN: Partial<Record<SfxName, number>> = {
-  ui_hover: 0.7,
-  qubble_snore: 1.1,
-  level_win: 1,
-  peek_collapse: 1,
+  boop: 3, shush: 1.6, spin: 2.2, highfive: 2.2, gremlin_flip: 2.8, listen_quiet: 2, reset: 1.6,
+  wobble: 1.5, card_pick: 1.6, card_drop: 1.3, rewind: 1.5, snap_measure: 1.6, ui_click: 1.6,
+  ui_hover: 2, qubble_giggle: 1.3, qubble_snore: 1.3, gremlin_sneak: 0.8,
 };

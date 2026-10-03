@@ -9,11 +9,12 @@
  *   sfxBus  → sfxVerb ───┴─ convolver → verbVolM/verbVolS ──────────────────────┤
  *   sfx voices → panner → sfxBus(sfxVol) ────────────────────────────────────────┘
  */
-import type { AudioAPI, MusicScene, SfxName } from '../core/contracts';
+import type { AudioAPI, MusicScene, SfxName, Speaker } from '../core/contracts';
 import { Kit, makeNoise, makeImpulse, makeCrackle, clamp, rand } from './core';
 import { Sequencer, MusicBus, LAYERS, Layer, buildDrone } from './music';
 import { SFX, SFX_GAIN } from './sfx';
 import { botBeep, botQuiet, STRUM } from './bots';
+import { Babbler } from './voice';
 
 const LOOKAHEAD = 0.12; // s scheduled ahead
 const TICK_MS = 25;
@@ -31,6 +32,9 @@ export class AudioEngine implements AudioAPI {
   private musicVol!: GainNode;
   private sfxVol!: GainNode;
   private duck!: GainNode;
+  private speechDuck!: GainNode;
+  private voiceVol!: GainNode;
+  private babbler: Babbler | null = null;
   private sfxBus!: GainNode;
   private sfxVerb!: GainNode;
   private timer: ReturnType<typeof setTimeout> | null = null;
@@ -38,7 +42,7 @@ export class AudioEngine implements AudioAPI {
   private lastSfx = new Map<SfxName, number>();
   private liveSfx = new Map<SfxName, number>();
   /** state remembered before unlock */
-  private st = { scene: 'title' as MusicScene, harmony: 1, tension: 0, vol: { master: 0.9, music: 0.6, sfx: 0.85 } };
+  private st = { scene: 'title' as MusicScene, harmony: 1, tension: 0, vol: { master: 0.9, music: 0.6, sfx: 0.85, voice: 0.5 } };
 
   // ───────── lifecycle ─────────
   unlock(): Promise<void> {
@@ -72,7 +76,7 @@ export class AudioEngine implements AudioAPI {
       return n;
     };
     // wobble LFO (cents) → music osc.detune
-    const wobbleDepth = g(2);
+    const wobbleDepth = g(0);
     const l1 = ctx.createOscillator();
     l1.frequency.value = 0.55;
     const l2 = ctx.createOscillator();
@@ -98,7 +102,7 @@ export class AudioEngine implements AudioAPI {
     lim.ratio.value = 20;
     lim.attack.value = 0.001;
     lim.release.value = 0.12;
-    const trim = g(0.5); // tuned by offline render: peaks ≈ -6 dBFS
+    const trim = g(0.66); // tuned by offline render: peaks ≈ -6 dBFS
     this.master.connect(glue).connect(lim).connect(trim).connect(ctx.destination);
 
     // reverb
@@ -111,7 +115,8 @@ export class AudioEngine implements AudioAPI {
     this.musicVol = g(this.st.vol.music);
     this.duck = g(1);
     const musicMix = g(1);
-    musicMix.connect(this.musicVol).connect(this.duck).connect(this.master);
+    this.speechDuck = g(1);
+    musicMix.connect(this.musicVol).connect(this.duck).connect(this.speechDuck).connect(this.master);
     const verbSend = g(0.3);
     this.duck.connect(verbSend).connect(conv);
     const harmonyLP = ctx.createBiquadFilter();
@@ -141,9 +146,9 @@ export class AudioEngine implements AudioAPI {
     cr.loop = true;
     const crHp = ctx.createBiquadFilter();
     crHp.type = 'bandpass';
-    crHp.frequency.value = 2500;
+    crHp.frequency.value = 3200;
     crHp.Q.value = 0.4;
-    const crG = g(0.22);
+    const crG = g(0.09);
     cr.connect(crHp).connect(crG).connect(layer.crackle);
     cr.start();
     // tension
@@ -162,6 +167,12 @@ export class AudioEngine implements AudioAPI {
     this.sfxBus.connect(this.sfxVol).connect(this.master);
     this.sfxVerb = g(0.18);
     this.sfxVol.connect(this.sfxVerb).connect(conv);
+    // voices ("Qubblese"): own level, also follows the sfx slider
+    this.voiceVol = g(this.st.vol.voice);
+    this.voiceVol.connect(this.sfxVol);
+    const voiceVerb = g(0.5);
+    voiceVerb.connect(conv);
+    this.babbler = new Babbler(this.kit, this.voiceVol, voiceVerb);
 
     // restore remembered state
     this.seq.scene = this.st.scene;
@@ -256,6 +267,24 @@ export class AudioEngine implements AudioAPI {
       if (b) botBeep(this.kit, this.sfxBus, i, t + i * STRUM, 1.1);
       else botQuiet(this.kit, this.sfxBus, i, t + i * STRUM, 1.2);
     });
+  }
+
+  /** Speech babble: call once per revealed character. Deterministic per text; self-throttled. */
+  voice(who: Speaker, _ch: string, index: number, line: string): void {
+    if (!this.live || !this.babbler || typeof line !== 'string') return;
+    const end = this.babbler.speak(who, index, line);
+    if (!end) return;
+    // gentle duck (-2 dB) while speaking; recovers ~0.4 s after the last syllable
+    const p = this.speechDuck.gain;
+    const now = this.ctx!.currentTime;
+    p.cancelScheduledValues(now);
+    p.setTargetAtTime(0.78, now, 0.05);
+    p.setTargetAtTime(1, end + 0.25, 0.25);
+  }
+
+  setVoiceVolume(v: number): void {
+    this.st.vol.voice = clamp(Number.isFinite(v) ? v : 0.5, 0, 1);
+    if (this.live) this.voiceVol.gain.setTargetAtTime(this.st.vol.voice, this.ctx!.currentTime, 0.05);
   }
 
   setVolumes(v: { master?: number; music?: number; sfx?: number }): void {

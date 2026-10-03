@@ -37,7 +37,7 @@ export class Dialogue {
     this.el.addEventListener('click', (e) => { e.stopPropagation(); this.advance(); });
     this.host.appendChild(this.el);
     if (line.who === 'schrodi') this.onMood?.(line.mood);
-    if (line.who === 'schrodi' && Math.random() < 0.3) audio.sfx('schrodi_meow', { volume: 0.5 });
+    if (!audio.voice && line.who === 'schrodi' && Math.random() < 0.3) audio.sfx('schrodi_meow', { volume: 0.5 });
     this.full = line.text;
     if (prefersReducedMotion()) { text.textContent = line.text; this.typing = false; return; }
     this.typing = true;
@@ -46,7 +46,9 @@ export class Dialogue {
     this.timer = window.setInterval(() => {
       i++;
       text.textContent = this.full.slice(0, i);
-      if (i % 3 === 1 && /\w/.test(this.full[i - 1] ?? '')) audio.sfx('ui_click', { pitch: PITCH[line.who] * (0.9 + Math.random() * 0.2), volume: 0.25 });
+      const ch = this.full[i - 1] ?? '';
+      if (audio.voice) audio.voice(line.who, ch, i - 1, line.text);
+      else if (i % 3 === 1 && /\w/.test(ch)) audio.sfx('ui_click', { pitch: PITCH[line.who] * (0.9 + Math.random() * 0.2), volume: 0.25 });
       if (i >= this.full.length) { clearInterval(this.timer); this.typing = false; }
     }, 22);
   }

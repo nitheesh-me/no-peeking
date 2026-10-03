@@ -191,7 +191,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
 
   function stopRun() {
     runToken++;
-    pb = null; scene.anim = null; scene.peeked.clear(); scene.woke.clear(); scene.mood = null;
+    pb = null; scene.anim = null; scene.peeked.clear(); scene.woke.clear(); scene.mood = null; scene.caretakerMood = null;
     scene.base = initialSnap(); scene.nightTarget = 0; scene.dimTarget = 0;
     editor.setCurrent(null);
     if (!lab && xray !== save.settings.xrayDefault) setXray(save.settings.xrayDefault);
@@ -201,6 +201,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
 
   function playNight(night: NightX, opts: { xray?: boolean; onEnd?: (n: NightX) => void } = {}) {
     const token = ++runToken;
+    scene.caretakerMood = null;
     if (opts.xray != null) setXray(opts.xray);
     audio.setScene(level.lightsOut ? 'lightsout' : 'run');
     pb = new Playback(scene, level, night, progs(), {
@@ -260,6 +261,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
 
   function onFail(n: NightX) {
     fails++; if (story) setProgress(level.id, { fails });
+    scene.caretakerMood = 'facepalm';
     audio.sfx('test_fail');
     if (level.meta?.includes('clone-glitch') && !save.flags['clone-glitch-' + level.id]) {
       save.flags['clone-glitch-' + level.id] = true; persist();
@@ -331,7 +333,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     const stars: [boolean, boolean, boolean] = [true, ch.lines == null || r.lines <= ch.lines, ch.steps == null || r.avgSteps <= ch.steps];
     if (story) setProgress(level.id, { done: true, stars, bestLines: Math.min(r.lines, save.progress[level.id]?.bestLines ?? 1e9), bestSteps: Math.min(r.avgSteps, save.progress[level.id]?.bestSteps ?? 1e9) });
     stopRun();
-    scene.mood = 'happy';
+    scene.mood = 'happy'; scene.caretakerMood = 'cheer';
     audio.sfx('level_win'); audio.setScene('win'); audio.setHarmony(1);
     const c = scene.posOf(level.qubbles[0].id); if (c && art.burst) art.burst('win', c.x, c.y - 30);
     if (scene.lightsOut) { floodColor(); scene.revealColor = 1; }

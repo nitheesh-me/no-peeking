@@ -72,3 +72,18 @@ it in X-ray using its `seed`.
 - QA hook: append `?qa` to the URL to expose `window.__np = { LEVELS, quantum }` for automated playthroughs.
 - Sign text change in Ch4 ("…BUT SHARING IS CARING") is up to level data (signs are drawn from `level.signs`).
 - Settings → "Unlock all levels" is a judge convenience.
+
+## v0.2 additions
+- **Caretaker** (`Scene.caretakerPose/jobFor`): the player avatar performs every card 7BH-style. It tiptoes to the
+  target (p 0→0.3), then performs (contact at p≈0.5, where the snapshot blend, sfx and particles land):
+  BOOP=boop, SHUSH=shush, SPIN=spin, PEEK=peek+flashlight, LISTEN=listen, RESET=press. For a HIGHFIVE with a bot,
+  the bot rolls over and slaps on its own; for qubble→qubble the caretaker stands between them. Rewind snaps the
+  caretaker to the target. It cheers on a win and facepalms on a fail (`scene.caretakerMood`).
+  Uses `art.drawCaretaker` when present (fallback: a simple pyjama kid with an action glyph).
+- **Room**: `art.drawRoom` when present → camera fills the play area, anchored to the bottom (`Scene.resize`).
+  Otherwise the floating-island fit is used.
+- **Dream map** (`screens/map.ts`): canvas night sky with parallax, islands along a winding trail, pulsing current
+  node, a caretaker that tiptoes to newly unlocked nodes (`save.mapAt`), DOM chapter cards, and DOM buttons over the
+  nodes for focus and screen readers. Uses `art.drawMapBackdrop/Island/Node/Path` with fallbacks for each.
+- **Voice**: the dialogue calls `audio.voice(who, ch, i, line)` for every revealed character; Settings → Voices →
+  `audio.setVoiceVolume`. In Lights Out, bot LISTENs play only `botNote` (no listen sfx) so the syndrome chord stays clean.

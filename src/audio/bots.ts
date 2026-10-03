@@ -96,7 +96,7 @@ export function botQuiet(k: Kit, dest: AudioNode, i: number, t: number, vel = 1)
   const v = new Voice(k);
   const out = v.pan(bv.pan, dest);
   const a = v.gain(0, out);
-  const end = perc(a.gain, t, 0.002, 0.07 * vel, 0.045);
+  const end = perc(a.gain, t, 0.002, 0.11 * vel, 0.045);
   const lp = v.filter('lowpass', 900, 0.7, a);
   // fold into a mid register so every tick sits in the same soft "tk" band
   let m = bv.midi;

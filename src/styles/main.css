@@ -568,3 +568,31 @@ button { font-family: inherit; color: inherit; }
 .xray-offer { flex: none; align-self: flex-start; margin-right: 8px; }
 .toolbox .card { font-size: 14px; padding-left: 8px; }
 .prog-list > *, .toolbox > *, .fp-list > * { flex-shrink: 0; }
+
+/* ───────── Dream map (v0.2) ───────── */
+.map-screen { background: #141432; }
+.map-area { position: relative; flex: 1; min-height: 0; overflow: hidden; background: #141432; }
+.map-area canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.map-layer { position: absolute; inset: 0; pointer-events: none; will-change: transform; }
+.map-node-btn {
+  position: absolute; transform: translate(-50%, -50%); pointer-events: auto; border: none; background: transparent;
+  border-radius: 50%; cursor: pointer; padding: 0;
+}
+.map-node-btn[aria-disabled] { cursor: not-allowed; }
+.map-node-btn:focus-visible { outline: 3px solid var(--sunny); outline-offset: 4px; }
+.map-node-btn .tip {
+  position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%); white-space: nowrap;
+  background: var(--paper); color: var(--ink); border: 2px solid var(--ink); border-radius: 10px; padding: 4px 10px;
+  font: 700 13px var(--body); opacity: 0; transition: opacity .15s, transform .15s; pointer-events: none; box-shadow: var(--shadow-sm);
+}
+.map-node-btn:hover .tip, .map-node-btn:focus-visible .tip { opacity: 1; transform: translateX(-50%) translateY(-3px); }
+.map-card {
+  position: absolute; transform: translate(-50%, -100%); text-align: center; color: var(--paper); pointer-events: none;
+  text-shadow: 0 2px 0 rgba(0,0,0,0.45); width: max-content; max-width: 220px;
+}
+.map-card .num { font-family: var(--display); font-size: 12px; color: var(--sunny); letter-spacing: 1px; }
+.map-card .name { font-family: var(--display); font-size: 22px; line-height: 1.1; }
+.map-card .blurb { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+.map-card.locked { opacity: 0.5; }
+.map-banner { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 3; width: min(760px, calc(100% - 24px)); margin: 0; }
+.map-modes { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 3; flex-wrap: wrap; justify-content: center; }

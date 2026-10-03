@@ -48,9 +48,9 @@ export function pad(k: Kit, dest: AudioNode, t: number, midi: number, dur: numbe
   const amp = v.gain(0, dest);
   const end = asr(amp.gain, t, 0.9, 0.05 * vel, t + dur, 1.4);
   const a = v.osc('triangle', f, t, end, amp, true);
-  a.detune.value = -6 + detuneCents;
+  a.detune.value = -4 + detuneCents;
   const b = v.osc('triangle', f, t, end, amp, true);
-  b.detune.value = 6 + detuneCents;
+  b.detune.value = 4 + detuneCents;
 }
 
 /** Round soft bass: sine + octave triangle (so laptops hear it) through a lowpass pluck. */

@@ -160,7 +160,7 @@ export function makeNoise(ctx: BaseAudioContext, seconds = 2): AudioBuffer {
 }
 
 /** Warm, slightly dark stereo room/plate impulse with a little pre-delay. */
-export function makeImpulse(ctx: BaseAudioContext, seconds = 2.6, decay = 3.2): AudioBuffer {
+export function makeImpulse(ctx: BaseAudioContext, seconds = 2.0, decay = 3.6): AudioBuffer {
   const sr = ctx.sampleRate;
   const len = Math.floor(sr * seconds);
   const pre = Math.floor(sr * 0.018);
@@ -171,7 +171,7 @@ export function makeImpulse(ctx: BaseAudioContext, seconds = 2.6, decay = 3.2): 
     for (let i = pre; i < len; i++) {
       const x = (i - pre) / (len - pre);
       // one-pole lowpass that closes over time → darker tail
-      const k = 0.55 - 0.45 * x;
+      const k = 0.75 - 0.4 * x; // brighter, airier tail
       lp += k * (Math.random() * 2 - 1 - lp);
       d[i] = lp * Math.pow(1 - x, decay) * 0.9;
     }
@@ -193,12 +193,12 @@ export function makeCrackle(ctx: BaseAudioContext, seconds = 6): AudioBuffer {
   let lp = 0;
   for (let i = 0; i < len; i++) {
     lp += 0.08 * (Math.random() * 2 - 1 - lp);
-    d[i] = lp * 0.12;
+    d[i] = lp * 0.04; // very little hiss
   }
-  const clicks = Math.floor(seconds * 9);
+  const clicks = Math.floor(seconds * 5);
   for (let c = 0; c < clicks; c++) {
     const at = Math.floor(Math.random() * (len - 200));
-    const big = Math.random() < 0.08;
+    const big = Math.random() < 0.03;
     const amp = (big ? rand(0.5, 0.9) : rand(0.08, 0.35)) * (Math.random() < 0.5 ? -1 : 1);
     const width = big ? 60 : Math.floor(rand(3, 14));
     for (let j = 0; j < width; j++) d[at + j] += amp * Math.exp(-j / (width / 3)) * (j % 2 ? -0.6 : 1);

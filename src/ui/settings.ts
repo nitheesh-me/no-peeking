@@ -6,11 +6,11 @@ import { applySettings, nav } from './app';
 
 export function openSettings(): void {
   const s = save.settings;
-  const slider = (label: string, key: 'master' | 'music' | 'sfx') => {
+  const slider = (label: string, key: 'master' | 'music' | 'sfx' | 'voice') => {
     const out = h('span', null, `${Math.round(s[key] * 100)}`);
     const inp = h('input', { type: 'range', min: 0, max: 100, value: Math.round(s[key] * 100), 'aria-label': label }) as HTMLInputElement;
     inp.addEventListener('input', () => { s[key] = +inp.value / 100; out.textContent = inp.value; applySettings(); });
-    inp.addEventListener('change', () => audio.sfx('ui_click'));
+    inp.addEventListener('change', () => { if (key === 'voice' && audio.voice) { const l = 'Hello, caretaker.'; [...l].forEach((c, i) => setTimeout(() => audio.voice?.('schrodi', c, i, l), i * 30)); } else audio.sfx('ui_click'); });
     return h('div', { class: 'setting' }, h('span', null, label), inp, out);
   };
   const toggle = (label: string, sub: string, key: 'nerd' | 'reducedMotion' | 'xrayDefault') => {
@@ -22,7 +22,7 @@ export function openSettings(): void {
   let close = () => {};
   const body = h('div', null,
     h('h2', null, 'Settings'),
-    slider('Master', 'master'), slider('Music', 'music'), slider('Sounds', 'sfx'),
+    slider('Master', 'master'), slider('Music', 'music'), slider('Sounds', 'sfx'), slider('Voices', 'voice'),
     toggle('Nerd mode', 'X-ray also shows amplitudes, kets and ⟨Z⟩ numbers', 'nerd'),
     toggle('X-ray on by default', 'for replays and the curious (spoils the blanket!)', 'xrayDefault'),
     toggle('Reduced motion', 'fewer wiggles and shakes', 'reducedMotion'),

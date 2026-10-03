@@ -2,7 +2,7 @@
  * Isometric scene renderer. Draws the daycare for one level from a "view" that the Playback
  * controller updates every frame (snapshot blend, the current event animation, x-ray, night).
  */
-import type { LevelDef, Snapshot, QubitId, TraceEvent, Bloch, IsoFn, QubbleVisual, BotVisual, DialogueLine, ErrorEvent } from '../core/contracts';
+import type { LevelDef, Snapshot, QubitId, TraceEvent, Bloch, IsoFn, QubbleVisual, BotVisual, DialogueLine, ErrorEvent, CaretakerVisual } from '../core/contracts';
 import { isBot, isQubble } from '../core/contracts';
 import { art } from './deps';
 import { clamp, lerp, smooth, hump } from './util';
@@ -46,6 +46,12 @@ export class Scene {
   shake = 0;
   signShake = new Map<string, number>();
   showSchrodi = true;
+  /** caretaker (player avatar) state */
+  caretakerMood: 'cheer' | 'facepalm' | null = null;
+  private ctAt: Pt | null = null;
+  private ctFrom: Pt | null = null;
+  private ctAnim: StepAnim | null = null;
+  get room(): boolean { return typeof art.drawRoom === 'function'; }
   private screenPos = new Map<QubitId, { x: number; y: number }>();
   private ro: ResizeObserver;
   private silCanvas = document.createElement('canvas');
@@ -77,7 +83,19 @@ export class Scene {
     this.w = Math.max(1, r.width); this.h = Math.max(1, r.height);
     const W = Math.round(this.w * this.dpr), H = Math.round(this.h * this.dpr);
     if (this.canvas.width !== W || this.canvas.height !== H) { this.canvas.width = W; this.canvas.height = H; }
-    // fit the whole island (floor + border margin + Schrödi on the left + headroom for signs + the underside)
+    if (this.room) {
+      // grounded room: floor + back walls; fill the play area, anchored to the bottom
+      const m = 0.3, c = this.cols, rw = this.rows, WALL = 150;
+      const minX = -(rw + m) * 48, maxX = (c + m) * 48;
+      const minY = -m * 24 - WALL, maxY = (c + rw + m) * 24 + 22;
+      this.s = clamp(Math.min((this.w * 1.04) / (maxX - minX), (this.h - 6) / (maxY - minY)), 0.35, 1.8);
+      this.TW = 96 * this.s; this.TH = 48 * this.s;
+      this.ox = this.w / 2 - this.s * (minX + maxX) / 2;
+      this.oy = this.h - 6 - this.s * maxY;
+      this.ctAt = null;
+      return;
+    }
+    // fallback: floating island (floor + border margin + Schrödi on the left + headroom for signs + underside)
     const m = 0.5, c = this.cols, rw = this.rows;
     const minX = -(rw + m) * 48 - (this.showSchrodi ? 46 : 12), maxX = (c + m) * 48 + 14;
     const minY = -m * 48 - 125, maxY = (c + rw + m) * 24 + 36 + 80;
@@ -85,6 +103,7 @@ export class Scene {
     this.TW = 96 * this.s; this.TH = 48 * this.s;
     this.ox = this.w / 2 - this.s * (minX + maxX) / 2;
     this.oy = this.h / 2 - this.s * (minY + maxY) / 2;
+    this.ctAt = null;
   }
 
   /** Screen position (CSS px) of a creature's ground point. */
@@ -112,10 +131,10 @@ export class Scene {
     const f = a.from.bloch[id] ?? zero, t = a.to.bloch[id] ?? zero;
     let k: number;
     const ev = a.ev;
-    if (ev.k === 'measure' || (ev.k === 'gate' && ev.op === 'RESET')) k = a.p >= 0.45 ? 1 : 0;           // collapse is sudden
+    if (ev.k === 'measure' || (ev.k === 'gate' && ev.op === 'RESET')) k = a.p >= 0.5 ? 1 : 0;           // collapse is sudden, at contact
     else if (ev.k === 'gate' && ev.op === 'HIGHFIVE') k = smooth((a.p - 0.42) / 0.2);
     else if (ev.k === 'noise') k = smooth((a.p - 0.45) / 0.2);
-    else k = smooth((a.p - 0.25) / 0.5);
+    else k = smooth((a.p - 0.48) / 0.2);
     return { x: lerp(f.x, t.x, k), y: lerp(f.y, t.y, k), z: lerp(f.z, t.z, k) };
   }
 
@@ -159,6 +178,65 @@ export class Scene {
     return { pt: home, action, facing };
   }
 
+  /** Where the caretaker stands to work on a creature: just in front of it. */
+  private standAt(id: QubitId): Pt { const p = this.place(id); return { gx: p.gx + 0.62, gy: p.gy + 0.18 }; }
+
+  private jobFor(ev: TraceEvent): { dest: Pt; action: CaretakerVisual['action']; flashlight?: boolean } | null {
+    if (ev.k === 'gate') {
+      if (ev.op === 'HIGHFIVE') {
+        if (ev.from && !isBot(ev.from) && !isBot(ev.t)) {
+          const a = this.place(ev.from), b = this.place(ev.t);
+          return { dest: { gx: (a.gx + b.gx) / 2 + 0.35, gy: (a.gy + b.gy) / 2 + 0.35 }, action: 'boop' };
+        }
+        return null; // the bot rolls over and slaps on its own
+      }
+      const action = ({ BOOP: 'boop', SHUSH: 'shush', SPIN: 'spin', RESET: 'press' } as const)[ev.op];
+      return { dest: this.standAt(ev.t), action };
+    }
+    if (ev.k === 'measure') return isBot(ev.t) ? { dest: this.standAt(ev.t), action: 'listen' } : { dest: this.standAt(ev.t), action: 'peek', flashlight: true };
+    return null;
+  }
+
+  /** 7BH-style choreography: tiptoe to the target (p 0→0.3), then perform (contact at p≈0.5). Rewind just snaps. */
+  private caretakerPose(): { pt: Pt; v: CaretakerVisual } {
+    const home = { gx: this.cols / 2, gy: this.rows - 0.45 };
+    if (!this.ctAt) this.ctAt = home;
+    const a = this.anim;
+    if (a !== this.ctAnim) { this.ctAnim = a; this.ctFrom = this.ctAt; }
+    const job = a ? this.jobFor(a.ev) : null;
+    const facingTo = (from: Pt, to: Pt): -1 | 1 => ((to.gx - to.gy) - (from.gx - from.gy) >= 0 ? 1 : -1);
+    if (!a || !job) {
+      const action: CaretakerVisual['action'] = this.caretakerMood ?? (this.mood === 'happy' ? 'cheer' : a?.ev.k === 'noise' ? 'yawn' : 'idle');
+      return { pt: this.ctAt, v: { action, phase: (this.lastT * 0.8) % 1, facing: -1 } };
+    }
+    if (a.dir === -1) { this.ctAt = job.dest; return { pt: job.dest, v: { action: 'idle', phase: 0, facing: -1 } }; }
+    const from = this.ctFrom ?? this.ctAt, p = a.p;
+    const far = Math.hypot(job.dest.gx - from.gx, job.dest.gy - from.gy) > 0.05;
+    if (p < 0.3 && far) {
+      const k = smooth(p / 0.3);
+      return { pt: { gx: lerp(from.gx, job.dest.gx, k), gy: lerp(from.gy, job.dest.gy, k) }, v: { action: 'tiptoe', phase: (p / 0.3) % 1, facing: facingTo(from, job.dest) } };
+    }
+    this.ctAt = job.dest;
+    return { pt: job.dest, v: { action: job.action, phase: clamp((p - 0.3) / 0.4), facing: -1, flashlight: job.flashlight } };
+  }
+
+  private drawCaretaker(x: number, y: number, v: CaretakerVisual, t: number): void {
+    if (art.drawCaretaker) { art.drawCaretaker(this.ctx, x, y, this.s, v, t); return; }
+    // fallback: a little pyjama kid with a nightcap + an action glyph
+    const { ctx, s } = this, f = v.facing;
+    const hop = v.action === 'tiptoe' ? Math.abs(Math.sin(v.phase * Math.PI * 2)) * 4 * s : v.action === 'cheer' ? Math.abs(Math.sin(t * 8)) * 8 * s : 0;
+    ctx.save(); ctx.translate(x, y - hop);
+    ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.beginPath(); ctx.ellipse(0, hop, 13 * s, 5 * s, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.lineWidth = 2.2 * s; ctx.strokeStyle = '#0e0e0e';
+    ctx.fillStyle = '#9fb8ff'; ctx.beginPath(); ctx.roundRect(-10 * s, -34 * s, 20 * s, 32 * s, 9 * s); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#ffe2c6'; ctx.beginPath(); ctx.arc(0, -44 * s, 11 * s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fe443d'; ctx.beginPath(); ctx.moveTo(-11 * s, -48 * s); ctx.quadraticCurveTo(f * 4 * s, -70 * s, f * 16 * s, -60 * s); ctx.lineTo(11 * s, -49 * s); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#0e0e0e'; ctx.beginPath(); ctx.arc(f * 4 * s, -44 * s, 1.6 * s, 0, Math.PI * 2); ctx.arc(f * 9 * s, -44 * s, 1.6 * s, 0, Math.PI * 2); ctx.fill();
+    const glyph = ({ boop: '👉', shush: '🤫', spin: '🌀', peek: '🔦', listen: '👂', press: '🔘', cheer: '🎉', facepalm: '🤦', yawn: '🥱' } as Record<string, string>)[v.action];
+    if (glyph) { ctx.font = `${16 * s}px sans-serif`; ctx.textAlign = 'center'; ctx.globalAlpha = v.action === 'cheer' || v.action === 'facepalm' || v.action === 'yawn' ? 1 : hump(v.phase); ctx.fillText(glyph, f * 16 * s, -30 * s); }
+    ctx.restore();
+  }
+
   burstAt(kind: Parameters<NonNullable<typeof art.burst>>[0], id: QubitId): void {
     const p = this.screenPos.get(id);
     if (p && art.burst) art.burst(kind, p.x, p.y - 26 * this.s);
@@ -177,8 +255,11 @@ export class Scene {
     ctx.save();
     if (this.shake > 0.3) ctx.translate((Math.random() - 0.5) * this.shake, (Math.random() - 0.5) * this.shake);
 
-    art.drawBackground(ctx, this.w, this.h, t, this.night);
-    art.drawFloor(ctx, this.cols, this.rows, this.iso, t, this.night);
+    if (art.drawRoom) art.drawRoom(ctx, this.cols, this.rows, this.iso, t, this.night);
+    else {
+      art.drawBackground(ctx, this.w, this.h, t, this.night);
+      art.drawFloor(ctx, this.cols, this.rows, this.iso, t, this.night);
+    }
 
     for (const sg of this.level.signs ?? []) {
       const p = this.iso(sg.x + 0.5, sg.y + 0.5);
@@ -199,7 +280,7 @@ export class Scene {
       const bloch = this.blochOf(q.id);
       const peeked = this.peeked.has(q.id);
       let blanket = peeked ? 0 : lerp(1, 0.25, xr);
-      if (this.anim?.ev.k === 'measure' && this.anim.ev.t === q.id) blanket = Math.min(blanket, this.anim.p > 0.3 ? 0 : 1 - this.anim.p / 0.3);
+      if (this.anim?.ev.k === 'measure' && this.anim.ev.t === q.id) blanket = Math.min(blanket, this.anim.p > 0.5 ? 0 : 1 - smooth((this.anim.p - 0.35) / 0.15));
       let state: QubbleVisual['state'] = this.woke.has(q.id) ? 'awake-grumpy' : this.mood ?? 'sleep';
       const a = this.anim;
       if (a?.ev.k === 'noise' && a.ev.e.t === q.id && a.p > 0.45 && a.p < 0.9) state = 'scared';
@@ -248,8 +329,13 @@ export class Scene {
         ctx.save(); ctx.globalAlpha = clamp(xr * 1.2); art.drawGremlin(ctx, g.x, g.y, s, g.kind, g.pose, t); ctx.restore();
       } });
     }
+    {
+      const ct = this.caretakerPose();
+      const sp = this.iso(ct.pt.gx, ct.pt.gy);
+      ds.push({ depth: ct.pt.gx + ct.pt.gy + 0.02, fn: () => this.drawCaretaker(sp.x, sp.y, ct.v, t) });
+    }
     if (this.showSchrodi) {
-      const sp = this.iso(-0.35, this.rows - 0.6);
+      const sp = this.room ? this.iso(0.4, this.rows - 0.4) : this.iso(-0.35, this.rows - 0.6);
       ds.push({ depth: this.rows, fn: () => art.drawSchrodi(ctx, sp.x, sp.y, s * 0.95, this.schrodiMood, t) });
     }
 

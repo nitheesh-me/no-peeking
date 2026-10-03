@@ -2,7 +2,7 @@
  * Adaptive lo-fi lullaby: lookahead sequencer, scenes, physics-driven harmony and tension.
  *
  * Key F major, 84 BPM, swung 8ths (swing 0.62). 8-bar progression:
- *   | Fmaj9 | Dm9 | Gm9 | C9sus | Fmaj9 | Bbmaj9 | Am7 | Gm7  C9 |
+ *   | Fmaj9 | Bbmaj9 | Gm9 | C9sus C9 | Fmaj9 | Bbmaj9 | Am7 | Gm7  C9 |   (sunny I–IV–ii–V, AC daytime)
  * The theme ("No Peeking" motif) is an 8-bar music-box melody over that loop.
  */
 import type { MusicScene } from '../core/contracts';
@@ -27,9 +27,9 @@ const C = (at: number, len: number, bass: number, third: number, voicing: number
 
 export const PROGRESSION: Chord[][] = [
   [C(0, 8, 41, 4, [57, 60, 64, 67])], // Fmaj9   A3 C4 E4 G4
-  [C(0, 8, 38, 3, [53, 57, 60, 64])], // Dm9     F3 A3 C4 E4
+  [C(0, 8, 46, 4, [57, 60, 62, 65])], // Bbmaj9  A3 C4 D4 F4 (bright IV)
   [C(0, 8, 43, 3, [53, 57, 58, 62])], // Gm9     F3 A3 Bb3 D4
-  [C(0, 8, 36, 5, [58, 62, 65, 67])], // C9sus4  Bb3 D4 F4 G4
+  [C(0, 4, 36, 5, [58, 62, 65, 67]), C(4, 4, 36, 4, [58, 62, 64, 67])], // C9sus4 → C9 (resolves sweetly)
   [C(0, 8, 41, 4, [57, 60, 64, 67])], // Fmaj9
   [C(0, 8, 46, 4, [57, 60, 62, 65])], // Bbmaj9  A3 C4 D4 F4
   [C(0, 8, 45, 3, [55, 60, 64, 69])], // Am7     G3 C4 E4 A4
@@ -74,13 +74,13 @@ interface SceneCfg {
 const G = (pad: number, ep: number, bass: number, drums: number, lead: number, crackle: number, clock: number, arp: number): Record<Layer, number> => ({ pad, ep, bass, drums, lead, crackle, clock, arp });
 
 export const SCENES: Record<MusicScene, SceneCfg> = {
-  title: { gain: G(1, 0.45, 0, 0, 1, 0.8, 0, 0), bass: 'none', drums: 'none', lead: 'theme', ep: 'hold', verb: 0.5, lpMax: 6000 },
-  map: { gain: G(0.55, 1, 1, 1, 0.9, 1, 0, 0), bass: 'roots', drums: 'full', lead: 'half', ep: 'comp', verb: 0.28, lpMax: 7000 },
-  build: { gain: G(0.5, 0.85, 0.9, 0.7, 0.75, 1, 0, 0), bass: 'roots', drums: 'soft', lead: 'sparse', ep: 'comp', verb: 0.3, lpMax: 6000 },
+  title: { gain: G(1, 0.45, 0, 0, 1, 0.8, 0, 0), bass: 'none', drums: 'none', lead: 'theme', ep: 'hold', verb: 0.32, lpMax: 7500 },
+  map: { gain: G(0.55, 1, 1, 1, 0.9, 1, 0, 0), bass: 'roots', drums: 'full', lead: 'half', ep: 'comp', verb: 0.22, lpMax: 8000 },
+  build: { gain: G(0.5, 0.85, 0.9, 0.7, 0.75, 1, 0, 0), bass: 'roots', drums: 'soft', lead: 'sparse', ep: 'comp', verb: 0.22, lpMax: 7500 },
   run: { gain: G(0.4, 0.8, 1, 0.85, 0, 0.8, 1, 0), bass: 'walk', drums: 'full', lead: 'none', ep: 'comp', verb: 0.25, lpMax: 7000 },
   win: { gain: G(0.7, 1, 1, 0.9, 1.1, 1, 0, 0), bass: 'roots', drums: 'soft', lead: 'theme', ep: 'comp', verb: 0.4, lpMax: 8000 },
-  lightsout: { gain: G(0.75, 0.4, 0.45, 0, 0, 0.35, 0, 0), bass: 'pedal', drums: 'none', lead: 'none', ep: 'hold', verb: 0.9, lpMax: 1800 },
-  lab: { gain: G(0.35, 0, 0.5, 0.5, 0, 0.7, 0, 1), bass: 'pedal', drums: 'hats', lead: 'none', ep: 'none', verb: 0.4, lpMax: 6000 },
+  lightsout: { gain: G(0.75, 0.45, 0.45, 0, 0, 0.25, 0, 0), bass: 'pedal', drums: 'none', lead: 'none', ep: 'hold', verb: 0.6, lpMax: 2600 },
+  lab: { gain: G(0.35, 0, 0.5, 0.5, 0, 0.7, 0, 1), bass: 'pedal', drums: 'hats', lead: 'none', ep: 'none', verb: 0.3, lpMax: 7500 },
   credits: { gain: G(0.6, 1, 1, 1, 1.15, 1, 0, 0), bass: 'roots', drums: 'full', lead: 'credits', ep: 'comp', verb: 0.4, lpMax: 8000 },
 };
 
@@ -108,8 +108,14 @@ export class Sequencer {
   private nextT = 0;
   private sting = -1; // ≥0 while the win sting plays
   private winPending = false;
-  harmony = 1; // smoothed by params; raw value used at note time
-  tension = 0;
+  harmony = 1; // EFFECTIVE value (1 outside run/lightsout)
+  tension = 0; // EFFECTIVE value (0 outside run/lightsout)
+  private rawHarmony = 1;
+  private rawTension = 0;
+  /** Physics-driven dissonance & gremlin tension only colour the night scenes; daytime is always cosy. */
+  private get night(): boolean {
+    return this.scene === 'run' || this.scene === 'lightsout';
+  }
   running = false;
 
   constructor(private k: Kit, private bus: MusicBus) {}
@@ -136,21 +142,24 @@ export class Sequencer {
   }
 
   setHarmony(f: number, now: number): void {
-    this.harmony = clamp(f, 0, 1);
+    this.rawHarmony = clamp(f, 0, 1);
+    // dead zone: tiny fidelity loss (numerics, 0.97) stays fully consonant
+    this.harmony = this.night ? clamp((this.rawHarmony - 0.05) / 0.9, 0, 1) : 1;
     const dis = 1 - this.harmony;
     const cfg = SCENES[this.scene];
     // lowpass closes as fidelity drops: lpMax → ~650 Hz (exponential)
-    const cut = 650 * Math.pow(cfg.lpMax / 650, this.harmony * this.harmony);
+    const cut = 1300 * Math.pow(cfg.lpMax / 1300, this.harmony);
     this.bus.harmonyLP.frequency.setTargetAtTime(cut, now, 0.25);
-    this.bus.harmonyLP.Q.setTargetAtTime(0.7 + dis * 3, now, 0.25);
+    this.bus.harmonyLP.Q.setTargetAtTime(0.7 + dis * 1.5, now, 0.25);
     // pitch wobble in cents (seasick but cute)
-    this.bus.wobbleDepth.gain.setTargetAtTime(2 + 38 * Math.pow(dis, 1.2), now, 0.25);
+    this.bus.wobbleDepth.gain.setTargetAtTime(16 * Math.pow(dis, 1.5), now, 0.25);
   }
 
   setTension(v: number, now: number): void {
-    this.tension = clamp(v, 0, 1);
+    this.rawTension = clamp(v, 0, 1);
+    this.tension = this.night ? this.rawTension : 0;
     this.bus.tension.gain.setTargetAtTime(this.tension, now, 0.4);
-    this.bus.droneGain.gain.setTargetAtTime(this.tension * 0.09, now, 0.8);
+    this.bus.droneGain.gain.setTargetAtTime(this.tension * 0.035, now, 0.8);
   }
 
   /** Schedule every step that starts before `until` (seconds, ctx time). */
@@ -173,7 +182,7 @@ export class Sequencer {
           this.sting++;
           if (this.sting >= STING_CHORDS.length) {
             this.sting = -1;
-            this.prog = 1; // Fmaj9 (sting) → Dm9
+            this.prog = 1; // Fmaj9 (sting) → Bbmaj9
             this.pending = this.pending ?? 'build';
           }
         } else {
@@ -192,7 +201,8 @@ export class Sequencer {
       p.setTargetAtTime(cfg.gain[l], t, tc);
     }
     this.bus.verbSend.gain.setTargetAtTime(cfg.verb, t, tc);
-    this.setHarmony(this.harmony, t);
+    this.setHarmony(this.rawHarmony, t);
+    this.setTension(this.rawTension, t);
   }
 
   private beginBar(t: number): void {
@@ -241,7 +251,7 @@ export class Sequencer {
     if (segStart && this.cfgFor('pad').gain.pad > 0) {
       const dur = chord.len * stepDur;
       for (const m of [chord.bass + 12, chord.voicing[0] + 12, chord.voicing[2] + 12]) {
-        I.pad(this.k, L.pad, t, m, dur, 1, rand(-1, 1) * dis * 25);
+        I.pad(this.k, L.pad, t, m, dur, 1, rand(-1, 1) * dis * 12);
       }
     }
 
@@ -280,12 +290,12 @@ export class Sequencer {
     // ── tension layer: heartbeat + sneaky pizzicato (only when gremlins are around)
     if (this.tension > 0.02) {
       const T = this.bus.tension;
-      if (step === 0 || (step === 4 && this.tension > 0.45)) I.heartbeat(this.k, T, t0, 0.6 + 0.4 * this.tension);
+      if (this.tension > 0.35 && step === 0) I.heartbeat(this.k, T, t0, 0.35 + 0.3 * this.tension);
       if (this.tension > 0.15) {
-        const crawl = [48, 49, 50, 49, 51, 50, 49, 47];
+        const crawl = [60, 62, 63, 64, 65, 64, 63, 62]; // tiptoe C4–F4 (cartoon sneak, not horror)
         const pat = [1, 3, 6]; // offbeat tiptoes
         if (pat.includes(step) || (this.tension > 0.6 && step === 5)) {
-          const m = crawl[(this.bar * 3 + step) % crawl.length] + (step === 6 ? 12 : 0);
+          const m = crawl[(this.bar * 3 + step) % crawl.length] - (step === 6 ? 12 : 0);
           I.pizz(this.k, T, t, m, rand(0.7, 1), step % 2 ? 0.5 : -0.5);
         }
       }
@@ -297,14 +307,14 @@ export class Sequencer {
     const v = vel * (soft ? 0.75 : 1);
     chord.voicing.forEach((m, i) => {
       // tiny strum + per-voice sour detune as fidelity drops
-      const det = rand(-1, 1) * dis * 22;
+      const det = rand(-1, 1) * dis * 10;
       I.ep(this.k, L, t + i * 0.012, m, dur, v * rand(0.88, 1.05), (i - 1.5) * 0.25, det);
     });
     // lush shimmer at high fidelity
     if (this.harmony > 0.85) I.ep(this.k, L, t + 0.05, chord.voicing[3] + 12, dur, v * 0.35 * (this.harmony - 0.85) / 0.15, 0.4);
     // dissonance creeps in as fidelity drops: b9 first, then the tritone
-    if (dis > 0.25) I.ep(this.k, L, t + 0.03, chord.bass + 25, dur, v * Math.min(1, (dis - 0.25) / 0.5) * 0.75, -0.3, rand(-15, 15) * dis);
-    if (dis > 0.5) I.ep(this.k, L, t + 0.045, chord.bass + 18, dur, v * Math.min(1, (dis - 0.5) / 0.4) * 0.7, 0.3, rand(-20, 20) * dis);
+    if (dis > 0.35) I.ep(this.k, L, t + 0.03, chord.bass + 25, dur, v * Math.min(1, (dis - 0.35) / 0.5) * 0.4, -0.3, rand(-8, 8) * dis);
+    if (dis > 0.65) I.ep(this.k, L, t + 0.045, chord.bass + 18, dur, v * Math.min(1, (dis - 0.65) / 0.35) * 0.35, 0.3, rand(-10, 10) * dis);
   }
 
   private bassStep(mode: SceneCfg['bass'], chord: Chord, step: number, t: number, sd: number): void {
@@ -379,7 +389,7 @@ export class Sequencer {
   }
 }
 
-/** Persistent tension drone: C2/Db2 beating through a breathing lowpass (dominant + b9 rub). */
+/** Persistent tension drone: soft open fifth C2/G2/C3 through a breathing lowpass (mysterious, not scary). */
 export function buildDrone(ctx: BaseAudioContext, dest: AudioNode): void {
   const lp = ctx.createBiquadFilter();
   lp.type = 'lowpass';
@@ -392,7 +402,7 @@ export function buildDrone(ctx: BaseAudioContext, dest: AudioNode): void {
   lfoG.gain.value = 140;
   lfo.connect(lfoG).connect(lp.frequency);
   lfo.start();
-  for (const m of [36, 37, 48]) {
+  for (const m of [36, 43, 48]) {
     const o = ctx.createOscillator();
     o.type = 'sawtooth';
     o.frequency.value = mtof(m);

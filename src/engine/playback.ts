@@ -20,8 +20,8 @@ const DUR = (ev: TraceEvent): number => {
   switch (ev.k) {
     case 'line': return 0.14;
     case 'phase': return ev.phase === 'night' ? 1.0 : 0.7;
-    case 'gate': return ev.op === 'HIGHFIVE' ? 1.15 : 0.65;
-    case 'measure': return 0.85;
+    case 'gate': return ev.op === 'HIGHFIVE' ? 1.15 : 1.0;
+    case 'measure': return 1.05;
     case 'noise': return 1.7;
     case 'jump': return ev.taken ? 0.4 : 0.22;
     case 'end': return 0.3;
@@ -135,7 +135,7 @@ export class Playback {
       }
       case 'measure': {
         if (isBot(ev.t)) {
-          audio.sfx(ev.result ? 'listen_beep' : 'listen_quiet');
+          if (!(this.level.lightsOut || this.level.meta?.includes('lights-out'))) audio.sfx(ev.result ? 'listen_beep' : 'listen_quiet');
           audio.botNote(this.level.bots.findIndex((b) => b.id === ev.t), ev.result);
         } else {
           sc.peeked.add(ev.t);
@@ -212,7 +212,7 @@ export class Playback {
     const ev = this.night.steps[c.idx].ev;
     const d = DUR(ev);
     c.p += (c.dir * dt * sp) / d;
-    if (c.dir === 1 && !c.fired && c.p >= 0.45) { c.fired = true; this.impact(ev); }
+    if (c.dir === 1 && !c.fired && c.p >= (ev.k === 'gate' && ev.op === 'HIGHFIVE' ? 0.45 : 0.5)) { c.fired = true; this.impact(ev); }
     this.scene.anim!.p = Math.max(0, Math.min(1, c.p));
     if (c.dir === 1 && c.p >= 1) {
       this.cur = null; this.scene.anim = null; this.i = c.idx + 1;

@@ -5,7 +5,7 @@
 import type { Program } from '../core/contracts';
 
 export interface Settings {
-  master: number; music: number; sfx: number;
+  master: number; music: number; sfx: number; voice: number;
   nerd: boolean; reducedMotion: boolean; xrayDefault: boolean;
 }
 export interface LevelProgress { done: boolean; stars: [boolean, boolean, boolean]; bestLines?: number; bestSteps?: number; fails?: number }
@@ -16,6 +16,8 @@ export interface SaveData {
   settings: Settings;
   flags: Record<string, boolean>;
   endlessBest: Record<string, number>;
+  /** level id where the map caretaker stands */
+  mapAt?: string;
 }
 
 const KEYS = ['np.save.a', 'np.save.b', 'np.save.c'];
@@ -23,7 +25,7 @@ const defaults = (): SaveData => ({
   v: 1,
   progress: {},
   programs: {},
-  settings: { master: 0.8, music: 0.6, sfx: 0.8, nerd: false, reducedMotion: false, xrayDefault: false },
+  settings: { master: 0.8, music: 0.6, sfx: 0.8, voice: 0.5, nerd: false, reducedMotion: false, xrayDefault: false },
   flags: {},
   endlessBest: {},
 });

@@ -53,6 +53,28 @@ for (const bits of [[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 1], [0, 0, 1], [1, 1
 });
 for (const s of SFX_NAMES) btn('sfx', s, () => audio.sfx(s, { pan: Math.random() * 0.6 - 0.3 }));
 
+// ───────── voices
+const WHO = ['schrodi', 'flipper', 'phasey', 'wobbles', 'qubble', 'eye', 'system'] as const;
+for (const w of WHO) {
+  const o = document.createElement('option');
+  o.value = o.textContent = w;
+  $('who').appendChild(o);
+}
+let typing: ReturnType<typeof setInterval> | null = null;
+$('say').onclick = () => {
+  void audio.unlock();
+  const who = ($('who') as HTMLSelectElement).value as (typeof WHO)[number];
+  const line = ($('line') as HTMLInputElement).value;
+  if (typing) clearInterval(typing);
+  let i = 0;
+  typing = setInterval(() => {
+    if (i >= line.length) return void clearInterval(typing!);
+    audio.voice(who, line[i], i, line);
+    i++;
+  }, 1000 / 35);
+};
+slider('vvoice', '', (v) => audio.setVoiceVolume(v));
+
 // ───────── offline measurement (also driven headlessly) ─────────
 interface Stats { name: string; peakDb: number; rmsDb: number; clipped: number }
 function stats(name: string, buf: AudioBuffer): Stats {
@@ -93,6 +115,18 @@ export async function renderSfx(fn: (e: AudioEngine) => void, name: string, secs
   return stats(name, buf);
 }
 
+/** Typewriter simulation on an offline context: suspend/resume at each char time. */
+function speakOffline(e: AudioEngine, who: (typeof WHO)[number], line: string): void {
+  const ctx = e.ctx as OfflineAudioContext;
+  for (let i = 0; i < line.length; i++) {
+    const t = 0.1 + i / 35;
+    void ctx.suspend(Math.round(t * 1000) / 1000).then(() => {
+      e.voice(who, line[i], i, line);
+      void ctx.resume();
+    });
+  }
+}
+
 export async function measureAll(): Promise<Stats[]> {
   const out: Stats[] = [];
   for (const s of SCENES) out.push(await renderScene(s, 12));
@@ -101,6 +135,7 @@ export async function measureAll(): Promise<Stats[]> {
   for (const s of SFX_NAMES) out.push(await renderSfx((e) => e.sfx(s), `sfx:${s}`));
   for (const b of [[0, 0], [1, 0], [1, 1], [0, 1]] as (0 | 1)[][]) out.push(await renderSfx((e) => e.syndromeChord(b), `syn:${b.join('')}`));
   out.push(await renderSfx((e) => e.syndromeChord([1, 1, 1, 1, 1, 1, 1, 1]), 'syn:11111111'));
+  for (const w of WHO) out.push(await renderSfx((e) => speakOffline(e, w, 'Psst! Did you peek? You did... Tsk.'), `voice:${w}`, 3));
   return out;
 }
 

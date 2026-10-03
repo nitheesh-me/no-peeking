@@ -22,7 +22,7 @@ export const nav: Nav = {
     cleanup = undefined;
     const app = document.getElementById('app')!;
     app.innerHTML = '';
-    document.querySelectorAll('.popover, .modal-back, .card.ghost, .toast, .clone-glitch').forEach((n) => n.remove());
+    document.querySelectorAll('.popover, .modal-back, .card.ghost, .toast, .clone-glitch, .flood').forEach((n) => n.remove());
     const fn = registry.get(name);
     if (!fn) throw new Error(`no screen ${name}`);
     const root = document.createElement('div');
@@ -38,6 +38,7 @@ export const nav: Nav = {
 export function applySettings(): void {
   const s = save.settings;
   audio.setVolumes({ master: s.master, music: s.music, sfx: s.sfx });
+  audio.setVoiceVolume?.(s.voice);
   document.documentElement.classList.toggle('reduced', s.reducedMotion);
   persist();
 }
