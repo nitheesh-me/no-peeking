@@ -1,6 +1,6 @@
 // World layers: floating-island daycare floor, sky, silk threads, wall signs.
 import { PALETTE, type IsoFn } from '../core/contracts';
-import { type Ctx, type RGB, TAU, INK, hex, mix, rgba, clamp, hash, circle, ellipse, roundRect, inkStroke, starPath } from './util';
+import { type Ctx, type RGB, TAU, INK, hex, mix, rgba, clamp, hash, circle, ellipse, roundRect, inkStroke, starPath, sceneState } from './util';
 
 type P = { x: number; y: number };
 const add = (a: P, dx: number, dy: number): P => ({ x: a.x + dx, y: a.y + dy });
@@ -51,6 +51,7 @@ export function drawFloor(ctx: Ctx, cols: number, rows: number, iso: IsoFn, t: n
     floorCache.set(key, fc);
   }
   const n = clamp(night);
+  sceneState.night = n;
   if (n < 0.999) ctx.drawImage(fc.day, fc.ox, fc.oy, fc.w, fc.h);
   if (n > 0.001) {
     ctx.save();
@@ -219,42 +220,11 @@ export function renderFloor(ctx: Ctx, cols: number, rows: number, iso: IsoFn, ni
   for (let i = 0; i <= cols; i++) { const p = iso(i, 0), q = iso(i, rows); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); }
   for (let j = 0; j <= rows; j++) { const p = iso(0, j), q = iso(cols, j); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); }
 
-  // ── a cozy rug in the middle ──
-  if (cols >= 3 && rows >= 2) {
-    const rx0 = cols * 0.2, ry0 = rows * 0.2, rw = cols * 0.6, rh = rows * 0.6;
-    const ring = (inset: number, fill: string, stroke?: string) => {
-      ctx.beginPath();
-      const n = 48;
-      for (let i = 0; i <= n; i++) {
-        const a = (i / n) * TAU;
-        // superellipse in grid space → rounded rug
-        const ca = Math.cos(a), sa = Math.sin(a);
-        const ux = Math.sign(ca) * Math.pow(Math.abs(ca), 0.45), uy = Math.sign(sa) * Math.pow(Math.abs(sa), 0.45);
-        const p = iso(rx0 + rw / 2 + ux * (rw / 2 - inset), ry0 + rh / 2 + uy * (rh / 2 - inset));
-        i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y);
-      }
-      ctx.closePath();
-      ctx.fillStyle = fill; ctx.fill();
-      if (stroke) { ctx.lineWidth = 2 * k; ctx.strokeStyle = stroke; ctx.stroke(); }
-    };
-    ctx.save();
-    ctx.globalAlpha = N ? 0.85 : 0.9;
-    ring(0, N ? '#4b3f6e' : '#f4c6a8', ink);
-    ring(0.18, N ? '#5b4f86' : '#fbe3c9');
-    ctx.setLineDash([5 * k, 4 * k]);
-    ring(0.32, 'rgba(0,0,0,0)', N ? 'rgba(200,190,255,0.5)' : 'rgba(200,110,90,0.55)');
-    ctx.setLineDash([]);
-    // little stars & moons woven in
-    const motifs = [[0.35, 0.4], [0.65, 0.6], [0.5, 0.5], [0.3, 0.7], [0.7, 0.3]];
-    motifs.forEach(([u, v], i) => {
-      const p = iso(rx0 + rw * u, ry0 + rh * v);
-      if (i % 2) { starPath(ctx, p.x, p.y, 5 * k, 0); ctx.fillStyle = N ? 'rgba(255,214,120,0.6)' : 'rgba(255,183,43,0.55)'; ctx.fill(); }
-      else { ctx.beginPath(); ctx.arc(p.x, p.y, 4.5 * k, 0, TAU); ctx.arc(p.x + 2.5 * k, p.y - 1.5 * k, 4 * k, 0, TAU, true); ctx.fillStyle = N ? 'rgba(160,150,255,0.6)' : 'rgba(108,99,255,0.45)'; ctx.fill('evenodd'); }
-    });
-    ctx.restore();
-  }
+  // ── grid-aligned rug (exact tile edges, rounded corners, woven border) ──
+  drawRug(ctx, cols, rows, iso, N, k, ink);
 
-  // ── props on the trim (never under entities) ──
+  // ── props on the trim (island only; the room places its own props in front of the walls) ──
+  if (!island) return;
   const prop = (gx: number, gy: number, draw: (p: P) => void) => draw(iso(gx, gy));
   // toy blocks at the left corner
   prop(-g.m * 0.5, rows * 0.5, (p) => {
@@ -280,6 +250,96 @@ export function renderFloor(ctx: Ctx, cols: number, rows: number, iso: IsoFn, ni
     starPath(ctx, p.x, p.y - 14 * k, 8 * k, 0, 0.5);
     ctx.fillStyle = N ? '#ffe08a' : '#ffd36b'; ctx.fill(); ctx.lineWidth = 1.8 * k; ctx.stroke();
   });
+}
+
+
+/** Rug footprint in tiles: exactly tile-aligned, one tile in from every edge. */
+export function rugRect(cols: number, rows: number) {
+  if (cols < 3 || rows < 3) return null;
+  return { x0: 1, y0: 1, x1: cols - 1, y1: rows - 1 };
+}
+/** Rounded rectangle in GRID space (corner radius r in tiles), mapped through iso. */
+export function gridRoundRect(ctx: Ctx, iso: IsoFn, x0: number, y0: number, x1: number, y1: number, r: number) {
+  ctx.beginPath();
+  const corners: [number, number, number][] = [[x1 - r, y0 + r, -Math.PI / 2], [x1 - r, y1 - r, 0], [x0 + r, y1 - r, Math.PI / 2], [x0 + r, y0 + r, Math.PI]];
+  let first = true;
+  for (const [cx, cy, a0] of corners) {
+    for (let i = 0; i <= 6; i++) {
+      const a = a0 + (i / 6) * (Math.PI / 2);
+      const p = iso(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+      if (first) { ctx.moveTo(p.x, p.y); first = false; } else ctx.lineTo(p.x, p.y);
+    }
+  }
+  ctx.closePath();
+}
+function gridLine(ctx: Ctx, iso: IsoFn, ax: number, ay: number, bx: number, by: number) {
+  const a = iso(ax, ay), b = iso(bx, by);
+  ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+}
+function drawRug(ctx: Ctx, cols: number, rows: number, iso: IsoFn, N: number, k: number, ink: string) {
+  const R = rugRect(cols, rows);
+  if (!R) return;
+  const { x0, y0, x1, y1 } = R;
+  const r = 0.22, bw = 0.2; // corner radius, border width (tiles)
+  // contact shadow (rug has a little thickness)
+  ctx.save();
+  ctx.translate(0, 2 * k);
+  gridRoundRect(ctx, iso, x0, y0, x1, y1, r);
+  ctx.fillStyle = N ? 'rgba(0,0,10,0.35)' : 'rgba(90,60,40,0.22)';
+  ctx.fill();
+  ctx.restore();
+  // border band
+  const bord: RGB = N ? [86, 70, 128] : [226, 128, 120];
+  const field: RGB = N ? [70, 66, 118] : [251, 226, 200];
+  gridRoundRect(ctx, iso, x0, y0, x1, y1, r);
+  const bg = ctx.createLinearGradient(iso(x0, y0).x, iso(x0, y0).y, iso(x1, y1).x, iso(x1, y1).y);
+  bg.addColorStop(0, rgba(mix(bord, [255, 255, 255], 0.12))); bg.addColorStop(1, rgba(mix(bord, [40, 20, 40], 0.1)));
+  ctx.fillStyle = bg; ctx.fill();
+  // field
+  gridRoundRect(ctx, iso, x0 + bw, y0 + bw, x1 - bw, y1 - bw, r * 0.6);
+  const fg = ctx.createLinearGradient(iso(x0, y0).x, iso(x0, y0).y, iso(x1, y1).x, iso(x1, y1).y);
+  fg.addColorStop(0, rgba(mix(field, [255, 255, 255], 0.25))); fg.addColorStop(0.55, rgba(field)); fg.addColorStop(1, rgba(mix(field, [120, 80, 70], 0.12)));
+  ctx.fillStyle = fg; ctx.fill();
+  // fabric weave on the field (fine lines along both grid axes)
+  ctx.save();
+  ctx.clip();
+  ctx.lineWidth = 0.8 * k;
+  ctx.strokeStyle = N ? 'rgba(200,190,255,0.08)' : 'rgba(150,90,60,0.10)';
+  ctx.beginPath();
+  for (let u = x0; u <= x1; u += 0.08) gridLine(ctx, iso, u, y0, u, y1);
+  ctx.stroke();
+  ctx.strokeStyle = N ? 'rgba(0,0,20,0.12)' : 'rgba(255,255,255,0.22)';
+  ctx.beginPath();
+  for (let v = y0; v <= y1; v += 0.08) gridLine(ctx, iso, x0, v, x1, v);
+  ctx.stroke();
+  // inner stitched line
+  ctx.restore();
+  ctx.setLineDash([5 * k, 4 * k]);
+  gridRoundRect(ctx, iso, x0 + bw + 0.1, y0 + bw + 0.1, x1 - bw - 0.1, y1 - bw - 0.1, r * 0.4);
+  ctx.lineWidth = 1.3 * k; ctx.strokeStyle = N ? 'rgba(200,190,255,0.45)' : 'rgba(200,100,90,0.55)'; ctx.stroke();
+  ctx.setLineDash([]);
+  // border pattern: little diamonds marching along the band centre
+  ctx.fillStyle = N ? 'rgba(255,214,120,0.55)' : 'rgba(255,246,228,0.9)';
+  const c = bw / 2;
+  const diamond = (gx: number, gy: number) => {
+    const d = 0.055;
+    const p = [iso(gx, gy - d), iso(gx + d, gy), iso(gx, gy + d), iso(gx - d, gy)];
+    ctx.beginPath(); ctx.moveTo(p[0].x, p[0].y); for (let i = 1; i < 4; i++) ctx.lineTo(p[i].x, p[i].y); ctx.closePath(); ctx.fill();
+  };
+  const step = 0.25;
+  for (let u = x0 + r + step / 2; u < x1 - r; u += step) { diamond(u, y0 + c); diamond(u, y1 - c); }
+  for (let v = y0 + r + step / 2; v < y1 - r; v += step) { diamond(x0 + c, v); diamond(x1 - c, v); }
+  // field edge + outline
+  gridRoundRect(ctx, iso, x0 + bw, y0 + bw, x1 - bw, y1 - bw, r * 0.6);
+  ctx.lineWidth = 1.2 * k; ctx.strokeStyle = N ? 'rgba(10,10,30,0.5)' : 'rgba(140,60,60,0.45)'; ctx.stroke();
+  gridRoundRect(ctx, iso, x0, y0, x1, y1, r);
+  ctx.lineWidth = 2 * k; ctx.strokeStyle = ink; ctx.lineJoin = 'round'; ctx.stroke();
+  // fringe tassels on the two front ends (short, so they never leave the rug tiles' footprint much)
+  ctx.lineWidth = 1.2 * k; ctx.strokeStyle = N ? 'rgba(200,190,255,0.5)' : 'rgba(170,90,80,0.7)';
+  ctx.beginPath();
+  for (let v = y0 + r; v <= y1 - r + 1e-6; v += 0.1) gridLine(ctx, iso, x1, v, x1 + 0.05, v);
+  for (let u = x0 + r; u <= x1 - r + 1e-6; u += 0.1) gridLine(ctx, iso, u, y1, u, y1 + 0.05);
+  ctx.stroke();
 }
 
 // ═════════════════════════════ BACKGROUND ═════════════════════════════

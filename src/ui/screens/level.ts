@@ -6,7 +6,9 @@ import { Scene } from '../../engine/scene';
 import { Playback } from '../../engine/playback';
 import { onFrame } from '../../engine/loop';
 import { save, persist, setProgress } from '../../engine/store';
-import { h, modal, toast, inputLabel, gremlinIcon } from '../../engine/util';
+import { h, modal, toast, inputLabel, gremlinIcon, portraitSrc } from '../../engine/util';
+import type { OpName, TraceEvent } from '../../core/contracts';
+import { isBot } from '../../core/contracts';
 import { Editor, type Progs } from '../editor/editor';
 import { Dialogue } from '../dialogue';
 import { cloneGlitch, floodColor } from '../meta';
@@ -45,24 +47,29 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   const stripHost = h('div', { style: 'flex:1;display:flex;justify-content:flex-end;min-width:0' });
   const hud = h('div', { class: 'stage-hud' }, phasePill, xrayPill, fidMeter, stripHost);
   const nerdPanel = h('div', { class: 'nerd-panel panel hidden' });
+  const hintsPanel = h('div', { class: 'hints-panel panel hidden', role: 'complementary', 'aria-label': 'Hints' });
+  const sceneTip = h('div', { class: 'scene-tip hidden' });
   const stage = h('div', { class: 'stage' });
 
   const btn = (label: string, title: string, on: () => void, cls = 'icon') => h('button', { class: `btn ${cls}`, title, 'aria-label': title, onclick: on }, label);
   const bRewind = btn('⏮', 'Rewind (hold ←). Gates rewind. Measurements do not.', () => {});
-  const bBack = btn('◀', 'Step back (←)', () => pb?.back());
+  const bBack = btn('◀ step', 'Step back one event (←). You can\'t step back across a measurement.', () => pb?.back(), 'small step-btn');
   const bPlay = btn('▶', 'Play / pause (Space)', () => togglePlay(), 'icon go');
-  const bStep = btn('▸|', 'Step (→)', () => { if (!pb) startRun(); else pb.step(); });
-  const bFast = btn('⏩', 'Fast ×4', () => { fast = !fast; pb?.setFast(fast); syncControls(); });
-  const timeline = h('div', { class: 'timeline', title: 'Night timeline' }, h('div', { class: 'fill' }));
+  const bStep = btn('step ▶', 'Step forward one event (→)', () => stepFwd(), 'small step-btn go');
+  const bFast = btn('⏩', 'Fast ×4', () => { fast = !fast; pb?.setFast(fast); scene.speed = fast ? 4 : 1; syncControls(); });
+  const bStepMode = h('button', { class: 'btn small', title: 'Step mode: go one event at a time', 'aria-pressed': 'false', onclick: () => setStepMode(!stepMode) }, 'Step mode');
+  const tlTip = h('div', { class: 'tl-tip hidden' });
+  const timeline = h('div', { class: 'timeline', role: 'slider', 'aria-label': 'Night timeline: click to jump' }, h('div', { class: 'segs' }), h('div', { class: 'fill' }), tlTip);
   const bXray = h('button', { class: 'btn small', title: 'X-ray: see the true dreams (X)', onclick: () => setXray(!xray) }, 'X-ray');
   const bNerd = h('button', { class: 'btn small', title: 'Nerd mode: amplitudes and numbers', onclick: () => { save.settings.nerd = !save.settings.nerd; persist(); syncNerd(); } }, 'Nerd');
   const bRun = h('button', { class: 'btn primary', onclick: () => startRun() }, 'Run night');
   const bTest = h('button', { class: 'btn go', onclick: () => testAll() }, 'Test all');
-  const controls = h('div', { class: 'controls' }, bRewind, bBack, bPlay, bStep, bFast, timeline, h('div', { class: 'sep' }), bXray, bNerd, h('div', { class: 'sep' }), bRun, bTest);
-  const sceneArea = h('div', { style: 'position:relative;flex:1;min-height:0;display:flex' }, wrap, hud, nerdPanel);
-  stage.append(sceneArea, controls);
+  const controls = h('div', { class: 'controls' }, bStepMode, bRewind, bBack, bPlay, bStep, bFast, h('div', { class: 'spacer' }), bXray, bNerd, h('div', { class: 'sep' }), bRun, bTest);
+  const sceneArea = h('div', { style: 'position:relative;flex:1;min-height:0;display:flex' }, wrap, hud, nerdPanel, hintsPanel, sceneTip);
+  const tlRow = h('div', { class: 'tl-row' }, timeline);
+  stage.append(sceneArea, tlRow, controls);
 
-  const hintBtn = h('button', { class: 'btn small', onclick: () => hint() }, 'Hint');
+  const hintBtn = h('button', { class: 'btn small', title: 'Schrödi\'s hints', onclick: () => toggleHints() }, '💡 Hints');
   const topbar = h('div', { class: 'topbar' },
     h('button', { class: 'btn small', onclick: () => nav.go(lab || la.kind === 'endless' ? 'title' : 'map') }, '◂ ' + (story ? 'Map' : 'Back')),
     h('span', { class: 'lvl-badge' }, story ? level.id : la.kind === 'lab' ? 'LAB' : 'SHIFT'),
@@ -84,6 +91,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   let fast = false;
   let fails = save.progress[level.id]?.fails ?? 0;
   let hintIdx = 0;
+  let stepMode = false;
   let runToken = 0;
   let pickState: { allowed: Set<QubitId>; cb: (id: QubitId) => void } | null = null;
   let won = false;
@@ -92,11 +100,12 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
 
   function makeEditor() {
     editor?.el.remove(); editor?.destroy();
-    const hazard = !!save.progress['1-1']?.done && level.id !== '1-1';
     editor = new Editor(level, progKey ? save.programs[progKey] ?? {} : {}, {
-      hazardPeek: hazard,
-      onChange: (p) => {
-        if (progKey) { save.programs[progKey] = p; persist(); }
+      peekMode: level.classical || level.allowPeekData ? 'safe' : 'wakes',
+      slots: progKey ? save.slots?.[progKey] : undefined,
+      isDone: (id) => !!save.progress[id]?.done,
+      onChange: (p, slots) => {
+        if (progKey) { save.programs[progKey] = p; (save.slots ??= {})[progKey] = slots; persist(); }
         stopRun();
       },
       beginPick: (allowed, cb) => {
@@ -122,6 +131,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   function setXray(on: boolean) {
     xray = on; scene.xrayTarget = on ? 1 : 0;
     bXray.classList.toggle('on', on);
+    if (pb) drawTimeline();
     xrayPill.classList.toggle('hidden', !on);
     fidMeter.classList.toggle('hidden', !on);
     audio.sfx('ui_click', { pitch: on ? 1.3 : 0.9 });
@@ -169,6 +179,9 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     bPlay.textContent = pb?.playing ? '❚❚' : '▶';
     bFast.classList.toggle('on', fast);
     bBack.disabled = !has; bRewind.disabled = !has;
+    bRewind.classList.toggle('hidden', stepMode); bPlay.classList.toggle('hidden', stepMode);
+    bBack.classList.toggle('hidden', !stepMode); bStep.classList.toggle('hidden', !stepMode);
+    bStepMode.classList.toggle('on', stepMode); bStepMode.setAttribute('aria-pressed', String(stepMode));
     let ph: Phase | 'build' = 'build';
     if (pb) { for (let k = Math.min(pb.i, pb.length) - 1; k >= 0; k--) { const e = pb.night.steps[k].ev; if (e.k === 'phase') { ph = e.phase; break; } } if (pb.done) ph = 'morning'; }
     if (ph !== curPhase) {
@@ -177,17 +190,71 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
       phasePill.classList.toggle('night', ph === 'night');
     }
   }
-  function drawTicks(night: NightResult) {
+  /** Event markers on the timebar, placed by REAL time (walks included), with phase segments. */
+  type Mark = { k: number; at: number; cls: string; label: string };
+  let marks: Mark[] = [];
+  const evLabel = (ev: TraceEvent): string => {
+    switch (ev.k) {
+      case 'gate': return ev.op === 'HIGHFIVE' ? `HIGHFIVE ${ev.from} → ${ev.t}` : `${ev.op} ${ev.t}`;
+      case 'measure': return isBot(ev.t) ? `LISTEN ${ev.t}: ${ev.result ? 'BEEP' : 'QUIET'} (one-way door)` : ev.woke ? `PEEK ${ev.t}: woke it! (one-way door)` : `PEEK ${ev.t}: ${ev.result ? '🌙' : '☀'} (one-way door)`;
+      case 'jump': return ev.taken ? 'jump taken ↪' : 'IF: no jump';
+      case 'noise': return `gremlin: ${ev.e.kind} on ${ev.e.t}`;
+      case 'end': return ev.reason === 'END' ? 'END' : ev.reason === 'maxSteps' ? 'out of night' : 'end';
+      default: return '';
+    }
+  };
+  function drawTimeline() {
     timeline.querySelectorAll('.tick').forEach((n) => n.remove());
-    const N = night.steps.length;
+    const segs = timeline.querySelector('.segs') as HTMLElement; segs.innerHTML = '';
+    marks = [];
+    if (!pb) return;
+    const P = pb, night = P.night, total = P.totalTime || 1;
+    let segStart = 0, segPh: Phase | null = null;
+    const closeSeg = (end: number) => {
+      if (segPh == null || end <= segStart) return;
+      const nm = segPh === 'bedtime' ? 'Bedtime' : segPh === 'night' ? 'Night' : 'Morning';
+      segs.appendChild(h('div', { class: `seg ${segPh}`, style: `left:${(segStart / total) * 100}%;width:${((end - segStart) / total) * 100}%`, title: nm }, h('span', null, nm)));
+    };
     night.steps.forEach((st, k) => {
       const ev = st.ev;
-      if (ev.k === 'measure' || ev.k === 'noise' || ev.k === 'phase') {
-        if (ev.k === 'noise' && !xray) return; // gremlin moves are hidden unless x-ray
-        timeline.appendChild(h('div', { class: `tick ${ev.k}`, style: `left:${(k / N) * 100}%`, title: ev.k === 'measure' ? 'measurement: one-way door' : ev.k }));
-      }
+      const at = P.T[k] + P.walkT[k] + P.actT[k] * 0.5;
+      if (ev.k === 'phase') { closeSeg(P.T[k]); segStart = P.T[k]; segPh = ev.phase; return; }
+      let cls = '';
+      if (ev.k === 'gate') cls = `gate g-${ev.op}`;
+      else if (ev.k === 'measure') cls = `measure ${ev.result ? 'beep' : 'quiet'}${isBot(ev.t) ? '' : ev.woke ? ' woke' : ' peek'}`;
+      else if (ev.k === 'jump') { if (!ev.taken) return; cls = 'jump'; }
+      else if (ev.k === 'noise') { if (!xray) return; cls = 'noise'; } // gremlin moves are hidden unless x-ray
+      else return;
+      marks.push({ k, at, cls, label: evLabel(ev) });
     });
+    closeSeg(total);
+    for (const m of marks) timeline.appendChild(h('div', { class: `tick ${m.cls}`, style: `left:${(m.at / total) * 100}%` }));
   }
+  const tlFrac = (e: PointerEvent | MouseEvent) => { const r = timeline.getBoundingClientRect(); return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)); };
+  timeline.addEventListener('pointermove', (e) => {
+    if (!pb || !pb.totalTime) { tlTip.classList.add('hidden'); return; }
+    const r = timeline.getBoundingClientRect(), total = pb.totalTime;
+    const x = e.clientX - r.left;
+    let best: Mark | null = null, bd = 9;
+    for (const m of marks) { const d = Math.abs((m.at / total) * r.width - x); if (d < bd) { bd = d; best = m; } }
+    if (!best) {
+      const seg = (e.target as HTMLElement).closest('.seg') as HTMLElement | null;
+      if (!seg) { tlTip.classList.add('hidden'); return; }
+      tlTip.textContent = (seg.title || '') + ' · click to jump here';
+    } else tlTip.textContent = best.label + ' · click to jump';
+    tlTip.classList.remove('hidden');
+    tlTip.style.left = `${Math.max(0, Math.min(r.width, x))}px`;
+  });
+  timeline.addEventListener('pointerleave', () => tlTip.classList.add('hidden'));
+  timeline.addEventListener('click', (e) => {
+    if (!pb) return;
+    const total = pb.totalTime || 1, t = tlFrac(e) * total;
+    const r = timeline.getBoundingClientRect();
+    let target = pb.indexAtTime(t);
+    for (const m of marks) if (Math.abs(((m.at - t) / total) * r.width) < 9) { target = m.k + 1; break; }
+    pb.seek(target);
+    syncControls();
+  });
 
   function stopRun() {
     runToken++;
@@ -199,7 +266,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     syncControls();
   }
 
-  function playNight(night: NightX, opts: { xray?: boolean; onEnd?: (n: NightX) => void } = {}) {
+  function playNight(night: NightX, opts: { xray?: boolean; onEnd?: (n: NightX) => void; paused?: boolean } = {}) {
     const token = ++runToken;
     scene.caretakerMood = null;
     if (opts.xray != null) setXray(opts.xray);
@@ -208,11 +275,24 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
       onLine: (ref) => editor.setCurrent(ref),
       onChange: syncControls,
       onBlocked: () => toast('Snap! Measurements are a one-way door. You can\'t un-look.', 'bad'),
+      onImpact: (ev) => { if (ev.k === 'jump') editor.pulseJump(ev.taken); },
       onEnd: (n) => { if (token === runToken) opts.onEnd?.(n as NightX); },
     });
-    pb.setFast(fast);
-    drawTicks(night);
-    pb.play();
+    pb.setFast(fast); scene.speed = fast ? 4 : 1;
+    drawTimeline();
+    if (opts.paused || stepMode) pb.pause(); else pb.play();
+    syncControls();
+  }
+  function stepFwd() {
+    if (!pb) { startRun(undefined, undefined, true); (pb as Playback | null)?.step(); }
+    else if (pb.done && !pb.busy) { replay(pb.night as NightX, true); (pb as Playback | null)?.step(); }
+    else pb.step();
+    syncControls();
+  }
+  function setStepMode(on: boolean) {
+    stepMode = on;
+    if (on && pb?.playing) pb.pause();
+    audio.sfx('ui_click', { pitch: on ? 1.2 : 0.9 });
     syncControls();
   }
 
@@ -225,13 +305,13 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     return { input, errors };
   }
 
-  function startRun(input?: InputState, errors?: ErrorEvent[]) {
+  function startRun(input?: InputState, errors?: ErrorEvent[], paused = false) {
     dialogue.close(false);
     const pick = input ? { input, errors: errors ?? [] } : pickNight();
     let night: NightX;
     try { night = quantum.runNight(level, progs(), pick.input, pick.errors, (Math.random() * 2 ** 31) | 0); }
     catch (e) { toast(String((e as Error).message ?? e), 'bad'); return; }
-    playNight(night, { xray: lab ? true : undefined, onEnd: (n) => afterRun(n) });
+    playNight(night, { xray: lab ? true : undefined, onEnd: (n) => afterRun(n), paused });
   }
 
   function afterRun(n: NightX) {
@@ -261,6 +341,8 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
 
   function onFail(n: NightX) {
     fails++; if (story) setProgress(level.id, { fails });
+    if (story && fails === 3) { hintBtn.classList.add('pulse'); toast('Schrödi has an offer for you in 💡 Hints', '', 3200); }
+    if (!hintsPanel.classList.contains('hidden')) renderHints();
     scene.caretakerMood = 'facepalm';
     audio.sfx('test_fail');
     if (level.meta?.includes('clone-glitch') && !save.flags['clone-glitch-' + level.id]) {
@@ -278,12 +360,12 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     stripHost.prepend(b);
   }
 
-  function replay(n: NightX) {
+  function replay(n: NightX, paused = false) {
     let night: NightX = n;
     if (!n.steps.length || n.steps.some((s) => !s.snap.bloch || !Object.keys(s.snap.bloch).length)) {
       night = quantum.runNight(level, progs(), n.input, n.errors, n.seed ?? 1);
     }
-    playNight(night, { xray: true });
+    playNight(night, { xray: true, paused });
   }
 
   // ───────── testing ─────────
@@ -368,29 +450,182 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     close = modal(body, { backdrop: false, onClose: () => { scene.revealColor = scene.lightsOut ? 1 : 0; } });
   }
 
-  // ───────── hints ─────────
-  function hint() {
-    const hs = level.hints;
-    if (hintIdx < hs.length) { dialogue.play([{ who: 'schrodi', text: hs[hintIdx++], mood: 'smug' }]); return; }
-    if (fails >= 3 || hintIdx >= hs.length) {
-      let close = () => {};
-      close = modal(h('div', null, h('h2', null, 'Out of hints'), h('p', null, 'Schrodi can show you a working program. No judgement. (Some judgement.)'),
-        h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: () => { editor.setProgs(level.solution); close(); toast('Solution loaded. Press Run!'); } }, 'Show solution'),
-          h('button', { class: 'btn small', onclick: () => { hintIdx = 0; close(); } }, 'Hints again'))));
+  // ───────── hints: a friendly Schrödi-led panel with escalating cards ─────────
+  const OPS: OpName[] = ['BOOP', 'SHUSH', 'SPIN', 'HIGHFIVE', 'LISTEN', 'RESET', 'PEEK', 'IF', 'JUMP', 'END'];
+  /** creatures + card kinds a hint talks about (for "show me") */
+  function hintTargets(text: string): { ids: QubitId[]; ops: OpName[] } {
+    const ids = new Set<QubitId>();
+    const have = new Set<string>([...level.qubbles.map((q) => q.id), ...level.bots.map((b) => b.id)]);
+    for (const m of text.matchAll(/\bq(\d)\b/g)) ids.add(`q${m[1]}` as QubitId);
+    for (const m of text.matchAll(/\bQubbles?\s+(\d)(?:\s*(?:,|and)\s*(\d))?(?:\s*(?:,|and)\s*(\d))?/gi)) for (const d of m.slice(1)) if (d) ids.add(`q${d}` as QubitId);
+    for (const re of [/\bbots?\s+([a-h])\b/gi, /->\s*([a-h])\b/g, /\b([a-h])\s+(?:BEEP|QUIET)\b/g, /\b(?:LISTEN|RESET)\s+([a-h])\b/g, /\b([a-h])\s+(?:checks|listens)\b/g]) {
+      for (const m of text.matchAll(re)) ids.add(m[1].toLowerCase() as QubitId);
     }
+    if (/\bbots?\b/i.test(text) && ![...ids].some((i) => isBot(i))) for (const b of level.bots) ids.add(b.id);
+    const ops = OPS.filter((o) => new RegExp(`\\b${o}\\b`).test(text) && level.toolbox.includes(o));
+    return { ids: [...ids].filter((i) => have.has(i)), ops };
+  }
+  let hlTimer = 0;
+  function showMe(text: string) {
+    const tg = hintTargets(text);
+    scene.hintHL = new Set(tg.ids);
+    if (tg.ops.length) editor.flashOps(tg.ops);
+    audio.sfx('ui_click', { pitch: 1.3 });
+    clearTimeout(hlTimer);
+    hlTimer = window.setTimeout(() => { scene.hintHL = new Set(); }, 4000);
+  }
+  function renderHints() {
+    const hs = level.hints;
+    hintsPanel.innerHTML = '';
+    const close = h('button', { class: 'btn icon small close', 'aria-label': 'Close hints', title: 'Close (the hints stay where you left them)', onclick: () => toggleHints(false) }, '×');
+    hintsPanel.append(h('div', { class: 'hints-head' },
+      h('img', { class: 'hp-portrait', src: portraitSrc(art.portrait('schrodi', hintIdx >= hs.length ? 'smug' : 'deadpan')), alt: '' }),
+      h('div', null, h('div', { class: 'display hp-title' }, "Schrödi's hints"), h('div', { class: 'muted hp-sub' }, hintIdx ? `${hintIdx} of ${hs.length} nudges` : 'No spoilers until you ask.')),
+      close));
+    const body = h('div', { class: 'hints-body' });
+    for (let k = 0; k < Math.min(hintIdx, hs.length); k++) {
+      const tg = hintTargets(hs[k]);
+      const can = tg.ids.length || tg.ops.length;
+      body.appendChild(h('div', { class: `hint-card${k === hintIdx - 1 ? ' fresh' : ''}` },
+        h('div', { class: 'hint-num display' }, k === hs.length - 1 && hs.length > 1 ? 'Big nudge' : `Nudge ${k + 1}`),
+        h('div', { class: 'hint-text' }, hs[k]),
+        can ? h('button', { class: 'chip show-me', title: 'Highlight what this hint is about', onclick: () => showMe(hs[k]) }, '👀 show me') : null));
+    }
+    if (hintIdx < hs.length) {
+      body.appendChild(h('button', { class: 'btn small sun nudge', onclick: () => { hintIdx++; renderHints(); showMe(hs[hintIdx - 1]); body.lastElementChild?.scrollIntoView?.({ block: 'nearest' }); } },
+        hintIdx === 0 ? 'Give me a nudge' : 'need another nudge?'));
+    } else if (fails < 3) {
+      body.appendChild(h('div', { class: 'muted hint-foot' }, `That's all my nudges. Fail ${3 - fails} more test${3 - fails === 1 ? '' : 's'} and I'll just show you. (No judgement. Some judgement.)`));
+    }
+    if (story && fails >= 3) {
+      let armed = false;
+      const b = h('button', { class: 'btn small primary' }, 'Show solution');
+      b.addEventListener('click', () => {
+        if (!armed) { armed = true; b.textContent = 'Sure? It replaces this slot'; return; }
+        editor.setProgs(level.solution); hintBtn.classList.remove('pulse'); toast('Solution loaded into this slot. Press Run! (Undo with Ctrl+Z)', 'good');
+      });
+      body.appendChild(h('div', { class: 'hint-card solution' },
+        h('div', { class: 'hint-num display' }, 'Stuck?'),
+        h('div', { class: 'hint-text' }, `${fails} tests didn't go your way. I can load a working program. You can try another slot (A/B/C) first.`), b));
+    }
+    hintsPanel.appendChild(body);
+  }
+  function toggleHints(on = hintsPanel.classList.contains('hidden')) {
+    hintsPanel.classList.toggle('hidden', !on);
+    hintBtn.classList.toggle('on', on);
+    if (on) { if (hintIdx === 0 && fails === 0) { /* wait for the player to ask */ } renderHints(); audio.sfx('ui_click', { pitch: 1.2 }); }
+    else { scene.hintHL = new Set(); }
   }
 
-  // ───────── input: canvas picking & keys ─────────
+  // ───────── input: canvas picking, poking & tooltips ─────────
   const pos = (e: PointerEvent) => { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  const pick = <T,>(xs: T[]): T => xs[Math.floor(Math.random() * xs.length)];
+  const SLEEPY = ['mmh… five more minutes…', 'zzz… not telling…', '*mumble* …the blanket stays…', 'snrk… go \'way…', 'mmf… dreaming… of… nope.', '*rolls over*'];
+  const QUIPS = ['I am both bored and not bored.', 'I contain multitudes. Mostly naps.', 'Meow. That\'s all you get.', 'Don\'t look at me. Literally.', 'I sit in boxes. It\'s a whole thing.', 'Your code. My box. Same energy.', 'Poke the bots, not the cat.'];
+  const TAUNTS: Record<string, string[]> = { flipper: ['nyeh! flip flip!', 'can\'t catch me!', 'upside down, baby!'], phasey: ['wooOOoo… swirl!', 'you can\'t see meee', 'phase happens~'], wobbles: ['wibble wobble!', 'just a little nudge…', 'whoopsie~'] };
+  const pokeCount = new Map<string, { n: number; t: number }>();
+  function tipFor(hit: NonNullable<ReturnType<Scene['hitAny']>>): string {
+    switch (hit.kind) {
+      case 'qubble': return level.classical ? `${hit.id}: a sleepy bit-ball` : scene.woke.has(hit.id!) ? `${hit.id}: awake and grumpy` : `${hit.id}: fast asleep under the blanket (poke gently)`;
+      case 'bot': return `bot ${hit.id}: says hi when clicked`;
+      case 'caretaker': return 'You, the caretaker';
+      case 'schrodi': return 'Schrödi: supervisor. Cat. Possibly both.';
+      case 'gremlin': return 'A gremlin! Click to shoo';
+      case 'window': return 'The window';
+      case 'clock': return 'The clock';
+      case 'door': return 'The door';
+    }
+  }
+  function interact(hit: NonNullable<ReturnType<Scene['hitAny']>>) {
+    const now = performance.now() / 1000;
+    switch (hit.kind) {
+      case 'qubble': {
+        const id = hit.id!;
+        scene.poke('q:' + id, 1.1);
+        audio.sfx('qubble_snore', { volume: 0.6, pitch: 0.9 + Math.random() * 0.3 });
+        if (!scene.woke.has(id)) scene.say(pick(SLEEPY), id, 'speech', 1.8);
+        else scene.say('hmph.', id, 'speech');
+        const c = pokeCount.get(id);
+        const n = c && now - c.t < 6 ? c.n + 1 : 1;
+        pokeCount.set(id, { n, t: now });
+        if (n >= 3) {
+          pokeCount.set(id, { n: 0, t: now });
+          scene.say('No peeking!', 'schrodi', 'bad', 2);
+          audio.sfx('schrodi_meow', { volume: 0.6 });
+          if (!dialogue.active && story) dialogue.play([{ who: 'schrodi', text: pick(['No peeking! Poking is how peeking starts.', 'Hands off the blanket. That Qubble is mid-dream.', 'If it wakes up, it forgets half its dream. Forever. No pressure.']), mood: 'shock' }]);
+        }
+        break;
+      }
+      case 'bot': {
+        const id = hit.id!;
+        scene.poke('bot:' + id, 1.2);
+        const idx = level.bots.findIndex((b) => b.id === id);
+        const snap = currentSnap();
+        audio.botNote(Math.max(0, idx), (snap?.lights[id] ?? 0) === 1 ? 1 : 0);
+        scene.say(pick(['beep boop!', 'bip!', 'hi! 👋', 'boop?']), id, 'speech', 1.3);
+        break;
+      }
+      case 'schrodi':
+        audio.sfx('schrodi_meow', { volume: 0.7 });
+        scene.poke('sch', 2);
+        scene.say(pick(QUIPS), 'schrodi', 'speech', 2.4);
+        break;
+      case 'caretaker': {
+        const yawn = Math.random() < 0.5;
+        scene.pokeCaretaker(yawn ? 'yawn' : 'cheer');
+        scene.say(yawn ? '*yaaawn*' : 'hi! 👋', 'caretaker', 'speech', 1.4);
+        break;
+      }
+      case 'gremlin': {
+        scene.poke('gremlin', 1.2);
+        const a = scene.anim; const k = a?.ev.k === 'noise' ? (a.ev.e.kind === 'phase' ? 'phasey' : a.ev.e.kind === 'wobble' ? 'wobbles' : 'flipper') : 'flipper';
+        scene.say(pick(TAUNTS[k]), 'gremlin', 'speech', 1.4);
+        audio.sfx('glitch', { volume: 0.4 });
+        break;
+      }
+      case 'window': {
+        const c = scene.objectCentre('window');
+        if (c) { scene.say(scene.night > 0.5 ? pick(['🌙 the moon is napping too', '🌠 a shooting star!', '✨ twinkle twinkle']) : pick(['☁ a cloud shaped like a cat', '🐦 tweet', '☀ nice day for a nap']), c, 'info', 2); if (art.burst) art.burst('reset', c.x, c.y); }
+        audio.sfx('ui_hover', { pitch: 1.5 });
+        break;
+      }
+      case 'clock': {
+        const c = scene.objectCentre('clock');
+        const hr = scene.night > 0.5 ? `${1 + Math.floor(Math.random() * 4)}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')} am` : 'nap o\'clock';
+        if (c) scene.say(`tick… tock… ${hr}`, c, 'info', 2);
+        audio.sfx('ui_click', { pitch: 0.6 }); setTimeout(() => audio.sfx('ui_click', { pitch: 1.1 }), 260);
+        break;
+      }
+      case 'door': {
+        const c = scene.objectCentre('door');
+        if (c) scene.say(pick(['knock knock… nobody. (a gremlin?)', 'locked. for your own good.', '*creak*… nope, still night']), c, 'info', 2.2);
+        scene.shake = 3; audio.sfx('reset', { volume: 0.4, pitch: 0.6 });
+        break;
+      }
+    }
+  }
   canvas.addEventListener('pointermove', (e) => {
     const p = pos(e); const id = scene.hitTest(p.x, p.y);
     scene.hoverPick = pickState && id && pickState.allowed.has(id) ? id : null;
+    const hit = pickState ? null : scene.hitAny(p.x, p.y);
+    scene.hover = hit;
+    canvas.style.cursor = pickState ? (scene.hoverPick ? 'pointer' : 'crosshair') : hit ? 'pointer' : '';
+    if (hit && !dialogue.active) {
+      sceneTip.textContent = tipFor(hit);
+      sceneTip.classList.remove('hidden');
+      const r = canvas.getBoundingClientRect(), sr = sceneArea.getBoundingClientRect();
+      sceneTip.style.left = `${e.clientX - sr.left + 14}px`; sceneTip.style.top = `${e.clientY - sr.top + 16}px`;
+      void r;
+    } else sceneTip.classList.add('hidden');
   });
+  canvas.addEventListener('pointerleave', () => { sceneTip.classList.add('hidden'); scene.hover = null; });
   canvas.addEventListener('pointerdown', (e) => {
     const p = pos(e); const id = scene.hitTest(p.x, p.y);
     if (pickState && id && pickState.allowed.has(id)) { const cb = pickState.cb; cb(id); audio.sfx('ui_click'); return; }
-    if (dialogue.active) dialogue.advance();
-    else if (id) audio.sfx(id.startsWith('q') ? 'qubble_snore' : 'ui_hover', { volume: 0.5 });
+    if (pickState) return;
+    if (dialogue.active) { dialogue.advance(); return; }
+    const hit = scene.hitAny(p.x, p.y);
+    if (hit) interact(hit);
   });
 
   let holdTimer = 0;
@@ -410,8 +645,8 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? editor.redo() : editor.undo(); return; }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); editor.redo(); return; }
-    if (e.key === ' ') { e.preventDefault(); if (dialogue.active) dialogue.advance(); else togglePlay(); }
-    else if (e.key === 'ArrowRight') { e.preventDefault(); if (!pb) startRun(); else pb.step(); }
+    if (e.key === ' ') { e.preventDefault(); if (dialogue.active) dialogue.advance(); else if (stepMode) stepFwd(); else togglePlay(); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); stepFwd(); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); pb?.back(e.repeat); }
     else if (e.key.toLowerCase() === 'x') setXray(!xray);
     else if (e.key === 'Enter' && dialogue.active) dialogue.advance();
@@ -420,10 +655,11 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   window.addEventListener('keydown', onKey);
   window.addEventListener('keyup', onKeyUp);
 
+  const np = (window as unknown as { __np?: Record<string, unknown> }).__np;
   // ───────── frame ─────────
   const fill = timeline.querySelector('.fill') as HTMLElement;
   cleanups.push(onFrame((t, dt) => {
-    pb?.update(dt);
+    if (!np?.freeze) pb?.update(dt);
     scene.draw(t);
     fill.style.width = `${(pb?.progress() ?? 0) * 100}%`;
     updateHud();
@@ -436,6 +672,12 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     makeEditor(); stopRun();
   }
 
+  // QA hook: live scene + playback for automated checks (?qa)
+  if (np) {
+    np.scene = scene; np.pb = () => pb; np.editor = () => editor;
+    np.screenPos = (id: QubitId) => { const p = scene.posOf(id); const r = canvas.getBoundingClientRect(); return p ? { x: r.left + p.x, y: r.top + p.y } : null; };
+    np.runNight = (input?: InputState, errors?: ErrorEvent[], paused?: boolean) => startRun(input, errors, paused);
+  }
   syncNerd(); syncControls();
   audio.setScene(lab ? 'lab' : level.lightsOut ? 'lightsout' : 'build');
   if (story && level.intro.length) setTimeout(() => dialogue.play(level.intro), 350);

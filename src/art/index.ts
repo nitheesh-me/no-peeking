@@ -3,11 +3,11 @@ import { PALETTE, type ArtAPI } from '../core/contracts';
 import { drawQubble, drawBed } from './qubble';
 import { drawBot } from './bot';
 import { drawGremlin } from './gremlins';
-import { drawSchrodi } from './schrodi';
+import { drawSchrodi, drawSchrodiActor } from './schrodi';
 import { drawFloor, drawBackground, drawLink, drawSign } from './world';
 import { burst, drawParticles, clearParticles, particleCount } from './particles';
 import { portrait } from './portraits';
-import { drawRoom } from './room';
+import { drawRoom, drawWallSign, wallSignSlots, SIGN_BAND } from './room';
 import { drawCaretaker } from './caretaker';
 import { drawMapBackdrop, drawMapIsland, drawMapNode, drawMapPath } from './map';
 
@@ -49,11 +49,14 @@ export const art: ArtAPI = {
   drawMapIsland,
   drawMapNode,
   drawMapPath,
+  drawWallSign,
+  drawSchrodiActor,
 };
 
 /** Extras outside the contract (optional to use). */
 export type { QubbleArm } from './qubble';
-export { drawBed, clearParticles, particleCount };
+export { drawBed, clearParticles, particleCount, wallSignSlots, SIGN_BAND };
+export type { WallSlot } from './room';
 export const LOGO_URL = 'art/logo.svg';
 export const FAVICON_URL = 'art/favicon.svg';
 export default art;

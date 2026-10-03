@@ -168,3 +168,5 @@ export function questionMark(ctx: Ctx, x: number, y: number, s: number, t: numbe
   ctx.fillText('?', 0, 0);
   ctx.restore();
 }
+/** Per-frame scene state shared across art modules (set by drawRoom/drawFloor; read by signs and beds). */
+export const sceneState = { night: 0 };

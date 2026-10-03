@@ -7,23 +7,49 @@
 import type { LevelDef, Op, OpName, Program, QubitId, Cond, BotId } from '../../core/contracts';
 import { isBot } from '../../core/contracts';
 import { quantum, audio } from '../../engine/deps';
+import { reference as quantumReference } from '../../quantum/index';
 import type { LineRef } from '../../engine/playback';
 import { h, modal, toast } from '../../engine/util';
 
 export type EdPhase = 'bedtime' | 'morning';
 export type Progs = { bedtime?: Program; morning?: Program };
+/** Three program slots (A/B/C) per editable phase; Run/Test use the active one. */
+export interface SlotState { active: Record<EdPhase, number>; bedtime: Program[]; morning: Program[] }
+export const SLOT_NAMES = ['A', 'B', 'C'];
 
 export interface EditorOpts {
-  onChange(progs: Progs): void;
+  onChange(progs: Progs, slots: SlotState): void;
   /** Ask the scene to let the player click a creature. Returns a cancel fn. */
   beginPick?(allowed: QubitId[], cb: (id: QubitId) => void): () => void;
-  hazardPeek?: boolean;
+  /** 'safe' = PEEK is allowed here (classical / allowPeekData); 'wakes' = PEEK wakes Qubbles (hazard tape). */
+  peekMode?: 'safe' | 'wakes';
+  slots?: SlotState;
+  /** level ids already won (unlocks starter snippets) */
+  isDone?(levelId: string): boolean;
   readonly?: boolean;
+}
+
+// ───────── snippet library (localStorage, try/catch) ─────────
+export interface Snippet { id: string; name: string; ops: Program; starter?: boolean; unlockAfter?: string }
+const SNIP_KEY = 'np.snippets';
+function loadSnippets(): Snippet[] {
+  try { const v = JSON.parse(localStorage.getItem(SNIP_KEY) ?? '[]'); return Array.isArray(v) ? v : []; } catch { return []; }
+}
+function storeSnippets(list: Snippet[]): void {
+  try { localStorage.setItem(SNIP_KEY, JSON.stringify(list.filter((s) => !s.starter))); } catch { /* private mode */ }
+}
+function starterSnippets(): Snippet[] {
+  const R = quantumReference;
+  return [
+    { id: 'st-parity', name: 'Parity check (q1 vs q2)', ops: R.PARITY_CHECK, starter: true, unlockAfter: '2-1' },
+    { id: 'st-encode', name: 'Make triplets (encode)', ops: R.BITFLIP_ENCODE, starter: true, unlockAfter: '2-2' },
+    { id: 'st-bitflip', name: 'Bit-flip correct (2 bots)', ops: R.BITFLIP_CORRECT, starter: true, unlockAfter: '2-3' },
+  ];
 }
 
 const CARD_HELP: Record<OpName, string> = {
   BOOP: 'flip the dream', SHUSH: 'flip the swirl', SPIN: 'turn the dream sideways', HIGHFIVE: 'target flips if source is Moony',
-  LISTEN: 'bot lights up: BEEP or QUIET', RESET: 'bot back to QUIET', PEEK: 'look at it (wakes Qubbles!)', IF: 'jump if lights match',
+  LISTEN: 'bot lights up: BEEP or QUIET', RESET: 'bot back to QUIET', PEEK: 'PEEK (wakes it!): looking at a Qubble wakes it and pops its double-dream', IF: 'jump if lights match',
   JUMP: 'jump to a spot', LABEL: 'a spot to jump to', END: 'stop here', NOTE: 'a little note',
 };
 
@@ -45,14 +71,33 @@ export class Editor {
   private columnsEl!: HTMLElement;
   private toolboxEl!: HTMLElement;
   private drag: null | {
-    src: 'tool' | 'prog'; op: Op; phase?: EdPhase; index?: number; startX: number; startY: number;
-    ghost?: HTMLElement; srcEl: HTMLElement; target?: { phase: EdPhase; index: number } | 'trash' | null; pointerId: number;
+    src: 'tool' | 'prog' | 'snip'; op: Op; phase?: EdPhase; index?: number; startX: number; startY: number; snip?: Snippet;
+    ghost?: HTMLElement; srcEl: HTMLElement; target?: { phase: EdPhase; index: number } | 'trash' | null; pointerId: number; down: PointerEvent;
   } = null;
 
+  slots: SlotState;
+  private sel = new Set<number>();           // selected card indices in the active phase
+  private selPhase: EdPhase | null = null;
+  private selAnchor = -1;
+  private snippets: Snippet[] = loadSnippets();
+  private drawer!: HTMLElement;
+  private snipBtn!: HTMLElement;
+  private saveSnipBtn!: HTMLElement;
+  private tabBars = new Map<EdPhase, HTMLElement>();
+
   constructor(readonly level: LevelDef, initial: Progs, readonly opts: EditorOpts) {
+    const ph0: EdPhase[] = ['bedtime', 'morning'];
+    const st = opts.slots;
+    const start = (ph: EdPhase) => structuredClone(initial[ph] ?? (ph === 'bedtime' ? level.starterBedtime : level.starterMorning) ?? []);
+    this.slots = {
+      active: { bedtime: st?.active?.bedtime ?? 0, morning: st?.active?.morning ?? 0 },
+      bedtime: [0, 1, 2].map((k) => structuredClone(st?.bedtime?.[k] ?? (k === 0 ? start('bedtime') : []))),
+      morning: [0, 1, 2].map((k) => structuredClone(st?.morning?.[k] ?? (k === 0 ? start('morning') : []))),
+    };
+    for (const ph of ph0) this.slots.active[ph] = Math.max(0, Math.min(2, this.slots.active[ph] | 0));
     this.progs = {
-      bedtime: structuredClone(initial.bedtime ?? level.starterBedtime ?? []),
-      morning: structuredClone(initial.morning ?? level.starterMorning ?? []),
+      bedtime: this.slots.bedtime[this.slots.active.bedtime],
+      morning: this.slots.morning[this.slots.active.morning],
     };
     this.activePhase = level.editable.includes('morning') ? 'morning' : 'bedtime';
     this.el = h('div', { class: 'editor' });
@@ -77,7 +122,8 @@ export class Editor {
     for (const name of tools) {
       const op = this.defaultOp(name, 'morning', true);
       const c = this.cardEl(op, { tool: true });
-      c.title = CARD_HELP[name];
+      c.title = this.helpFor(name);
+      if (name === 'PEEK' && this.peekWakes) c.appendChild(h('small', { class: 'wakes' }, 'wakes it!'));
       c.addEventListener('pointerdown', (e) => this.pointerDown(e, { src: 'tool', op: name as unknown as Op, srcEl: c }));
       this.toolboxEl.appendChild(c);
     }
@@ -93,9 +139,14 @@ export class Editor {
       const title = ph === 'bedtime' ? 'Bedtime' : 'Morning';
       const cnt = h('span', { class: 'cnt' });
       col.appendChild(h('div', { class: 'prog-col-head' }, h('span', { class: 'ttl' }, title), cnt));
+      if (editable && !this.opts.readonly) {
+        const bar = h('div', { class: 'slot-tabs', role: 'tablist', 'aria-label': `${title} program slots` });
+        this.tabBars.set(ph, bar);
+        col.appendChild(bar);
+      }
       if (fixed?.length) {
         const fp = h('div', { class: 'fixed-phase' + (fixed.length <= 10 ? ' open' : '') },
-          h('div', { class: 'fp-head' }, `🔒 Schrödi's ${editable ? 'part (runs first)' : 'routine'} · ${fixed.length} cards`));
+          h('div', { class: 'fp-head', title: 'Schrödi hops out of his box and does these cards himself' + (editable ? ', before yours' : '') }, `🐾 Schrödi's checklist${editable ? ' (runs first)' : ''} · ${fixed.length} cards`));
         const list = h('div', { class: 'fp-list' });
         fixed.forEach((op) => list.appendChild(this.cardEl(op, { readonly: true })));
         fp.appendChild(list);
@@ -117,37 +168,57 @@ export class Editor {
 
     this.trash = h('div', { class: 'trash', title: 'Drag a card here to delete it' }, '🗑 trash');
     this.statsEl = h('div', { class: 'stats' });
+    this.snipBtn = h('button', { class: 'btn small', title: 'Snippet library: saved bits of Bot Code', onclick: () => this.toggleDrawer() }, '📚 Snippets');
+    this.saveSnipBtn = h('button', { class: 'btn small sun hidden', title: 'Save the selected cards as a snippet', onclick: () => this.saveSnippet() }, '＋ Save as snippet');
     const foot = h('div', { class: 'editor-foot' },
       this.trash,
       h('button', { class: 'btn icon small', title: 'Undo (Ctrl+Z)', onclick: () => this.undo() }, '↶'),
       h('button', { class: 'btn icon small', title: 'Redo (Ctrl+Y)', onclick: () => this.redo() }, '↷'),
       h('button', { class: 'btn small', title: 'Copy / paste your program as text', onclick: () => this.openText() }, 'Text'),
       h('button', { class: 'btn small', title: 'Clear your program', onclick: () => this.clearAll() }, 'Clear'),
+      this.opts.readonly ? null : this.snipBtn,
+      this.saveSnipBtn,
       this.statsEl,
     );
-    this.el.append(h('div', { class: 'editor-body' }, this.toolboxEl, this.columnsEl), foot);
+    this.drawer = h('div', { class: 'snip-drawer hidden' });
+    this.el.append(h('div', { class: 'editor-body' }, this.toolboxEl, this.columnsEl), this.drawer, foot);
   }
 
   // ───────────── model helpers ─────────────
-  private snapshot(): string { return JSON.stringify(this.progs); }
+  get peekWakes(): boolean { return this.opts.peekMode ? this.opts.peekMode === 'wakes' : !(this.level.classical || this.level.allowPeekData); }
+  private helpFor(name: OpName): string {
+    if (name === 'PEEK') return this.peekWakes ? CARD_HELP.PEEK : this.level.classical ? 'Peek: look at the bit-ball' : 'Peek: look at it (allowed here)';
+    return CARD_HELP[name];
+  }
+  /** write the live programs back into their active slots */
+  private syncSlots(): void {
+    for (const ph of ['bedtime', 'morning'] as EdPhase[]) this.slots[ph][this.slots.active[ph]] = this.progs[ph];
+  }
+  private snapshot(): string { this.syncSlots(); return JSON.stringify(this.slots); }
+  private restore(js: string): void {
+    this.slots = JSON.parse(js);
+    this.progs = { bedtime: this.slots.bedtime[this.slots.active.bedtime], morning: this.slots.morning[this.slots.active.morning] };
+  }
+  private emit(): void { this.syncSlots(); this.opts.onChange(this.exportProgs(), structuredClone(this.slots)); }
   private commit(mut: () => void, sfx: 'card_drop' | 'ui_click' | null = 'card_drop'): void {
     this.history.push(this.snapshot());
     if (this.history.length > 200) this.history.shift();
     this.future = [];
     mut();
     if (sfx) audio.sfx(sfx);
+    this.clearSel();
     this.render();
-    this.opts.onChange(this.exportProgs());
+    this.emit();
   }
   undo(): void {
     const prev = this.history.pop(); if (!prev) return;
-    this.future.push(this.snapshot()); this.progs = JSON.parse(prev);
-    audio.sfx('ui_click', { pitch: 0.8 }); this.render(); this.opts.onChange(this.exportProgs());
+    this.future.push(this.snapshot()); this.restore(prev);
+    audio.sfx('ui_click', { pitch: 0.8 }); this.clearSel(); this.render(); this.emit();
   }
   redo(): void {
     const nx = this.future.pop(); if (!nx) return;
-    this.history.push(this.snapshot()); this.progs = JSON.parse(nx);
-    audio.sfx('ui_click', { pitch: 1.2 }); this.render(); this.opts.onChange(this.exportProgs());
+    this.history.push(this.snapshot()); this.restore(nx);
+    audio.sfx('ui_click', { pitch: 1.2 }); this.clearSel(); this.render(); this.emit();
   }
   exportProgs(): Progs {
     const out: Progs = {};
@@ -158,6 +229,185 @@ export class Editor {
   setProgs(p: Progs, record = true): void {
     const mut = () => { if (p.bedtime) this.progs.bedtime = structuredClone(p.bedtime); if (p.morning) this.progs.morning = structuredClone(p.morning); };
     if (record) this.commit(mut, null); else { mut(); this.render(); }
+  }
+
+  // ───────────── program slots (A/B/C) ─────────────
+  switchSlot(ph: EdPhase, k: number): void {
+    if (this.slots.active[ph] === k) return;
+    this.commit(() => {
+      this.syncSlots();
+      this.slots.active[ph] = k;
+      this.progs[ph] = this.slots[ph][k];
+    }, 'ui_click');
+    toast(`${ph === 'bedtime' ? 'Bedtime' : 'Morning'} slot ${SLOT_NAMES[k]}: Run and Test use this one`, '', 1600);
+  }
+  private copySlot(ph: EdPhase, from: number, to: number): void {
+    this.commit(() => {
+      this.syncSlots();
+      this.slots[ph][to] = structuredClone(this.slots[ph][from]);
+      if (this.slots.active[ph] === to) this.progs[ph] = this.slots[ph][to];
+    }, 'card_drop');
+    toast(`Copied slot ${SLOT_NAMES[from]} → ${SLOT_NAMES[to]}`, 'good', 1600);
+  }
+  private renderTabs(): void {
+    for (const [ph, bar] of this.tabBars) {
+      bar.innerHTML = '';
+      const act = this.slots.active[ph];
+      SLOT_NAMES.forEach((nm, k) => {
+        const n = (k === act ? this.progs[ph] : this.slots[ph][k]).filter((o) => o.op !== 'LABEL' && o.op !== 'NOTE').length;
+        bar.appendChild(h('button', { class: `slot-tab${k === act ? ' on' : ''}`, role: 'tab', 'aria-selected': k === act ? 'true' : 'false', title: `Program slot ${nm} (${n} lines)`, onclick: () => this.switchSlot(ph, k) },
+          nm, h('span', { class: 'n' }, n ? String(n) : '·')));
+      });
+      const cp = h('button', { class: 'slot-tab copy', title: 'Copy this slot into another slot' }, '⧉');
+      cp.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const others = [0, 1, 2].filter((k) => k !== act);
+        this.popover(cp, others.map((k) => ({ text: `${SLOT_NAMES[act]} → ${SLOT_NAMES[k]}`, val: String(k) })), (v) => this.copySlot(ph, act, +v), 'Copy this slot to…');
+      });
+      bar.appendChild(cp);
+    }
+  }
+
+  // ───────────── selection + snippets ─────────────
+  private clearSel(): void { this.sel.clear(); this.selPhase = null; this.selAnchor = -1; }
+  private clickCard(ph: EdPhase, i: number, e: PointerEvent): void {
+    if (e.shiftKey && this.selPhase === ph && this.selAnchor >= 0) {
+      const [a, b] = [Math.min(this.selAnchor, i), Math.max(this.selAnchor, i)];
+      this.sel.clear(); for (let k = a; k <= b; k++) this.sel.add(k);
+    } else if ((e.ctrlKey || e.metaKey) && this.selPhase === ph) {
+      this.sel.has(i) ? this.sel.delete(i) : this.sel.add(i); this.selAnchor = i;
+    } else if (this.selPhase === ph && this.sel.size === 1 && this.sel.has(i)) {
+      this.clearSel();
+    } else { this.sel.clear(); this.sel.add(i); this.selPhase = ph; this.selAnchor = i; }
+    this.selPhase = this.sel.size ? ph : null;
+    this.activePhase = ph;
+    audio.sfx('ui_click', { pitch: 1.4, volume: 0.4 });
+    this.applySel();
+  }
+  private applySel(): void {
+    for (const [ph, list] of this.lists) {
+      list.querySelectorAll(':scope > .card').forEach((c, k) => c.classList.toggle('sel', ph === this.selPhase && this.sel.has(k)));
+    }
+    this.saveSnipBtn.classList.toggle('hidden', !this.sel.size);
+    this.saveSnipBtn.textContent = this.sel.size ? `＋ Save ${this.sel.size} card${this.sel.size > 1 ? 's' : ''} as snippet` : '';
+  }
+  /** insertion point: after the last selected card, else the end of the active column */
+  private cursor(): { phase: EdPhase; index: number } | null {
+    const ph = this.selPhase ?? (this.lists.has(this.activePhase) ? this.activePhase : [...this.lists.keys()][0]);
+    if (!ph) return null;
+    const idx = this.selPhase && this.sel.size ? Math.max(...this.sel) + 1 : this.progs[ph].length;
+    return { phase: ph, index: idx };
+  }
+  private saveSnippet(): void {
+    const ph = this.selPhase; if (!ph || !this.sel.size) return;
+    const ops = [...this.sel].sort((a, b) => a - b).map((k) => structuredClone(this.progs[ph][k]));
+    const inp = h('input', { class: 'text-input', maxlength: 40, value: this.guessName(ops), 'aria-label': 'Snippet name' }) as HTMLInputElement;
+    let close = () => {};
+    const ok = () => {
+      const name = inp.value.trim() || 'my snippet';
+      this.snippets = [{ id: 'u' + Date.now().toString(36), name, ops }, ...this.snippets];
+      storeSnippets(this.snippets);
+      close(); this.clearSel(); this.applySel();
+      toast(`Saved snippet "${name}"`, 'good');
+      this.renderDrawer(); this.drawer.classList.remove('hidden'); this.snipBtn.classList.add('on');
+    };
+    inp.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') ok(); });
+    close = modal(h('div', null, h('h2', null, 'Save as snippet'),
+      h('p', { class: 'muted', style: 'margin:0 0 8px' }, `${ops.length} card${ops.length > 1 ? 's' : ''}. Give it a name you will recognise at 3am.`),
+      inp, h('div', { class: 'row' }, h('button', { class: 'btn primary small', onclick: ok }, 'Save'))));
+    setTimeout(() => { inp.focus(); inp.select(); }, 30);
+  }
+  private guessName(ops: Program): string {
+    if (ops.some((o) => o.op === 'IF')) return 'check and fix';
+    if (ops.every((o) => o.op === 'HIGHFIVE')) return 'high-five chain';
+    return `${ops[0]?.op.toLowerCase() ?? 'my'} snippet`;
+  }
+  private allSnippets(): Snippet[] { return [...this.snippets, ...starterSnippets()]; }
+  private snippetIssue(sn: Snippet): string | null {
+    if (sn.unlockAfter && !this.opts.isDone?.(sn.unlockAfter)) return `unlocks after level ${sn.unlockAfter}`;
+    const ids = new Set<string>([...this.qubbles, ...this.bots]);
+    for (const o of sn.ops) {
+      if (o.op !== 'LABEL' && o.op !== 'NOTE' && !this.level.toolbox.includes(o.op)) return `needs ${o.op}, not in this toolbox`;
+      const who = 't' in o ? [o.t] : o.op === 'HIGHFIVE' ? [o.from, o.to] : o.op === 'IF' ? o.conds.map((c) => c.who) : [];
+      const miss = who.find((w) => !ids.has(w));
+      if (miss) return `uses ${miss}, who isn't here`;
+    }
+    return null;
+  }
+  private toggleDrawer(): void {
+    const open = this.drawer.classList.toggle('hidden') === false;
+    this.snipBtn.classList.toggle('on', open);
+    audio.sfx('ui_click');
+    if (open) this.renderDrawer();
+    requestAnimationFrame(this.drawArrowsAll);
+  }
+  private renderDrawer(): void {
+    const d = this.drawer; d.innerHTML = '';
+    d.appendChild(h('div', { class: 'snip-head' }, h('span', { class: 'display' }, 'Snippets'),
+      h('span', { class: 'muted' }, 'click to insert at the cursor, or drag into a column · select cards (shift-click a range) to save new ones'),
+      h('button', { class: 'btn icon small close', 'aria-label': 'Close snippets', onclick: () => this.toggleDrawer() }, '×')));
+    const row = h('div', { class: 'snip-row' });
+    const list = this.allSnippets();
+    if (!list.length) row.appendChild(h('div', { class: 'muted' }, 'No snippets yet.'));
+    for (const sn of list) {
+      const issue = this.snippetIssue(sn);
+      const locked = !!sn.unlockAfter && !this.opts.isDone?.(sn.unlockAfter);
+      const lines = sn.ops.filter((o) => o.op !== 'LABEL' && o.op !== 'NOTE');
+      const ops = h('div', { class: 'snip-ops' }, ...lines.slice(0, 8).map((o) => h('i', { class: `op-${o.op}`, title: quantum.printProgram([o]).trim() })), lines.length > 8 ? h('span', null, '…') : null);
+      const el = h('div', { class: `snip${issue ? ' off' : ''}${sn.starter ? ' starter' : ''}`, tabindex: issue ? null : 0,
+        title: issue ? `${sn.name}: ${issue}` : `${sn.name}\n${quantum.printProgram(sn.ops)}` },
+        h('div', { class: 'snip-name' }, locked ? '🔒 ' : sn.starter ? '⭐ ' : '', locked ? '???' : sn.name),
+        locked ? h('div', { class: 'muted snip-sub' }, issue) : ops,
+        h('div', { class: 'muted snip-sub' }, locked ? '' : issue ?? `${lines.length} card${lines.length === 1 ? '' : 's'}`));
+      if (!sn.starter) {
+        el.appendChild(h('button', { class: 'x', title: 'Delete snippet', 'aria-label': 'Delete snippet', onclick: (e: Event) => {
+          e.stopPropagation(); this.snippets = this.snippets.filter((x) => x.id !== sn.id); storeSnippets(this.snippets); this.renderDrawer();
+        } }, '×'));
+      }
+      if (!issue) {
+        el.addEventListener('pointerdown', (e) => { if ((e.target as HTMLElement).closest('.x')) return; this.pointerDown(e, { src: 'snip', op: { op: 'NOTE', text: sn.id }, srcEl: el, snip: sn }); });
+        el.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const c = this.cursor(); if (c) this.insertSnippet(sn, c.phase, c.index); } });
+      }
+      row.appendChild(el);
+    }
+    d.appendChild(row);
+  }
+  /** Insert a snippet's ops, renaming its labels so they don't clash with existing spots. */
+  private insertSnippet(sn: Snippet, ph: EdPhase, index: number): void {
+    this.commit(() => {
+      const used = new Set<string>();
+      for (const p of [this.progs.bedtime, this.progs.morning]) for (const o of p) if (o.op === 'LABEL') used.add(o.name);
+      const map = new Map<string, string>();
+      const fresh = (old: string) => {
+        if (map.has(old)) return map.get(old)!;
+        let n = old; let k = 2;
+        while (used.has(n)) n = `${old}${k++}`;
+        used.add(n); map.set(old, n); return n;
+      };
+      const ops = structuredClone(sn.ops);
+      for (const o of ops) if (o.op === 'LABEL') o.name = fresh(o.name);
+      for (const o of ops) if ((o.op === 'IF' || o.op === 'JUMP') && map.has(o.label)) o.label = map.get(o.label)!;
+      this.progs[ph].splice(index, 0, ...ops);
+    });
+    toast(`Inserted "${sn.name}"`, 'good', 1400);
+  }
+  /** Flash cards of these op kinds (hint highlights) in the toolbox and the programs. */
+  flashOps(names: OpName[], ms = 4000): void {
+    const set = new Set(names);
+    this.el.querySelectorAll('.card').forEach((c) => {
+      const m = /op-([A-Z]+)/.exec(c.className); if (m && set.has(m[1] as OpName)) { c.classList.remove('hint-hl'); void (c as HTMLElement).offsetWidth; c.classList.add('hint-hl'); }
+    });
+    clearTimeout(this.flashT);
+    this.flashT = window.setTimeout(() => this.el.querySelectorAll('.hint-hl').forEach((c) => c.classList.remove('hint-hl')), ms);
+  }
+  private flashT = 0;
+  /** Pulse the IF/JUMP arrow for a jump event of the current card. */
+  pulseJump(taken: boolean): void {
+    const cur = this.el.querySelector('.card.current');
+    if (!cur) return;
+    cur.classList.remove('jump-yes', 'jump-no'); void (cur as HTMLElement).offsetWidth;
+    cur.classList.add(taken ? 'jump-yes' : 'jump-no');
+    setTimeout(() => cur.classList.remove('jump-yes', 'jump-no'), 700);
   }
 
   private newLabel(): string {
@@ -228,6 +478,8 @@ export class Editor {
       const list = col.querySelector('.prog-list') as HTMLElement | null;
       if (c && list) c.textContent = `${lines(this.progs[list.dataset.phase as EdPhase])} lines`;
     }
+    this.renderTabs();
+    this.applySel();
     this.applyCurrent();
     requestAnimationFrame(this.drawArrowsAll);
   }
@@ -264,7 +516,10 @@ export class Editor {
 
   private cardEl(op: Op, o: { tool?: boolean; readonly?: boolean; phase?: EdPhase; index?: number; error?: boolean }): HTMLElement {
     const c = h('div', { class: `card op-${op.op}${o.error ? ' error' : ''}`, tabindex: o.tool ? 0 : null });
-    if (op.op === 'PEEK' && this.opts.hazardPeek) c.classList.add('hazard');
+    if (op.op === 'PEEK') {
+      if (this.peekWakes) c.classList.add('hazard');
+      if (!o.tool) c.title = this.helpFor('PEEK');
+    }
     const name = o.tool ? op.op : op.op === 'LABEL' ? '⚑' : op.op === 'NOTE' ? '✎' : op.op;
     c.appendChild(h('span', { class: 'cname' }, name));
     if (o.tool) return c;
@@ -394,10 +649,10 @@ export class Editor {
   }
 
   // ───────────── drag & drop ─────────────
-  private pointerDown(e: PointerEvent, d: { src: 'tool' | 'prog'; op: Op; phase?: EdPhase; index?: number; srcEl: HTMLElement }): void {
+  private pointerDown(e: PointerEvent, d: { src: 'tool' | 'prog' | 'snip'; op: Op; phase?: EdPhase; index?: number; srcEl: HTMLElement; snip?: Snippet }): void {
     if (this.opts.readonly || e.button > 0) return;
     e.preventDefault();
-    this.drag = { ...d, startX: e.clientX, startY: e.clientY, pointerId: e.pointerId };
+    this.drag = { ...d, startX: e.clientX, startY: e.clientY, pointerId: e.pointerId, down: e };
     const move = (ev: PointerEvent) => this.pointerMove(ev);
     const up = (ev: PointerEvent) => {
       window.removeEventListener('pointermove', move);
@@ -416,7 +671,8 @@ export class Editor {
       if (Math.hypot(e.clientX - d.startX, e.clientY - d.startY) < 6) return;
       const r = d.srcEl.getBoundingClientRect();
       d.ghost = d.srcEl.cloneNode(true) as HTMLElement;
-      d.ghost.classList.add('ghost'); d.ghost.classList.remove('current');
+      d.ghost.classList.add('ghost'); d.ghost.classList.remove('current', 'sel');
+      if (d.src === 'snip') d.ghost.classList.add('card', 'op-NOTE');
       d.ghost.style.width = r.width + 'px';
       document.body.appendChild(d.ghost);
       if (d.src === 'prog') d.srcEl.classList.add('dragging-src');
@@ -429,7 +685,7 @@ export class Editor {
     this.el.querySelectorAll('.prog-list.drop-active').forEach((n) => n.classList.remove('drop-active'));
     this.trash.classList.remove('hot');
     const under = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
-    if (under?.closest('.trash') || (d.src === 'prog' && under?.closest('.toolbox'))) {
+    if (d.src !== 'snip' && (under?.closest('.trash') || (d.src === 'prog' && under?.closest('.toolbox')))) {
       this.trash.classList.add('hot'); d.target = 'trash'; return;
     }
     // generous snapping: any point inside the column counts
@@ -461,9 +717,12 @@ export class Editor {
     if (!d.ghost) {
       // a click: toolbox card appends to the active column
       if (d.src === 'tool') {
-        const ph = this.lists.has(this.activePhase) ? this.activePhase : [...this.lists.keys()][0];
-        if (ph) this.insertNew(d.op as unknown as OpName, ph, this.progs[ph].length);
-      }
+        const c = this.cursor();
+        if (c) this.insertNew(d.op as unknown as OpName, c.phase, c.index);
+      } else if (d.src === 'snip' && d.snip) {
+        const c = this.cursor();
+        if (c) this.insertSnippet(d.snip, c.phase, c.index);
+      } else if (d.src === 'prog') this.clickCard(d.phase!, d.index!, d.down);
       return;
     }
     d.ghost.remove();
@@ -473,6 +732,7 @@ export class Editor {
       return;
     }
     if (!tg) return;
+    if (d.src === 'snip') { if (d.snip) this.insertSnippet(d.snip, tg.phase, tg.index); return; }
     if (d.src === 'tool') { this.activePhase = tg.phase; this.insertNew(d.op as unknown as OpName, tg.phase, tg.index); return; }
     // move
     this.commit(() => {

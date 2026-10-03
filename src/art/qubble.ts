@@ -2,7 +2,7 @@
 import { PALETTE, type QubbleVisual } from '../core/contracts';
 import {
   type Ctx, type RGB, TAU, INK, LINE, hex, mix, rgba, lighten, darken, desat, hsl, clamp, ellipse, circle,
-  inkStroke, groundShadow, zzz, nameTag, blush, starPath, hash,
+  inkStroke, groundShadow, zzz, nameTag, blush, starPath, hash, sceneState,
 } from './util';
 
 const SUNNY = hex(PALETTE.sunny);
@@ -42,6 +42,12 @@ function quilt(): HTMLCanvasElement {
   for (const [cx, cy] of [[N + 16, 16], [16, N + 16]]) {
     g.beginPath(); g.arc(cx, cy, 3, 0, TAU); g.fill();
   }
+  // fabric weave
+  g.lineWidth = 0.6;
+  for (let k = 0; k < 2 * N; k += 2) {
+    g.strokeStyle = 'rgba(90,50,60,0.08)'; g.beginPath(); g.moveTo(k + 0.5, 0); g.lineTo(k + 0.5, 2 * N); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,0.12)'; g.beginPath(); g.moveTo(0, k + 1.5); g.lineTo(2 * N, k + 1.5); g.stroke();
+  }
   // stitching
   g.strokeStyle = 'rgba(120,70,80,0.55)';
   g.setLineDash([4, 3]);
@@ -76,7 +82,7 @@ function bodyPath(ctx: Ctx, w: number, h: number, wob: number) {
   ctx.closePath();
 }
 function blanketPath(ctx: Ctx, w: number, h: number, t: number) {
-  const W = w * 1.22, H = h * 1.12;
+  const W = w * 1.12, H = h * 1.12;
   ctx.beginPath();
   ctx.moveTo(-W * 1.18, h * 0.06);
   ctx.bezierCurveTo(-W * 1.2, -H * 0.12, -W * 0.98, -H * 0.66, -W * 0.6, -H * 0.9);
@@ -110,6 +116,18 @@ export function drawFace(ctx: Ctx, state: FaceState, s: number, t: number, cx: n
       const m = 1.4 + 0.7 * (0.5 + 0.5 * Math.sin(t * 1.6));
       ellipse(ctx, cx, cy + 5.5 * s, m * s, m * 1.15 * s); ctx.fill();
       blush(ctx, cx, cy + 3.5 * s, s, ex + 3.5 * s, 0.5);
+      break;
+    }
+    case 'mumble': {
+      // squeezed-shut eyes + wobbly squiggle mouth
+      for (const [x, d] of [[L, 1], [R, -1]] as const) {
+        ctx.beginPath(); ctx.moveTo(x - 3 * s * d, cy - 1.5 * s); ctx.lineTo(x + 2.5 * s * d, cy); ctx.lineTo(x - 3 * s * d, cy + 0.8 * s); ctx.stroke();
+      }
+      ctx.lineWidth = 1.7 * s;
+      ctx.beginPath();
+      for (let i = 0; i <= 8; i++) { const px = cx - 4 * s + i * s, py = cy + 6 * s + Math.sin(i * 1.6 + t * 6) * 1.1 * s; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+      ctx.stroke();
+      blush(ctx, cx, cy + 3.5 * s, s, ex + 3.5 * s, 0.6);
       break;
     }
     case 'awake-grumpy': {
@@ -199,40 +217,90 @@ function dizzyStars(ctx: Ctx, cx: number, cy: number, s: number, t: number) {
   }
 }
 
-// ── bed under every qubble ───────────────────────────────────────────────────
-export function drawBed(ctx: Ctx, x: number, y: number, s: number, night = 0) {
-  const rx = 30 * s, ry = 13 * s, th = 5 * s;
-  ctx.save();
-  const top = mix(hex('#d9d3ff'), hex('#4a4f8e'), night);
-  const side = darken(top, 0.25);
-  // cushion side (thick, puffy)
+// ── bed under every qubble: a small iso mattress + pillow, aligned to the tile ──
+/** Iso point in bed-local space: (u along +gx, v along +gy, z up), in tiles of the 96×48 grid at s. */
+function bp(x: number, y: number, s: number, u: number, v: number, z = 0) {
+  return { x: x + (u - v) * 48 * s, y: y + (u + v) * 24 * s - z * 48 * s };
+}
+function isoRound(ctx: Ctx, x: number, y: number, s: number, h: number, z: number, r: number) {
+  // rounded square of half-size h (tiles) at height z, corner radius r (tiles), centred on the tile
   ctx.beginPath();
-  ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI);
-  ctx.ellipse(x, y - th, rx, ry, 0, Math.PI, 0, true);
-  ctx.closePath();
-  ellipse(ctx, x, y, rx, ry);
-  ctx.fillStyle = rgba(side);
-  ctx.fill();
-  inkStroke(ctx, s, 2);
-  // top
-  ellipse(ctx, x, y - th, rx, ry);
-  const g = ctx.createRadialGradient(x - rx * 0.3, y - th - ry * 0.4, 2, x, y - th, rx);
-  g.addColorStop(0, rgba(lighten(top, 0.45)));
-  g.addColorStop(1, rgba(top));
-  ctx.fillStyle = g;
-  ctx.fill();
-  inkStroke(ctx, s, 2);
-  // stitched ring + tufts
-  ctx.setLineDash([3 * s, 3 * s]);
-  ellipse(ctx, x, y - th, rx * 0.8, ry * 0.72);
-  ctx.lineWidth = 1.2 * s;
-  ctx.strokeStyle = rgba(darken(top, 0.4), 0.6);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.fillStyle = rgba(darken(top, 0.3), 0.7);
-  for (const [dx, dy] of [[-0.62, 0.3], [0.62, 0.3], [0, 0.62]]) {
-    circle(ctx, x + dx * rx, y - th + dy * ry, 1.4 * s); ctx.fill();
+  const cs: [number, number, number][] = [[h - r, -h + r, -Math.PI / 2], [h - r, h - r, 0], [-h + r, h - r, Math.PI / 2], [-h + r, -h + r, Math.PI]];
+  let first = true;
+  for (const [cu, cv, a0] of cs) for (let i = 0; i <= 5; i++) {
+    const a = a0 + (i / 5) * (Math.PI / 2);
+    const p = bp(x, y, s, cu + Math.cos(a) * r, cv + Math.sin(a) * r, z);
+    if (first) { ctx.moveTo(p.x, p.y); first = false; } else ctx.lineTo(p.x, p.y);
   }
+  ctx.closePath();
+}
+/** Mattress footprint: 0.78×0.78 tile (≈75×37 px at s=1) centred on (x, y), 7·s thick, pillow at the back corner.
+ *  Draw it before the qubble (drawQubble already does). */
+export function drawBed(ctx: Ctx, x: number, y: number, s: number, night = 0) {
+  const h = 0.39, r = 0.1, th = 7 / 48;
+  ctx.save();
+  const top = mix(hex('#dcd6ff'), hex('#4a4f8e'), night);
+  const sheet = mix(hex('#fffaf3'), hex('#6a6fa8'), night);
+  // contact shadow / AO under the bed
+  ctx.save();
+  ctx.translate(0, 2.5 * s);
+  isoRound(ctx, x, y, s, h + 0.03, 0, r + 0.03);
+  ctx.fillStyle = 'rgba(30,20,50,0.22)'; ctx.fill();
+  ctx.restore();
+  // sides (extrude the base outline up by th)
+  isoRound(ctx, x, y, s, h, 0, r);
+  ctx.fillStyle = rgba(darken(top, 0.32)); ctx.fill();
+  const sg = ctx.createLinearGradient(x - 40 * s, 0, x + 40 * s, 0);
+  sg.addColorStop(0, rgba(darken(top, 0.12))); sg.addColorStop(0.5, rgba(darken(top, 0.22))); sg.addColorStop(1, rgba(darken(top, 0.38)));
+  // fill the band between base and top outline
+  ctx.beginPath();
+  const L = bp(x, y, s, -h, h), R = bp(x, y, s, h, -h), F = bp(x, y, s, h, h);
+  ctx.moveTo(L.x, L.y - th * 48 * s); ctx.lineTo(L.x, L.y); ctx.lineTo(F.x, F.y); ctx.lineTo(R.x, R.y); ctx.lineTo(R.x, R.y - th * 48 * s); ctx.lineTo(F.x, F.y - th * 48 * s); ctx.closePath();
+  ctx.fillStyle = sg; ctx.fill();
+  isoRound(ctx, x, y, s, h, 0, r); ctx.fillStyle = sg; ctx.fill();
+  inkStroke(ctx, s, 2);
+  // piping seam on the side
+  ctx.beginPath();
+  for (let i = 0; i <= 12; i++) {
+    const k = i / 12;
+    const p = k < 0.5 ? bp(x, y, s, -h + 2 * h * (k * 2), h, th * 0.45) : bp(x, y, s, h, h - 2 * h * ((k - 0.5) * 2), th * 0.45);
+    i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y);
+  }
+  ctx.setLineDash([2.5 * s, 2.5 * s]); ctx.lineWidth = 1 * s; ctx.strokeStyle = rgba(lighten(top, 0.5), 0.8); ctx.stroke(); ctx.setLineDash([]);
+  // top (sheet)
+  isoRound(ctx, x, y, s, h, th, r);
+  const tg = ctx.createLinearGradient(bp(x, y, s, -h, -h, th).x, bp(x, y, s, -h, -h, th).y, bp(x, y, s, h, h, th).x, bp(x, y, s, h, h, th).y);
+  tg.addColorStop(0, rgba(lighten(sheet, 0.3))); tg.addColorStop(0.6, rgba(sheet)); tg.addColorStop(1, rgba(mix(sheet, top, 0.45)));
+  ctx.fillStyle = tg; ctx.fill();
+  // fabric weave
+  ctx.save(); ctx.clip();
+  ctx.lineWidth = 0.7 * s; ctx.strokeStyle = rgba(darken(top, 0.2), 0.12);
+  ctx.beginPath();
+  for (let u = -h; u <= h; u += 0.06) { const a1 = bp(x, y, s, u, -h, th), b1 = bp(x, y, s, u, h, th); ctx.moveTo(a1.x, a1.y); ctx.lineTo(b1.x, b1.y); }
+  ctx.stroke();
+  // turned-down sheet band at the front
+  ctx.beginPath();
+  const q = [bp(x, y, s, -h, 0.12, th), bp(x, y, s, h, 0.12, th), bp(x, y, s, h, h, th), bp(x, y, s, -h, h, th)];
+  ctx.moveTo(q[0].x, q[0].y); for (let i = 1; i < 4; i++) ctx.lineTo(q[i].x, q[i].y); ctx.closePath();
+  ctx.fillStyle = rgba(top, 0.55); ctx.fill();
+  ctx.restore();
+  isoRound(ctx, x, y, s, h, th, r);
+  inkStroke(ctx, s, 2);
+  // pillow at the back corner (puffy iso cushion)
+  const pc = bp(x, y, s, -0.21, -0.21, th);
+  const pw = 21 * s, ph = 9 * s;
+  ctx.beginPath();
+  ctx.moveTo(pc.x - pw, pc.y);
+  ctx.bezierCurveTo(pc.x - pw * 1.05, pc.y - ph * 1.3, pc.x - pw * 0.2, pc.y - ph * 1.25, pc.x, pc.y - ph * 1.05);
+  ctx.bezierCurveTo(pc.x + pw * 0.2, pc.y - ph * 1.25, pc.x + pw * 1.05, pc.y - ph * 1.3, pc.x + pw, pc.y);
+  ctx.bezierCurveTo(pc.x + pw * 1.05, pc.y + ph * 0.9, pc.x + pw * 0.2, pc.y + ph * 0.9, pc.x, pc.y + ph * 0.75);
+  ctx.bezierCurveTo(pc.x - pw * 0.2, pc.y + ph * 0.9, pc.x - pw * 1.05, pc.y + ph * 0.9, pc.x - pw, pc.y);
+  ctx.closePath();
+  const pg = ctx.createRadialGradient(pc.x - pw * 0.35, pc.y - ph * 0.6, 1, pc.x, pc.y, pw * 1.1);
+  pg.addColorStop(0, rgba(lighten(sheet, 0.6))); pg.addColorStop(0.7, rgba(sheet)); pg.addColorStop(1, rgba(mix(sheet, top, 0.6)));
+  ctx.fillStyle = pg; ctx.fill(); inkStroke(ctx, s, 1.8);
+  ctx.beginPath(); ctx.moveTo(pc.x - pw * 0.25, pc.y - ph * 0.2); ctx.quadraticCurveTo(pc.x, pc.y + ph * 0.15, pc.x + pw * 0.25, pc.y - ph * 0.2);
+  ctx.lineWidth = 1 * s; ctx.strokeStyle = rgba(darken(top, 0.3), 0.5); ctx.stroke();
   ctx.restore();
 }
 
@@ -245,15 +313,19 @@ export function drawQubble(ctx: Ctx, x: number, y: number, s: number, v: QubbleV
     ctx.save();
     ctx.setLineDash([6 * s, 5 * s]);
     ctx.lineDashOffset = -t * 20 * s;
-    ellipse(ctx, x, y, 36 * s + p * 3 * s, 17 * s + p * 1.5 * s);
+    const hh = 0.44 + p * 0.03;
+    ctx.beginPath();
+    for (const [u, v] of [[-hh, -hh], [hh, -hh], [hh, hh], [-hh, hh]]) { const q = bp(x, y, s, u, v); ctx.lineTo(q.x, q.y); }
+    ctx.closePath();
     ctx.lineWidth = 2.5 * s;
     ctx.strokeStyle = PALETTE.red;
     ctx.stroke();
     ctx.restore();
   }
-  drawBed(ctx, x, y + 2 * s, s);
-  if (v.classical) drawBitBall(ctx, x, y, s, v, t, seed);
-  else drawBlob(ctx, x, y, s, v, t, seed);
+  drawBed(ctx, x, y, s, sceneState.night);
+  const yb = y - 5 * s; // sits on the mattress top
+  if (v.classical) drawBitBall(ctx, x, yb, s, v, t, seed);
+  else drawBlob(ctx, x, yb, s, v, t, seed);
   if (v.label) nameTag(ctx, x + 24 * s, y + 9 * s, s, v.label);
   ctx.restore();
 }
@@ -274,7 +346,13 @@ function drawBlob(ctx: Ctx, x: number, y: number, s: number, v: QubbleVisual, t:
   let sx = 1 + 0.035 * breath, sy = 1 - 0.045 * breath, hop = 0, rot = 0, jx = 0;
   if (st === 'happy') { const b = Math.abs(Math.sin(t * 5 + seed)); hop = b * 7; sy = 1 + 0.08 * b - 0.06 * (1 - b); sx = 2 - sy; }
   if (st === 'giggle') { rot = Math.sin(t * 16) * 0.07; sy = 1 + 0.05 * Math.sin(t * 20); sx = 2 - sy; hop = Math.abs(Math.sin(t * 8)) * 2; }
-  if (st === 'scared') { jx = Math.sin(t * 50) * 1.1; sx = 0.92; sy = 1.08; }
+  if (st === 'scared') { jx = Math.sin(t * 50) * (blanket >= 0.5 ? 1.8 : 1.1); sx = 0.92; sy = 1.08; }
+  if (st === 'mumble') {
+    // rolls over: a slow lopsided heave to one side and back
+    const r = Math.sin(t * 2.4 + seed);
+    rot = r * 0.2; jx = r * 3; sx = 1.06 - 0.04 * Math.abs(r); sy = 0.95 + 0.04 * Math.abs(r);
+  }
+  if (st === 'giggle' && blanket >= 0.5) { rot = Math.sin(t * 22) * 0.09; hop = Math.abs(Math.sin(t * 11)) * 3; }
   if (st === 'awake-grumpy') { sx = 1.06 + 0.02 * breath; sy = 0.95 - 0.02 * breath; }
   if (collapsed) { const k = Math.sin(t * 9) * 0.04; sx = 1.32 + k; sy = 0.66 - k; }
 
@@ -422,6 +500,16 @@ function drawBlob(ctx: Ctx, x: number, y: number, s: number, v: QubbleVisual, t:
     ctx.beginPath();
     ctx.ellipse(w * 0.06, -h * 0.5, w * 0.82, h * 0.42, 0, Math.PI * 1.05, Math.PI * 1.55);
     ctx.stroke();
+    // ambient occlusion where the body meets the mattress
+    const ao = ctx.createLinearGradient(0, -h * 0.3, 0, h * 0.05);
+    ao.addColorStop(0, 'rgba(30,16,50,0)'); ao.addColorStop(1, `rgba(30,16,50,${collapsed ? 0.18 : 0.3})`);
+    ctx.fillStyle = ao; ctx.fillRect(-w * 1.3, -h * 0.3, w * 2.6, h * 0.4);
+    // crisp rim light on the right edge (cool back light)
+    ctx.lineWidth = 1.6 * s;
+    ctx.strokeStyle = 'rgba(235,245,255,0.7)';
+    ctx.beginPath();
+    ctx.ellipse(-w * 0.04, -h * 0.47, w * 0.92, h * 0.47, 0, -Math.PI * 0.32, Math.PI * 0.12);
+    ctx.stroke();
     // specular gummy shine
     ctx.fillStyle = 'rgba(255,255,255,0.8)';
     ellipse(ctx, -w * 0.42, -h * 0.74, 4.2 * s, 2.6 * s, -0.6); ctx.fill();
@@ -487,6 +575,49 @@ function drawBlob(ctx: Ctx, x: number, y: number, s: number, v: QubbleVisual, t:
   if (st === 'sleep' && blanket < 0.98) zzz(ctx, w * 0.7, -h * 1.05, s, t + seed, mist > 0.5 ? '#55524b' : INK);
   if (fullCover && st === 'sleep') zzz(ctx, w * 0.9, -h * 1.15, s, t + seed);
   if (st === 'giggle') giggleNotes(ctx, s, t, w, h);
+  if (st === 'mumble') mumbleSquiggle(ctx, s, t, w, h);
+  if (st === 'scared' && blanket >= 0.5) blanketFright(ctx, s, t, w, h);
+  ctx.restore();
+}
+
+/** "mmh" + a wavy squiggle drifting up (sleep-talk). Neutral ink: never hints at the dream colour. */
+function mumbleSquiggle(ctx: Ctx, s: number, t: number, w: number, h: number) {
+  ctx.save();
+  const p = (t * 0.6) % 1;
+  ctx.globalAlpha = Math.sin(p * Math.PI);
+  const x0 = w * 0.75, y0 = -h * 1.05 - p * 12 * s;
+  ctx.font = `700 ${10 * s}px Quicksand, sans-serif`;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = 3 * s; ctx.strokeStyle = PALETTE.paper; ctx.lineJoin = 'round';
+  ctx.strokeText('mmh', x0, y0);
+  ctx.fillStyle = INK; ctx.fillText('mmh', x0, y0);
+  ctx.beginPath();
+  for (let i = 0; i <= 14; i++) { const px = x0 + 2 * s + i * 1.6 * s, py = y0 - 8 * s + Math.sin(i * 0.9 - t * 5) * 2 * s; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+  ctx.lineWidth = 1.5 * s; ctx.strokeStyle = INK; ctx.lineCap = 'round'; ctx.stroke();
+  ctx.restore();
+}
+/** Under a blanket the face is hidden, so fright reads from the quilt: shiver lines, flying sweat drops and "!!". */
+function blanketFright(ctx: Ctx, s: number, t: number, w: number, h: number) {
+  ctx.save();
+  ctx.strokeStyle = INK; ctx.lineWidth = 1.5 * s; ctx.lineCap = 'round';
+  for (const side of [-1, 1]) for (let i = 0; i < 3; i++) {
+    const x = side * (w * 1.55 + i * 0.5 * s), y = -h * (0.25 + i * 0.25);
+    const j = Math.sin(t * 40 + i) * 1.2 * s;
+    ctx.beginPath(); ctx.moveTo(x + j, y - 3 * s); ctx.lineTo(x + side * 3 * s + j, y); ctx.lineTo(x + j, y + 3 * s); ctx.stroke();
+  }
+  for (let i = 0; i < 2; i++) {
+    const p = (t * 1.4 + i * 0.5) % 1, side = i ? -1 : 1;
+    ctx.globalAlpha = 1 - p;
+    const sx = side * (w * 0.9 + p * 10 * s), sy = -h * 1.0 - Math.sin(p * Math.PI) * 8 * s + p * 6 * s;
+    ctx.fillStyle = '#8fd3ff';
+    ctx.beginPath(); ctx.moveTo(sx, sy - 4 * s); ctx.quadraticCurveTo(sx + 3 * s, sy + 1 * s, sx, sy + 2.2 * s);
+    ctx.quadraticCurveTo(sx - 3 * s, sy + 1 * s, sx, sy - 4 * s); ctx.fill(); inkStroke(ctx, s, 1.2);
+  }
+  ctx.globalAlpha = 1;
+  ctx.font = `700 ${13 * s}px Quicksand, sans-serif`; ctx.textAlign = 'center';
+  ctx.lineWidth = 3.5 * s; ctx.strokeStyle = INK; ctx.lineJoin = 'round';
+  const bx = Math.sin(t * 30) * 0.8 * s;
+  ctx.strokeText('!!', bx, -h * 1.45); ctx.fillStyle = PALETTE.paper; ctx.fillText('!!', bx, -h * 1.45);
   ctx.restore();
 }
 

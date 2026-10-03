@@ -36,7 +36,7 @@ export function drawCaretaker(ctx: Ctx, x: number, y: number, s: number, v: Care
   // ── pose parameters (local, facing +x) ──
   let hop = 0, lean = Math.sin(t * 1.4) * 0.025, bodyY = 0, squash = 1 + Math.sin(t * 2.2) * 0.015;
   let face: Face = 'sleepy';
-  let footL = 0, footR = 0, tiptoe = 0, headTilt = 0;
+  let footL = 0, footR = 0, tiptoe = 0, headTilt = 0, strideL = 0, strideR = 0;
   // hands relative to body: [x, y], shoulders at (±7, -27)
   let hb: [number, number] = [-9, -16], hf: [number, number] = [9, -16];
   let fingerF = 0, fingerA = 0, fingerB = 0, fingerBA = 0;
@@ -56,13 +56,18 @@ export function drawCaretaker(ctx: Ctx, x: number, y: number, s: number, v: Care
       break;
     }
     case 'tiptoe': {
-      const c = t * 7;
+      // slow, exaggerated cartoon sneak: high knee lifts, crouched, on tippy-toes, hands up like paws
+      const c = t * 3.6;
+      const sn = Math.sin(c);
       tiptoe = 1;
-      footL = Math.max(0, Math.sin(c)) * 5; footR = Math.max(0, -Math.sin(c)) * 5;
-      bodyY = -3 - Math.abs(Math.sin(c)) * 2.5;
-      lean = 0.12;
-      hb = [3, -26 + Math.sin(c) * 1.5]; hf = [13, -25 - Math.sin(c) * 1.5]; // sneaky hands up front
-      fingerF = 0.6; fingerA = -0.6;
+      footL = Math.max(0, sn) * 8; footR = Math.max(0, -sn) * 8;
+      strideL = Math.cos(c) * 3.5; strideR = -Math.cos(c) * 3.5;
+      bodyY = -1 - Math.abs(sn) * 3; // up on tippy-toes, rising on each step
+      lean = 0.16 + 0.03 * Math.sin(c * 2);
+      squash = 0.94 + 0.03 * Math.abs(sn); // hunched
+      hb = [-1 + 2 * sn, -30 - 2 * Math.max(0, -sn)]; hf = [11 - 2 * sn, -33 - 2 * Math.max(0, sn)];
+      fingerF = 0.7; fingerA = -1.2; fingerB = 0.5; fingerBA = -1.4;
+      headTilt = -0.06 + 0.05 * Math.sin(c * 0.5);
       face = 'focus';
       break;
     }
@@ -152,12 +157,12 @@ export function drawCaretaker(ctx: Ctx, x: number, y: number, s: number, v: Care
   ctx.rotate(lean);
   const by = bodyY * s;
   // legs (short stubs inside onesie)
-  for (const [lx, lift] of [[-5, footL], [5, footR]] as const) {
+  for (const [lx, lift] of [[-5 + strideL, footL], [5 + strideR, footR]] as const) {
     ctx.beginPath(); roundRect(ctx, (lx - 3.6) * s, by - 12 * s - lift * s, 7.2 * s, 11 * s + (tiptoe ? 2 : 0) * s, 3 * s);
     ctx.fillStyle = ONESIE_SH; ctx.fill(); inkStroke(ctx, s, 2);
   }
-  slipper(-6 * s, footL + (tiptoe ? 2 : 0) - bodyY);
-  slipper(4 * s, footR + (tiptoe ? 2 : 0) - bodyY);
+  slipper((-6 + strideL) * s, footL + (tiptoe ? 2 : 0) - bodyY);
+  slipper((4 + strideR) * s, footR + (tiptoe ? 2 : 0) - bodyY);
 
   // back arm
   const shB: [number, number] = [-6, -27], shF: [number, number] = [6, -27];

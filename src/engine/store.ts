@@ -13,6 +13,8 @@ export interface SaveData {
   v: 1;
   progress: Record<string, LevelProgress>;
   programs: Record<string, { bedtime?: Program; morning?: Program }>;
+  /** A/B/C program slots per level key (v0.3) */
+  slots?: Record<string, { active: { bedtime: number; morning: number }; bedtime: Program[]; morning: Program[] }>;
   settings: Settings;
   flags: Record<string, boolean>;
   endlessBest: Record<string, number>;
@@ -25,6 +27,7 @@ const defaults = (): SaveData => ({
   v: 1,
   progress: {},
   programs: {},
+  slots: {},
   settings: { master: 0.8, music: 0.6, sfx: 0.8, voice: 0.5, nerd: false, reducedMotion: false, xrayDefault: false },
   flags: {},
   endlessBest: {},
@@ -45,7 +48,7 @@ function load(): SaveData {
   try {
     const d = JSON.parse(winner) as SaveData;
     const base = defaults();
-    return { ...base, ...d, settings: { ...base.settings, ...d.settings }, flags: { ...d.flags }, progress: { ...d.progress }, programs: { ...d.programs }, endlessBest: { ...d.endlessBest } };
+    return { ...base, ...d, settings: { ...base.settings, ...d.settings }, flags: { ...d.flags }, progress: { ...d.progress }, programs: { ...d.programs }, slots: { ...(d.slots ?? {}) }, endlessBest: { ...d.endlessBest } };
   } catch {
     return defaults();
   }

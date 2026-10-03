@@ -12,6 +12,7 @@ export function drawBot(ctx: Ctx, x: number, y: number, s: number, v: BotVisual,
   if (a === 'celebrate') { lift = Math.abs(Math.sin(t * 6)) * 10; bob = 0; }
   if (a === 'reset') { spinX = Math.cos(t * 14); }
   if (a === 'confused') { lean = Math.sin(t * 2) * 0.12; }
+  if (a === 'wave') { lean = -0.06 * f + Math.sin(t * 11) * 0.03; }
   if (a === 'listen') { lean = -0.08 * f; }
   const shrink = 1 - lift / 50;
   groundShadow(ctx, x, y, 16 * s * shrink, 6 * s * shrink, 0.3);
@@ -54,9 +55,9 @@ export function drawBot(ctx: Ctx, x: number, y: number, s: number, v: BotVisual,
   const R = 14 * s;
 
   // arms (behind/side)
-  const arm = (side: number, up: number) => {
+  const arm = (side: number, up: number, wag = 0) => {
     const sx = side * R * 0.92, sy = 3 * s;
-    const ex = side * (R + 6 * s) + (up ? side * -2 * s : 0);
+    const ex = side * (R + 6 * s) + (up ? side * -2 * s : 0) + wag * 5 * s;
     const ey = up ? -R - 6 * s : sy + 8 * s + Math.sin(t * 3 + side) * 1.5 * s;
     ctx.beginPath(); ctx.moveTo(sx, sy);
     ctx.quadraticCurveTo(side * (R + 7 * s), sy - (up ? 4 : -2) * s, ex, ey);
@@ -64,8 +65,15 @@ export function drawBot(ctx: Ctx, x: number, y: number, s: number, v: BotVisual,
     circle(ctx, ex, ey, 3.6 * s); ctx.fillStyle = ACCENT; ctx.fill(); inkStroke(ctx, s, 2);
     return [ex, ey];
   };
-  const hf = a === 'highfive', cel = a === 'celebrate';
-  const [hx, hy] = arm(1, hf || cel ? 1 : 0);
+  const hf = a === 'highfive', cel = a === 'celebrate', wave = a === 'wave';
+  const wag = wave ? Math.sin(t * 11) : 0;
+  const [hx, hy] = arm(1, hf || cel || wave ? 1 : 0, wag);
+  if (wave) {
+    // little motion arcs beside the waving hand
+    ctx.save(); ctx.strokeStyle = 'rgba(14,14,14,0.55)'; ctx.lineWidth = 1.5 * s; ctx.lineCap = 'round';
+    for (const d of [-1, 1]) { ctx.beginPath(); ctx.arc(hx, hy, 7.5 * s, -Math.PI / 2 + d * 0.5 - 0.3, -Math.PI / 2 + d * 0.5 + 0.3); ctx.stroke(); }
+    ctx.restore();
+  }
   arm(-1, cel ? 1 : 0);
   if (hf) {
     const p = (t * 3) % 1;
@@ -107,6 +115,20 @@ export function drawBot(ctx: Ctx, x: number, y: number, s: number, v: BotVisual,
   ctx.lineWidth = 1.4 * s;
   ctx.beginPath(); ctx.moveTo(-R, R * 0.45); ctx.lineTo(R, R * 0.45); ctx.stroke();
   ctx.restore();
+  // high-fidelity pass: bounce light from the floor, crisp rim light, specular glint
+  ctx.save();
+  circle(ctx, 0, 0, R); ctx.clip();
+  const bounce = ctx.createLinearGradient(0, R * 0.3, 0, R);
+  bounce.addColorStop(0, 'rgba(255,220,180,0)'); bounce.addColorStop(1, 'rgba(255,220,180,0.28)');
+  ctx.fillStyle = bounce; ctx.fillRect(-R, 0, R * 2, R);
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 1.6 * s;
+  ctx.beginPath(); ctx.arc(0, 0, R - 2 * s, Math.PI * 1.08, Math.PI * 1.42); ctx.stroke();
+  ctx.strokeStyle = 'rgba(150,200,255,0.5)'; ctx.lineWidth = 2 * s;
+  ctx.beginPath(); ctx.arc(0, 0, R - 1.2 * s, Math.PI * 0.05, Math.PI * 0.4); ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  ellipse(ctx, -R * 0.45, -R * 0.55, 3 * s, 1.8 * s, -0.7); ctx.fill();
+  circle(ctx, -R * 0.68, -R * 0.3, 0.9 * s); ctx.fill();
   circle(ctx, 0, 0, R);
   inkStroke(ctx, s);
 
@@ -122,7 +144,7 @@ export function drawBot(ctx: Ctx, x: number, y: number, s: number, v: BotVisual,
   ctx.lineCap = 'round';
   const blink = (t * 0.7 + 0.3) % 3 < 0.08;
   const lookUp = a === 'listen' ? -1.2 * s : 0;
-  if (cel || hf) {
+  if (cel || hf || wave) {
     for (const ex of [-4 * s, 4 * s]) { ctx.beginPath(); ctx.arc(ex, 1.5 * s, 2.5 * s, 1.1 * Math.PI, 1.9 * Math.PI); ctx.stroke(); }
   } else if (a === 'reset') {
     for (const ex of [-4 * s, 4 * s]) {
