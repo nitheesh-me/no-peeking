@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Card anatomy test</title>
+<link rel="stylesheet" href="/src/styles/main.css" />
+<style>
+  body { background: #f2f0eb; margin: 0; padding: 16px; font-family: Quicksand, sans-serif; overflow: auto; height: auto; }
+  #grid { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; }
+  .slot { width: var(--w, 400px); background: #fff; border: 2.5px solid #0e0e0e; border-radius: 16px; padding: 14px 16px; box-sizing: border-box; }
+  .slot > h2 { font-family: Quantum, sans-serif; font-weight: 400; margin: 0 0 4px; font-size: 22px; }
+</style>
+</head>
+<body>
+<div id="grid"></div>
+<script type="module">
+  import { cardAnatomy } from './cardAnatomy.ts';
+  const qs = new URLSearchParams(location.search);
+  const ops = (qs.get('ops') ?? 'IF,JUMP,LABEL,END,NOTE,BOOP,SHUSH,SPIN,HIGHFIVE,LISTEN,RESET,PEEK').split(',');
+  const w = qs.get('w') ?? '400';
+  const level = qs.has('day') ? { classical: true, bots: [] } : { bots: [{ id: 'a' }, { id: 'b' }] };
+  const grid = document.getElementById('grid');
+  window.__anat = [];
+  for (const op of ops) {
+    const s = document.createElement('section'); s.className = 'slot'; s.style.setProperty('--w', w + 'px'); s.id = 'slot-' + op;
+    const t = document.createElement('h2'); t.textContent = op === 'NOTE' ? 'COMMENT' : op; s.append(t);
+    const a = cardAnatomy(op, level); s.append(a.el); grid.append(s); window.__anat.push(a);
+  }
+</script>
+</body>
+</html>

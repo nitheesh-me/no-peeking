@@ -141,6 +141,9 @@ export interface NerdInfo {
   fidelity?: number;
   /** classical record so far: measured bits by qubit (LISTEN/PEEK results, in order) */
   record: { who: QubitId; bit: 0 | 1 }[];
+  /** MI scope: 'data' when >10 live qubits (bot pairs not computed); liveQubits = state-vector size at this step */
+  miScope?: 'all' | 'data';
+  liveQubits?: number;
 }
 
 export type TraceEvent =

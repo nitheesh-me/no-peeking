@@ -19,6 +19,7 @@ import type {
 } from '../core/contracts';
 import { isBot, isQubble } from '../core/contracts';
 import { QState, makeRng, mixSeed, haarAngles, type Rng } from './sim';
+import { computeNerd, stabilizerSet, type NerdCtx } from './nerd';
 
 export const DEFAULT_MIN_FIDELITY = 0.999;
 export const DEFAULT_RATE_MIN_FIDELITY = 0.99;
@@ -41,6 +42,8 @@ export interface RunOptions {
   topAmps?: number;
   /** Debug: disable the incremental snapshot cache (used by tests to verify it). */
   noSnapCache?: boolean;
+  /** Fill Snapshot.nerd (NerdInfo) on every snapshot (requires snapshots). Default false. */
+  nerd?: boolean;
 }
 
 export const EMPTY_SNAPSHOT: Snapshot = Object.freeze({ bloch: {} as Record<QubitId, Bloch>, links: [], amps: [], lights: {} }) as Snapshot;
@@ -315,19 +318,28 @@ export function runNight(
 
   let lastSnap: Snapshot = EMPTY_SNAPSHOT;
   const cache = new SnapCache();
+  const record: { who: QubitId; bit: 0 | 1 }[] = [];
+  const nerdStabs = wantSnaps && opts.nerd ? stabilizerSet(level) : null;
+  const withNerd = (snap: Snapshot, useCache: boolean): Snapshot => {
+    if (!nerdStabs) return snap;
+    const ctx: NerdCtx = { ids, stabs: nerdStabs, record, fidelity: snap.logicalFidelity };
+    if (useCache) { ctx.miCache = cache.mi; ctx.blochCache = cache.bloch; }
+    snap.nerd = computeNerd(s, ctx);
+    return snap;
+  };
   const emit = (ev: TraceEvent, fresh = true) => {
     if (wantSnaps && fresh) {
       if (ev.k === 'gate') cache.touch(ev.op === 'HIGHFIVE' ? { pair: [ev.from!, ev.t] } : ev.op === 'RESET' ? 'all' : { local: [ev.t] });
       else if (ev.k === 'noise') cache.touch({ local: [ev.e.t] });
       else cache.touch('all');
-      lastSnap = snapshot(s, ids, lights, idealTarget, opts.topAmps, opts.noSnapCache ? undefined : cache);
+      lastSnap = withNerd(snapshot(s, ids, lights, idealTarget, opts.topAmps, opts.noSnapCache ? undefined : cache), !opts.noSnapCache);
     }
     steps.push({ ev, snap: wantSnaps ? lastSnap : EMPTY_SNAPSHOT });
   };
 
   if (!known.has(level.inputQubble)) configError ??= `inputQubble ${level.inputQubble} is not in the level`;
   if (!configError) s.prepare(level.inputQubble, angles.theta, angles.phi);
-  if (wantSnaps) lastSnap = snapshot(s, ids, lights, idealTarget, opts.topAmps);
+  if (wantSnaps) lastSnap = withNerd(snapshot(s, ids, lights, idealTarget, opts.topAmps), false);
 
   const exec = (parts: Part[], phase: Phase): ExitReason => {
     for (const { ops, part } of parts) {
@@ -367,6 +379,7 @@ export function runNight(
             if (o.op === 'LISTEN' && !isBot(o.t)) return fail(`LISTEN only works on bots; use PEEK for ${o.t}`);
             const r = s.measure(o.t, rng);
             lights[o.t] = r;
+            record.push({ who: o.t, bit: r });
             const isWoke = isQubble(o.t) && !peekOk;
             if (isWoke && !woke.includes(o.t as QubbleId)) woke.push(o.t as QubbleId);
             emit({ k: 'measure', t: o.t, result: r, woke: isWoke });

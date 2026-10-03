@@ -203,3 +203,48 @@ and every trap (must fail for a physics reason, never 'error'). Status 2026-10-0
 - 2-1 uses goal 'state' with the flip on q2 and expects the player to *fix* it after the parity check — consistent.
 - 2-5: coded success ≈ 1 − (3p² − 2p³) = 0.972 at p = 0.1 (plus random-input nights where a logical X happens to
   leave the state nearly unchanged, which pass the 0.99 threshold) vs minRate 0.93 — OK with margin.
+
+## Nerd info (`Snapshot.nerd`, Schrödi's Lab Notebook)
+
+Computed only by `runNight(level, prog, input, errors, seed, { nerd: true })` (QuantumAPI 6th param; the VM's own
+`RunOptions.nerd` needs `snapshots` on). `testLevel` never computes it. Code: `src/quantum/nerd.ts`. Every TraceStep
+carries one (steps without a state change share the previous object, like `snap` itself).
+
+- **order**: data qubits (level `qubbles` order) then bots (level `bots` order). Every ket string uses this order,
+  leftmost = `order[0]`, and includes measured/untouched (classical, detached) qubits with their definite value.
+- **amps**: every basis state with |a|² > 1e-9, largest first, capped at 256 (`truncated: true` if more). Global
+  phase fixed so the largest amplitude is real-positive (same as `Snapshot.amps`). Σ|a|² = 1 unless truncated.
+- **reduced[q]**: Bloch vector (x, y, z) of the 1-qubit reduced state, purity Tr ρ² = (1+|r|²)/2 ∈ [½, 1],
+  von Neumann entropy S = H₂((1+|r|)/2) in **bits** ∈ [0, 1].
+- **mi[i][j]**: mutual information I(i:j) = S(i)+S(j)−S(ij) in **bits** (0..2), symmetric; diagonal = 2·S(i)
+  (I(A:A)). Bell pair: 2; GHZ pair: 1. Pairs where either qubit is pure are 0 without computing ρ₂ (I ≤ 2·min S).
+  **Cap**: if more than 10 qubits are live in the state vector, only data-qubit pairs are computed; bot rows/columns
+  are 0 off the diagonal. The object then has the extra (non-contract) fields `miScope: 'data'` (else `'all'`) and
+  `liveQubits` so the page can say "11 qubits: showing data qubits only". MI and Bloch reuse the snapshot cache.
+- **stabilizers**: exact ⟨P⟩ for Pauli strings. Shor-9 levels (9 Qubbles) first list the 8 standard generators
+  Z₁Z₂ Z₂Z₃ Z₄Z₅ Z₅Z₆ Z₇Z₈ Z₈Z₉ X₁X₂X₃X₄X₅X₆ X₄X₅X₆X₇X₈X₉, then (every level) ZᵢZⱼ for neighbouring Qubbles in placement
+  order, then XᵢXⱼ for the same pairs (duplicates dropped). Labels use subscript digits of the Qubble number.
+  ±1 for code states/after a Pauli error; in between for wobbles. Measured qubits contribute (−1)^bit to Z, 0 to X.
+- **fidelity**: = `Snapshot.logicalFidelity` (data qubits vs the ideal error-free target), absent for classical goals.
+- **record**: LISTEN/PEEK outcomes so far, in time order (`{ who, bit }`). RESET's internal collapse is not recorded.
+
+### Exporter (`src/quantum/export.ts`)
+
+`toQiskit(level, night, opts?)` → Qiskit 1.x Python; `toOpenQASM3(level, night, opts?)` → OpenQASM 3
+(`stdgates.inc`). `opts = { includeErrors?: boolean (default true), prog?: {bedtime?, morning?}, dynamic?: boolean }`.
+One `q` register (order as above, mapped in a comment), one classical register `m_<who>` per measured creature;
+`m_a[k]` = the k-th LISTEN of a. Input: `ry(θ)` then `p(φ)` (exact, no global phase). BOOP/SHUSH/SPIN/HIGHFIVE → x/z/h/cx,
+LISTEN/PEEK → measure, RESET → reset; gremlins → x / z / y / rx(angle) / rz(angle) with comments (or a comment only
+when `includeErrors: false`). Header: game, level, seed, input, errors, result.
+
+- **Executed path** (default): the gates that actually ran this night, straight-line. IF/JUMP decisions are comments
+  (`# IF a BEEP and b QUIET -> fix1 (taken) [lights: a=1 b=0]`; needs `prog`, else a generic comment). It reproduces
+  the night only when a device gets the same measurement outcomes.
+- **Dynamic** (`dynamic: true` + `prog`): the program as a circuit with feed-forward. Each gate gets the exact
+  condition under which it runs (truth table over measured bits), emitted as disjoint minterms of nested single-bit
+  ifs: `with qc.if_test((m_a[0], 1)):` / `if (m_a[0] == true) { … }` (the forms Qiskit's QASM3 importer accepts).
+  Lights are the latest `m_` bit of that creature; never measured = QUIET. Requires: every jump goes **forward**,
+  every LISTEN/PEEK runs on **every** path, ≤ 16 condition bits, night not ended by error/maxSteps. Otherwise it falls
+  back to the executed path and says why in the header (e.g. 2-4's one-bot RESET loop: conditional LISTEN).
+- Angles are printed with 15 significant digits. Verified: all outputs (executed + dynamic, bit-flip / Shor-9 / loop)
+  build in Qiskit 1.4 and load with `qiskit.qasm3.loads` (opt-in test: `QISKIT_PYTHON=/path/python npx vitest run`).

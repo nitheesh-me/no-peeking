@@ -6,6 +6,7 @@ import { save } from '../engine/store';
 import { h, modal } from '../engine/util';
 import { CARD_GUIDE, peekTips, type CardDemo } from './cardGuide';
 import { linkify } from './learnLinks';
+import { cardAnatomy } from './cardAnatomy';
 import { levelDone } from './unlocks';
 
 const BLOCH: Record<NonNullable<CardDemo['from']>, Bloch> = {
@@ -67,6 +68,8 @@ export function openCardGuide(name: OpName, level: LevelDef): void {
   if (!g) return;
   audio.sfx('ui_click', { pitch: 1.2 });
   const demo = demoCanvas(g.demo, level, name);
+  const anatomy = cardAnatomy(name, level);
+  const flow = g.demo.target === 'none'; // IF / JUMP / LABEL / END / COMMENT: the anatomy walkthrough replaces the glyph
   const proOpen = g.pro && levelDone(g.pro.unlockAfter);
   const peekWakes = !(level.classical || level.allowPeekData);
   const title = name === 'PEEK' ? (peekWakes ? 'PEEK (wakes it!)' : level.classical ? 'PEEK: look in the box' : 'PEEK (allowed here)') : g.name;
@@ -76,10 +79,11 @@ export function openCardGuide(name: OpName, level: LevelDef): void {
   const body = h('div', { class: 'guide' },
     h('div', { class: `guide-head card op-${name}${name === 'PEEK' && peekWakes ? ' hazard' : ''}` }, h('span', { class: 'cname' }, title)),
     h('p', { class: 'guide-what' }, what),
-    demo.el,
+    flow ? null : demo.el,
+    anatomy.el,
     h('h4', null, 'Tips & tricks'),
     h('ul', { class: 'guide-tips' }, ...tips.map((t) => h('li', null, t))),
     g.pro ? h('div', { class: 'guide-pro' }, ...(proOpen ? ['Pros call this: ', ...linkify(g.pro.term)] : [`🔒 The pro name unlocks after level ${g.pro.unlockAfter}`])) : null,
   );
-  modal(body, { cls: 'guide-wrap', onClose: () => demo.stop() });
+  modal(body, { cls: 'guide-wrap', onClose: () => { demo.stop(); anatomy.destroy(); } });
 }
