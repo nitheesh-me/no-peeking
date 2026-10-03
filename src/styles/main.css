@@ -731,3 +731,10 @@ button { font-family: inherit; color: inherit; }
 .learn-link { white-space: nowrap; color: inherit; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; font-weight: 700; }
 .learn-link::after { content: ' ↗'; font-size: .85em; opacity: .8; }
 .learn-link:hover, .learn-link:focus-visible { color: var(--sunny); text-decoration-style: solid; }
+
+/* ───────── v0.6: X-ray Qubble inspector ───────── */
+.qubble-inspector { position: absolute; z-index: 3; width: 190px; padding: 8px 10px 10px; display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fbfaff; border-color: var(--moony); box-shadow: 0 4px 0 var(--moony), var(--shadow-soft); animation: pop-in 0.18s ease both; }
+.insp-head { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 6px; }
+.insp-head .display { font-size: 14px; color: var(--moony); }
+.insp-cap { font-size: 12px; font-weight: 700; text-align: center; line-height: 1.3; }
+.insp-nums { font-family: ui-monospace, monospace; font-size: 11px; color: var(--ink2); text-align: center; }

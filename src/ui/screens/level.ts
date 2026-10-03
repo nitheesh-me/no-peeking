@@ -10,6 +10,7 @@ import { save, persist, setProgress } from '../../engine/store';
 import { h, modal, toast, inputLabel, gremlinIcon, portraitSrc } from '../../engine/util';
 import type { OpName, TraceEvent } from '../../core/contracts';
 import { isBot } from '../../core/contracts';
+import { createBloch3D, type Bloch3D } from '../bloch3d';
 import { Editor, type Progs } from '../editor/editor';
 import { Dialogue } from '../dialogue';
 import { cloneGlitch, floodColor } from '../meta';
@@ -96,6 +97,8 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   let fails = save.progress[level.id]?.fails ?? 0;
   let hintIdx = 0;
   let stepMode = false;
+  /** X-ray Qubble inspector (see openInspector) */
+  let insp: { id: QubitId; el: HTMLElement; sphere: Bloch3D; cap: HTMLElement; nums: HTMLElement; last: string } | null = null;
   let runToken = 0;
   let pickState: { allowed: Set<QubitId>; cb: (id: QubitId) => void } | null = null;
   let won = false;
@@ -140,6 +143,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     xrayPill.classList.toggle('hidden', !on);
     fidMeter.classList.toggle('hidden', !on);
     audio.sfx('ui_click', { pitch: on ? 1.3 : 0.9 });
+    if (!on) closeInspector();
     syncNerd();
   }
   function syncNerd() {
@@ -537,7 +541,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   const pokeCount = new Map<string, { n: number; t: number }>();
   function tipFor(hit: NonNullable<ReturnType<Scene['hitAny']>>): string {
     switch (hit.kind) {
-      case 'qubble': return level.classical ? `${hit.id}: a box with one bit inside (peeking is fine here: click!)` : peekSafe ? `${hit.id}: peeking is allowed here` : scene.woke.has(hit.id!) ? `${hit.id}: awake and grumpy` : `${hit.id}: fast asleep under the blanket (poke gently)`;
+      case 'qubble': return !level.classical && scene.xray > 0.5 ? `${hit.id}: click to inspect its true dream (X-ray)` : level.classical ? `${hit.id}: a box with one bit inside (peeking is fine here: click!)` : peekSafe ? `${hit.id}: peeking is allowed here` : scene.woke.has(hit.id!) ? `${hit.id}: awake and grumpy` : `${hit.id}: fast asleep under the blanket (poke gently)`;
       case 'bot': return `bot ${hit.id}: says hi when clicked`;
       case 'caretaker': return busy() ? 'You, the caretaker (busy!)' : 'You, the caretaker: click or drag to move me';
       case 'schrodi': return busy() ? 'Schrödi: supervisor. Cat. Possibly both.' : 'Schrödi: drag his box somewhere comfier';
@@ -549,6 +553,54 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
       case 'bed': return `${hit.id}'s bed`;
     }
   }
+  // ───────── X-ray Qubble inspector: a read-only 3D Bloch sphere of the TRUE reduced state (never under blankets) ─────────
+  function closeInspector() {
+    if (!insp) return;
+    insp.sphere.destroy(); insp.el.remove(); insp = null;
+    window.removeEventListener('pointerdown', inspAway, true); window.removeEventListener('keydown', inspKey, true);
+  }
+  const inspAway = (e: PointerEvent) => { if (insp && !insp.el.contains(e.target as Node)) closeInspector(); };
+  const inspKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && insp) { e.stopPropagation(); closeInspector(); } };
+  function openInspector(id: QubitId) {
+    closeInspector();
+    const b = currentSnap()?.bloch[id] ?? { x: 0, y: 0, z: 1 };
+    const sphere = createBloch3D({ size: 150, interactive: false, rotatable: true, measure: false, labels: 'game', initial: b });
+    const cap = h('div', { class: 'insp-cap' }), nums = h('div', { class: 'insp-nums' });
+    const el = h('div', { class: 'qubble-inspector panel', role: 'dialog', 'aria-label': `${id}: true dream (X-ray)` },
+      h('div', { class: 'insp-head' }, h('span', { class: 'display' }, `${id} · true dream`),
+        h('button', { class: 'btn icon small', 'aria-label': 'Close', onclick: () => closeInspector() }, '×')),
+      sphere.el, cap, nums);
+    sceneArea.appendChild(el);
+    sceneTip.classList.add('hidden');
+    insp = { id, el, sphere, cap, nums, last: '' };
+    audio.sfx('ui_click', { pitch: 1.4 });
+    setTimeout(() => { window.addEventListener('pointerdown', inspAway, true); window.addEventListener('keydown', inspKey, true); });
+    updateInspector(true);
+  }
+  function updateInspector(force = false) {
+    if (!insp) return;
+    const b = currentSnap()?.bloch[insp.id]; if (!b) return;
+    const key = `${b.x.toFixed(3)},${b.y.toFixed(3)},${b.z.toFixed(3)},${scene.nerd}`;
+    // follow the Qubble on screen (left of it if there's no room on the right)
+    const p = scene.posOf(insp.id);
+    if (p) {
+      const w = insp.el.offsetWidth || 190, hh = insp.el.offsetHeight || 230, W = sceneArea.clientWidth, H = sceneArea.clientHeight;
+      // prefer above the Qubble's head; else beside it, never covering it
+      let x = p.x - w / 2, y = p.y - 70 * scene.s - hh;
+      if (y < 8) { y = Math.max(8, Math.min(H - hh - 8, p.y - hh / 2 - 20 * scene.s)); x = p.x + 46 * scene.s; if (x + w > W - 8) x = p.x - 46 * scene.s - w; }
+      x = Math.min(W - w - 8, x);
+      insp.el.style.left = `${Math.max(8, x)}px`; insp.el.style.top = `${y}px`;
+    }
+    if (!force && key === insp.last) return;
+    insp.last = key;
+    insp.sphere.set(b, !force);
+    const r = Math.hypot(b.x, b.y, b.z), eq = Math.hypot(b.x, b.y);
+    // the sphere widget captions mixed/entangled states itself; we only name clear dreams
+    insp.cap.textContent = r < 0.95 ? '' : eq > 0.5 ? 'a clear swirl dream' : b.z > 0 ? 'a clear Sunny dream' : 'a clear Moony dream';
+    insp.nums.classList.toggle('hidden', !scene.nerd);
+    insp.nums.textContent = `⟨X⟩ ${b.x.toFixed(2)}  ⟨Y⟩ ${b.y.toFixed(2)}  ⟨Z⟩ ${b.z.toFixed(2)}  |r| ${r.toFixed(2)}`;
+  }
+
   /** Codex discoveries from clicking a Qubble / data box (cosmetic; reads the displayed snapshot only) */
   function codexOnQubble(id: QubitId) {
     const b = currentSnap()?.bloch[id];
@@ -573,6 +625,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
       case 'qubble': {
         const id = hit.id!;
         codexOnQubble(id);
+        if (scene.xray > 0.5 && !level.classical) { openInspector(id); break; } // X-ray: look, don't touch (no poke/peek reactions)
         if (peekSafe) { // peeking is allowed here: pop the lid and show the value (no warnings)
           const z = currentSnap()?.bloch[id]?.z ?? 1;
           const v = level.classical ? (z >= 0 ? 0 : 1) : null;
@@ -765,6 +818,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     scene.draw(t);
     fill.style.width = `${(pb?.progress() ?? 0) * 100}%`;
     updateHud();
+    updateInspector();
   }));
 
   function setLevel(def: LevelDef) {
@@ -789,6 +843,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     for (const c of cleanups) c();
     window.removeEventListener('keydown', onKey);
     window.removeEventListener('keyup', onKeyUp);
+    closeInspector();
     dialogue.close(false); editor.destroy(); scene.destroy();
     runToken++;
   };

@@ -160,3 +160,17 @@ it in X-ray using its `seed`.
   `levelDone(id)`: map levels, Codex entries, card-guide pro terms and starter snippets. Toast: "Everything unlocked
   (judge mode)".
 - QA: `.scratch/pw/codex.mjs` (locked grid → click bot a in 2-3 → entry unlocked → detail interactive → unlock all).
+
+## v0.6: 3D Bloch sphere (designer widget `src/ui/bloch3d.ts`, used, not edited)
+- **Codex**: the Qubble entry shows the live Qubble beside an interactive sphere (`measure: true`, labels 'both'); its
+  `onChange` writes `ViewState.bloch` so dragging the dot recolours the Qubble live, and the X-ray/blanket button stays.
+  Sunny/Moony use draggable non-measure spheres, the Swirl's sphere is projected back onto the equator on every change,
+  and the Silk thread shows a fixed r ≈ 0 sphere with the "entangled" caption. Spheres are destroyed when the panel
+  closes (`wide` modal variant in codex.css).
+- **Gameplay "Qubble inspector"** (level.ts `openInspector`): in X-ray only, and never on day-shift boxes, clicking a
+  Qubble opens a small popover placed above or beside it, with a read-only, rotatable sphere showing the TRUE reduced
+  Bloch vector from the current snapshot. It updates every frame as playback steps (mixed/entangled → short arrow plus
+  the widget's caption); nerd mode adds ⟨X⟩ ⟨Y⟩ ⟨Z⟩ |r|. It replaces the poke/peek reaction for that click (Codex
+  unlocks still fire: swirl/silk thread/…). Esc, clicking anywhere else or turning X-ray off closes it. It lives inside
+  the scene area, so the editor and the playback controls stay usable. Gremlin clicks still win (they are hit-tested
+  first). QA: `.scratch/pw/bloch.mjs`.

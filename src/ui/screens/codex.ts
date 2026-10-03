@@ -9,6 +9,7 @@ import { codexHas, codexFound, unlockAll } from '../unlocks';
 import { linkify } from '../learnLinks';
 import { demoCanvas } from '../cardGuidePanel';
 import { CARD_GUIDE } from '../cardGuide';
+import { createBloch3D, type Bloch3D } from '../bloch3d';
 import type { Nav } from '../app';
 
 type Extra = {
@@ -32,9 +33,11 @@ interface ViewState {
   text: string;
   value: 0 | 1;
   swirlDir: 1 | -1;
+  /** the 3D sphere has set the dream (detail panel) */
+  touched: boolean;
   out: boolean;
 }
-const newState = (): ViewState => ({ pose: 0, t0: -9, blanket: 0.25, bloch: { x: 0, y: 0, z: 1 }, light: null, night: 0, text: 'NO PEEKING!', value: 0, swirlDir: 1, out: false });
+const newState = (): ViewState => ({ pose: 0, t0: -9, blanket: 0.25, bloch: { x: 0, y: 0, z: 1 }, light: null, night: 0, text: 'NO PEEKING!', value: 0, swirlDir: 1, out: false, touched: false });
 
 const CT_ACTIONS: CaretakerVisual['action'][] = ['idle', 'tiptoe', 'boop', 'shush', 'spin', 'peek', 'listen', 'press', 'cheer', 'facepalm', 'yawn'];
 const SCH_ACTIONS: SchrodiActorVisual['action'][] = ['sit', 'walk', 'boop', 'shush', 'spin', 'point', 'listen', 'press', 'stretch', 'yawn', 'hop-out', 'hop-in'];
@@ -97,8 +100,8 @@ function drawView(g: CanvasRenderingContext2D, W: number, H: number, e: CodexEnt
       break;
     case 'qubble': case 'sunny': case 'moony': case 'swirl': {
       let bloch = st.bloch;
-      if (e.view === 'sunny' || e.view === 'moony') bloch = POLE[e.view];
-      if (e.view === 'swirl') { const ph = t * 1.2 * st.swirlDir; bloch = { x: Math.cos(ph), y: Math.sin(ph), z: 0 }; }
+      if ((e.view === 'sunny' || e.view === 'moony') && !st.touched) bloch = POLE[e.view];
+      if (e.view === 'swirl' && !st.touched) { const ph = t * 1.2 * st.swirlDir; bloch = { x: Math.cos(ph), y: Math.sin(ph), z: 0 }; }
       const blanket = e.view === 'qubble' ? st.blanket : 0;
       art.drawQubble(g, cx, fy, s * 1.5, { bloch, blanket, state: pose as QubbleVisual['state'], label: e.view === 'qubble' ? 'q1' : undefined }, t);
       break;
@@ -283,6 +286,29 @@ function openDetail(e: CodexEntry): void {
   const poses = poseList(e);
   const W = 420, H = 280, dpr = Math.min(2, devicePixelRatio || 1);
   let stop = () => {};
+  // 3D Bloch sphere (designer widget): drives the live Qubble render for the qubble + dream elements
+  let sphere: Bloch3D | null = null;
+  const sphereCap = h('div', { class: 'cd-sphere-cap' });
+  if (e.view === 'qubble' || e.view === 'sunny' || e.view === 'moony' || e.view === 'swirl' || e.view === 'silk') {
+    const init: Bloch = e.view === 'qubble' ? { x: 0.6, y: 0.2, z: 0.77 } : e.view === 'moony' ? { x: 0, y: 0, z: -1 } : e.view === 'swirl' ? { x: 1, y: 0, z: 0 } : e.view === 'silk' ? { x: 0, y: 0, z: 0 } : { x: 0, y: 0, z: 1 };
+    st.bloch = init;
+    const capFor = (b: Bloch) => {
+      const r = Math.hypot(b.x, b.y, b.z);
+      return r < 0.3 ? 'entangled: the arrow shrinks to the centre (no dream of its own)' : Math.abs(b.z) < 0.35 ? 'on the equator: a swirl (superposition)' : Math.hypot(b.x, b.y) > 0.3 ? (b.z > 0 ? 'mostly Sunny, a bit swirly' : 'mostly Moony, a bit swirly') : b.z > 0 ? 'near the top: Sunny |0⟩' : 'near the bottom: Moony |1⟩';
+    };
+    sphere = createBloch3D({
+      size: 240, rotatable: true, labels: 'both', initial: init,
+      interactive: e.view !== 'silk', measure: e.view === 'qubble',
+      onChange: (b) => {
+        if (e.view === 'swirl') { // keep it on the equator
+          const r = Math.hypot(b.x, b.y) || 1;
+          if (Math.abs(b.z) > 0.01) { b = { x: b.x / r, y: b.y / r, z: 0 }; sphere?.set(b); }
+        }
+        st.bloch = b; st.touched = true; sphereCap.textContent = capFor(b);
+      },
+    });
+    sphereCap.textContent = e.view === 'silk' ? 'entangled: each Qubble alone is r ≈ 0, a dot in the middle' : capFor(init);
+  }
   let live: HTMLElement;
   const poseTag = h('div', { class: 'cd-pose', 'aria-live': 'polite' });
   const syncPose = () => {
@@ -297,7 +323,7 @@ function openDetail(e: CodexEntry): void {
     switch (e.view) {
       case 'databox': st.value = st.value ? 0 : 1; audio.sfx('boop', { pitch: 1.3 }); break;
       case 'lights': st.light = st.light == null ? 0 : st.light === 0 ? 1 : null; if (st.light != null) audio.botNote(0, st.light); break;
-      case 'swirl': st.swirlDir = st.swirlDir === 1 ? -1 : 1; audio.sfx('shush'); break;
+      case 'swirl': st.swirlDir = st.swirlDir === 1 ? -1 : 1; if (st.touched) { st.bloch = { x: -st.bloch.x, y: st.bloch.y, z: 0 }; sphere?.set(st.bloch, true); } audio.sfx('shush'); break;
       case 'blanket': st.blanket = st.blanket >= 1 ? 0.25 : st.blanket > 0 ? 0 : 1; audio.sfx('ui_click'); break;
       case 'bed': case 'window': case 'clock': case 'door': st.night = st.night ? 0 : 1; audio.sfx('ui_hover', { pitch: st.night ? 0.7 : 1.4 }); break;
       case 'box': st.out = !st.out; audio.sfx('schrodi_meow', { volume: 0.5 }); break;
@@ -324,7 +350,7 @@ function openDetail(e: CodexEntry): void {
     controls.append(h('ul', { class: 'guide-tips' }, ...CARD_GUIDE[e.op!].tips.slice(0, 3).map((x) => h('li', null, x))));
   } else {
     const cv = h('canvas', { class: 'cd-canvas', width: W * dpr, height: H * dpr, style: `width:${W}px;height:${H}px`, tabindex: 0, role: 'button', 'aria-label': `${e.name}: ${e.play} (Enter or Space)` }) as HTMLCanvasElement;
-    live = h('div', { class: 'cd-live' }, cv);
+    live = h('div', { class: `cd-live${sphere ? ' with-sphere' : ''}` }, cv, sphere ? h('div', { class: 'cd-sphere' }, sphere.el, sphereCap) : null);
     const g = cv.getContext('2d')!;
     stop = onFrame((t) => {
       g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
@@ -338,7 +364,7 @@ function openDetail(e: CodexEntry): void {
       const blBtn = h('button', { class: 'btn small', 'aria-pressed': 'false' }, '🩻 X-ray: blanket see-through');
       blBtn.addEventListener('click', () => { st.blanket = st.blanket >= 1 ? 0.25 : st.blanket > 0 ? 0 : 1; blBtn.textContent = st.blanket >= 1 ? '🛏 Blanket on (can\'t see)' : st.blanket > 0 ? '🩻 X-ray: blanket see-through' : '👀 No blanket'; audio.sfx('ui_click'); });
       st.blanket = 0.25;
-      controls.append(blochDial(st), blBtn);
+      controls.append(blBtn);
     }
     if (e.view === 'databox') controls.append(h('button', { class: 'btn small', onclick: () => { st.blanket = st.blanket >= 0.5 ? 0 : 1; audio.sfx('ui_click'); syncPose(); } }, '📦 Open / close the lid'));
     if (e.view === 'bot') controls.append(h('button', { class: 'btn small', onclick: () => { st.light = st.light == null ? 0 : st.light === 0 ? 1 : null; if (st.light != null) audio.botNote(0, st.light); } }, '💡 Light: off → QUIET → BEEP'));
@@ -350,52 +376,13 @@ function openDetail(e: CodexEntry): void {
     }
   }
 
-  const body = h('div', { class: `codex-detail cat-${e.cat}` },
+  const body = h('div', { class: `codex-detail cat-${e.cat}${sphere ? ' wide' : ''}` },
     h('div', { class: 'cd-head' }, h('span', { class: 'cd-cat' }, CODEX_CATS.find((c) => c.id === e.cat)?.icon ?? ''), h('h2', null, e.name)),
     live, poseTag, controls,
     h('blockquote', { class: `cd-flavor by-${e.by}` }, `“${e.flavor}”`),
     h('div', { class: 'cd-real' }, h('b', null, 'In real life: '), ...linkify(e.real)),
   );
   syncPose();
-  modal(body, { cls: 'codex-modal', onClose: () => { stop(); voiceTimers.forEach(clearTimeout); } });
+  modal(body, { cls: `codex-modal${sphere ? ' wide' : ''}`, onClose: () => { stop(); sphere?.destroy(); voiceTimers.forEach(clearTimeout); } });
   setTimeout(() => (live.querySelector('canvas,[tabindex]') as HTMLElement | null ?? live).focus?.(), 50);
-}
-
-/** Bloch dial: θ slider (Sunny ↔ Moony) + a φ dial you can drag (or use arrow keys) to turn the swirl. */
-function blochDial(st: ViewState): HTMLElement {
-  let theta = 0.9, phi = 0;
-  const apply = () => { st.bloch = { x: Math.sin(theta) * Math.cos(phi), y: Math.sin(theta) * Math.sin(phi), z: Math.cos(theta) }; draw(); };
-  const R = 52, S = 124, dpr = Math.min(2, devicePixelRatio || 1);
-  const cv = h('canvas', { class: 'bloch-dial', width: S * dpr, height: S * dpr, style: `width:${S}px;height:${S}px`, tabindex: 0, role: 'slider',
-    'aria-label': 'Swirl direction (phase)', 'aria-valuemin': 0, 'aria-valuemax': 359, 'aria-valuenow': 0 }) as HTMLCanvasElement;
-  const g = cv.getContext('2d')!;
-  const draw = () => {
-    g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, S, S);
-    const c = S / 2;
-    g.lineWidth = 2.5; g.strokeStyle = '#0e0e0e'; g.fillStyle = '#fff'; g.beginPath(); g.arc(c, c, R, 0, Math.PI * 2); g.fill(); g.stroke();
-    g.setLineDash([3, 4]); g.beginPath(); g.moveTo(c - R, c); g.lineTo(c + R, c); g.moveTo(c, c - R); g.lineTo(c, c + R); g.stroke(); g.setLineDash([]);
-    const r = Math.sin(theta) * R, x = c + r * Math.cos(phi), y = c - r * Math.sin(phi);
-    const z = Math.cos(theta), col = `rgb(${Math.round(108 + (255 - 108) * (1 + z) / 2)},${Math.round(99 + (183 - 99) * (1 + z) / 2)},${Math.round(255 + (43 - 255) * (1 + z) / 2)})`;
-    g.beginPath(); g.moveTo(c, c); g.lineTo(x, y); g.stroke();
-    g.fillStyle = col; g.beginPath(); g.arc(x, y, 9, 0, Math.PI * 2); g.fill(); g.stroke();
-    g.fillStyle = '#55524b'; g.font = '700 10px Quicksand, sans-serif'; g.textAlign = 'center'; g.fillText('swirl', c, S - 3);
-    cv.setAttribute('aria-valuenow', String(Math.round(((phi * 180) / Math.PI + 360) % 360)));
-  };
-  const fromPointer = (ev: PointerEvent) => {
-    const rc = cv.getBoundingClientRect(), dx = ev.clientX - rc.left - S / 2, dy = -(ev.clientY - rc.top - S / 2);
-    phi = Math.atan2(dy, dx);
-    const r = Math.min(1, Math.hypot(dx, dy) / R);
-    theta = Math.cos(theta) >= 0 ? Math.asin(r) : Math.PI - Math.asin(r); // keep the hemisphere, set the tilt
-    slider.value = String(Math.round((theta * 180) / Math.PI)); apply();
-  };
-  cv.addEventListener('pointerdown', (ev) => { cv.setPointerCapture(ev.pointerId); fromPointer(ev); });
-  cv.addEventListener('pointermove', (ev) => { if (ev.buttons) fromPointer(ev); });
-  cv.addEventListener('keydown', (ev) => {
-    if (ev.key === 'ArrowLeft' || ev.key === 'ArrowDown') { phi -= Math.PI / 12; ev.preventDefault(); apply(); }
-    if (ev.key === 'ArrowRight' || ev.key === 'ArrowUp') { phi += Math.PI / 12; ev.preventDefault(); apply(); }
-  });
-  const slider = h('input', { type: 'range', min: 0, max: 180, value: Math.round((theta * 180) / Math.PI), 'aria-label': 'Dream: Sunny to Moony' }) as HTMLInputElement;
-  slider.addEventListener('input', () => { theta = (+slider.value * Math.PI) / 180; apply(); });
-  apply();
-  return h('div', { class: 'bloch-ctl' }, cv, h('label', { class: 'cd-label' }, h('span', null, '☀ Sunny'), slider, h('span', null, 'Moony 🌙')));
 }

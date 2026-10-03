@@ -53,7 +53,7 @@ const BASE: CodexEntry[] = [
   { id: 'qubble', cat: 'characters', name: 'Qubble', view: 'qubble', by: 'qubble',
     flavor: '*mumble* …dreaming of Sunny… and Moony… both… zzz',
     real: 'A Qubble is a qubit: a two-level quantum system (an atom, an ion, a tiny superconducting circuit). Its state can be any mix of |0⟩ and |1⟩ with a phase, which the game draws as the dream colour and the swirl.',
-    hint: 'found by gently poking a sleeping Qubble', play: 'click to change mood · drag the dial to change the dream' },
+    hint: 'found by gently poking a sleeping Qubble', play: 'click to change mood · drag the sphere dot to change the dream' },
   { id: 'databox', cat: 'characters', name: 'Data box', view: 'databox', by: 'schrodi',
     flavor: 'A box with one bit inside. Peek all you like. It\'s the day shift.',
     real: 'A classical bit: always exactly 0 or 1. Looking at it changes nothing, and copying it is easy. That\'s why classical error correction can simply copy and vote (a repetition code).',

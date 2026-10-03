@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bloch sphere test</title>
+<link rel="stylesheet" href="/src/styles/main.css" />
+<style>
+  body { background: #f2f0eb; margin: 0; padding: 16px; font-family: Quicksand, sans-serif; }
+  #grid { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; }
+  figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  figcaption { font-family: Quantum, sans-serif; font-size: 14px; }
+</style>
+</head>
+<body>
+<div id="grid"></div>
+<script type="module">
+  import { createBloch3D } from './bloch3d.ts';
+  const qs = new URLSearchParams(location.search);
+  const grid = document.getElementById('grid');
+  const s2 = Math.SQRT1_2;
+  const cases = [
+    ['|0>', { x: 0, y: 0, z: 1 }, 220], ['|1>', { x: 0, y: 0, z: -1 }, 220], ['|+>', { x: 1, y: 0, z: 0 }, 220],
+    ['|+i>', { x: 0, y: 1, z: 0 }, 220], ['theta 60, phi 45', { x: 0.866 * s2, y: 0.866 * s2, z: 0.5 }, 220], ['mixed r=0.5', { x: 0.3, y: 0.2, z: 0.35 }, 220],
+  ];
+  const all = [];
+  for (const [name, b, size] of cases) {
+    const w = createBloch3D({ size, initial: b, rotatable: !qs.has('still') });
+    const f = document.createElement('figure'); const c = document.createElement('figcaption'); c.textContent = name;
+    f.append(c, w.el); grid.append(f); all.push(w);
+  }
+  const big = createBloch3D({ size: 380, measure: true, initial: { x: s2, y: 0, z: s2 }, rotatable: !qs.has('still') });
+  const f = document.createElement('figure'); const c = document.createElement('figcaption'); c.textContent = 'measure panel (380px)';
+  f.append(c, big.el); grid.append(f);
+  window.__big = big;
+</script>
+</body>
+</html>

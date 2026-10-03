@@ -1,0 +1,36 @@
+/* ───────── 3D Bloch sphere widget (owned by the Designer) ───────── */
+.bloch3d {
+  --b3: 260px;
+  display: inline-flex; flex-direction: column; align-items: center; gap: 6px;
+  font-family: var(--body, 'Quicksand', system-ui, sans-serif); color: var(--ink, #0e0e0e);
+  width: max(var(--b3), 220px); max-width: 100%;
+}
+.bloch3d .b3-canvas { display: block; border-radius: 50%; outline: none; touch-action: none; cursor: move; }
+.bloch3d .b3-canvas:focus-visible { box-shadow: 0 0 0 3px var(--paper, #f2f0eb), 0 0 0 6px var(--moony, #6c63ff); }
+.bloch3d .b3-canvas.b3-drag { cursor: grabbing !important; }
+.bloch3d .b3-cap { font-size: clamp(11px, calc(var(--b3) / 22), 14px); text-align: center; color: var(--ink2, #55524b); line-height: 1.3; min-height: 1.3em; }
+.bloch3d .b3-cap b { color: var(--ink, #0e0e0e); }
+
+.b3-panel { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+.b3-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.b3-k { font-family: var(--display, 'Quantum', sans-serif); font-size: 13px; letter-spacing: 0.04em; }
+.b3-basis { display: inline-flex; border: 2.5px solid var(--ink, #0e0e0e); border-radius: 999px; overflow: hidden; box-shadow: 0 2px 0 var(--ink, #0e0e0e); background: #fff; }
+.b3-basis label { position: relative; padding: 3px 11px; font-weight: 700; font-size: 13px; cursor: pointer; border-left: 2px solid var(--ink, #0e0e0e); user-select: none; }
+.b3-basis label:first-child { border-left: 0; }
+.b3-basis input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.b3-basis label:has(input:checked) { background: var(--ink, #0e0e0e); color: var(--paper, #f2f0eb); }
+.b3-basis label:has(input:focus-visible) { box-shadow: inset 0 0 0 3px var(--moony, #6c63ff); }
+
+.b3-bars { display: flex; flex-direction: column; gap: 5px; }
+.b3-bar { display: grid; grid-template-columns: minmax(70px, auto) 1fr 38px; gap: 8px; align-items: center; font-size: 12.5px; font-weight: 700; }
+.b3-track { height: 13px; border: 2px solid var(--ink, #0e0e0e); border-radius: 999px; background: #fff; overflow: hidden; }
+.b3-fill { display: block; height: 100%; width: 50%; transition: width 0.25s ease-out; border-right: 2px solid var(--ink, #0e0e0e); }
+.b3-f0 { background: linear-gradient(90deg, #ffd27a, var(--sunny, #ffb72b)); }
+.b3-f1 { background: linear-gradient(90deg, #a7a1ff, var(--moony, #6c63ff)); }
+.bloch3d[data-basis='X'] .b3-f0, .bloch3d[data-basis='Y'] .b3-f0 { background: linear-gradient(90deg, #ffd27a, var(--sunny, #ffb72b) 50%, var(--moony, #6c63ff)); }
+.bloch3d[data-basis='X'] .b3-f1, .bloch3d[data-basis='Y'] .b3-f1 { background: linear-gradient(90deg, var(--moony, #6c63ff), var(--sunny, #ffb72b)); }
+.b3-pct { text-align: right; font-variant-numeric: tabular-nums; }
+.b3-msg { margin: 2px 0 0; font-size: 13px; line-height: 1.4; min-height: 2.8em; padding: 6px 10px; border: 2px dashed rgba(14, 14, 14, 0.35); border-radius: 10px; background: rgba(255, 255, 255, 0.55); }
+.bloch3d.b3-flash .b3-canvas { animation: b3pop 0.45s ease-out; }
+@keyframes b3pop { 30% { transform: scale(1.035); } }
+.reduced .bloch3d.b3-flash .b3-canvas { animation: none; }
