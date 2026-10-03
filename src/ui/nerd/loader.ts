@@ -22,9 +22,18 @@ export interface NerdNotebookOpts {
 }
 export type CreateNerdNotebook = (host: HTMLElement, opts: NerdNotebookOpts) => NerdNotebook;
 
-const mods = import.meta.glob(['./*.ts', '!./loader.ts', '!./pages.ts'], { eager: true }) as Record<string, Record<string, unknown>>;
+// lazy: the notebook (and its qmath / bloch3d / exporter dependencies) is its own chunk, fetched only when nerd mode is on
+const mods = import.meta.glob(['./*.ts', '!./loader.ts', '!./pages.ts', '!./mock.ts', '!./qmath.ts']) as Record<string, () => Promise<Record<string, unknown>>>;
+let found: CreateNerdNotebook | null = null;
 
-export function findCreateNotebook(): CreateNerdNotebook | null {
-  for (const m of Object.values(mods)) if (typeof m.createNerdNotebook === 'function') return m.createNerdNotebook as CreateNerdNotebook;
+/** Synchronous accessor: the factory once loadCreateNotebook() has resolved, else null. */
+export function findCreateNotebook(): CreateNerdNotebook | null { return found; }
+
+export async function loadCreateNotebook(): Promise<CreateNerdNotebook | null> {
+  if (found) return found;
+  for (const f of Object.values(mods)) {
+    try { const m = await f(); if (typeof m.createNerdNotebook === 'function') return (found = m.createNerdNotebook as CreateNerdNotebook); }
+    catch (e) { console.error(e); }
+  }
   return null;
 }

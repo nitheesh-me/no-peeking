@@ -12,6 +12,10 @@ import { rgba, type AfiTheme } from '../theme/theme';
 import { num, qubitName } from '../theme/math';
 import type { NerdInfo, QubitId } from '../../../core/contracts';
 import type { VizInputLike } from './types';
+import { has } from '../../../i18n';
+
+/** compact label text (content keys bloch.purityShort / bloch.entropyShort, falling back to the long ones) */
+const short = (k: 'purity' | 'entropy', v: string) => (has('afi.viz.bloch.' + k + 'Short') ? tv('bloch.' + k + 'Short', { v }) : tv('bloch.' + k, { v }));
 
 export interface BlochFieldOpts extends VizBaseOpts {
   /** enable the I = 2 braid (layer 'filaments'); default true */
@@ -61,16 +65,20 @@ const pairsOf = (nerd: NerdInfo, ids: QubitId[]): Pair[] => {
 };
 
 function glImpl(f: Frame, th: AfiTheme, rm: boolean, opts: BlochFieldOpts) {
-  const gl = createGL(f.root, th, undefined, 36);
+  let fitCam = () => {};
+  let statEls: HTMLElement[] = [], lastMode = '';
+  let spheres: { q: QubitId; m: BlochMesh; cur: THREE.Vector3; tgt: THREE.Vector3; pos: THREE.Vector3 }[] = [];
+  const pv = new THREE.Vector3(), qv = new THREE.Vector3();
+  const gl = createGL(f.root, th, () => fitCam(), 36);
   const { scene, camera, renderer } = gl;
   scene.fog = new THREE.FogExp2(col(th.fog), 0.018);
   const glow = glowTexture();
   scene.add(skyDome(th));
   scene.add(sea(th, -1.9, 60));
   const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true; controls.enablePan = false; controls.maxPolarAngle = Math.PI * 0.5; controls.minDistance = 4; controls.maxDistance = 50;
+  controls.enableDamping = true; controls.enablePan = false; controls.maxPolarAngle = Math.PI * 0.5;
+  controls.addEventListener('change', () => layoutLabels()); controls.minDistance = 4; controls.maxDistance = 50;
   const labels = new LabelLayer(f.labels);
-  let spheres: { q: QubitId; m: BlochMesh; cur: THREE.Vector3; tgt: THREE.Vector3; pos: THREE.Vector3 }[] = [];
   const filGrp = new THREE.Group();
   scene.add(filGrp);
   const braidSeen = new Set<string>();
@@ -124,9 +132,27 @@ function glImpl(f: Frame, th: AfiTheme, rm: boolean, opts: BlochFieldOpts) {
       }
       const prev = old.get(key);
       fils.push({ key, mats, I: pr.I, braid, born: firstBraid ? clock : prev?.born ?? -99 });
-      if (pr.I >= 0.1) labels.add(tv('bloch.mi', { v: num(pr.I) }), curve.getPoint(0.5).add(new THREE.Vector3(0, 0.35, 0)), 'mi');
+      if (pr.I >= 0.1) labels.add(tv('bloch.mi', { v: num(pr.I) }), curve.getPoint(0.5).add(new THREE.Vector3(0, 0.35, 0)), 'mi').title = `I(${qubitName(A.q)} : ${qubitName(B.q)}) = ${tv('bloch.mi', { v: num(pr.I, 3) })}`;
     }
   };
+  /** choose long / short / name-only label text from the on-screen gap between neighbouring spheres */
+  function layoutLabels(force = false) {
+    if (!statEls.length) return;
+    let gap = Infinity;
+    if (spheres.length > 1) {
+      pv.copy(spheres[0].pos).project(camera); qv.copy(spheres[1].pos).project(camera);
+      gap = (Math.abs(qv.x - pv.x) / 2) * gl.w;
+    }
+    const mode = gap > 150 ? 'long' : gap > 62 ? 'short' : 'none';
+    const fs = gap > 90 ? '' : '10px';
+    if (!force && mode + fs === lastMode) return;
+    lastMode = mode + fs;
+    statEls.forEach((el) => { el.innerHTML = mode === 'none' ? '' : (mode === 'long' ? el.dataset.long : el.dataset.short) ?? ''; el.style.fontSize = fs; el.style.top = ''; });
+    for (const it of labels.items) {
+      if (it.el.classList.contains('bf-stat')) it.offY = 12;
+      if (it.el.classList.contains('mi')) { it.el.style.visibility = gap > 110 ? '' : 'hidden'; it.el.style.pointerEvents = 'auto'; }
+    }
+  }
   const set = (nerd: NerdInfo, ids: QubitId[]) => {
     if (spheres.length !== ids.length || spheres.some((s, i) => s.q !== ids[i])) {
       spheres.forEach((s) => { scene.remove(s.m.group); });
@@ -139,21 +165,34 @@ function glImpl(f: Frame, th: AfiTheme, rm: boolean, opts: BlochFieldOpts) {
         const r0 = nerd.reduced[q];
         return { q, m, cur: new THREE.Vector3(r0.x, r0.y, r0.z), tgt: new THREE.Vector3(), pos: new THREE.Vector3(x, 0, z) };
       });
-      const w = Math.max(...spheres.map((s) => Math.abs(s.pos.x))) + 1.5, d = Math.max(...spheres.map((s) => s.pos.z));
-      const dist = Math.max(7.5, w * 1.95);
-      camera.position.set(0, dist * 0.32 + 1.5, d / 2 + dist);
-      controls.target.set(0, 0.4, d / 2);
-      controls.update();
+      const w = Math.max(...spheres.map((s) => Math.abs(s.pos.x))) + 1.45, d = Math.max(...spheres.map((s) => s.pos.z));
+      fitCam = () => {
+        // fit the row to the panel: horizontal half-extent w, vertical half-extent ~2.4 (sphere + labels + filament arcs)
+        const t = Math.tan((camera.fov * Math.PI) / 360), asp = Math.max(0.3, gl.w / gl.h);
+        const dist = Math.max(w / (t * asp), (2.5 + d * 0.5) / t) * 1.04;
+        camera.position.set(0, dist * 0.22 + 0.9, d / 2 + dist);
+        controls.target.set(0, 0.25, d / 2);
+        controls.update();
+        layoutLabels();
+      };
+      fitCam();
     }
     labels.clear();
+    statEls = [];
     spheres.forEach((s) => {
       const r = nerd.reduced[s.q];
       s.tgt.set(r.x, r.y, r.z);
-      labels.add(`<b>${qubitName(s.q)}</b>`, s.pos.clone().add(new THREE.Vector3(0, -1.32, 0)), 'strong');
-      labels.add(`${tv('bloch.purity', { v: num(r.purity) })}<br>${tv('bloch.entropy', { v: num(r.entropy) })}`, s.pos.clone().add(new THREE.Vector3(0, -1.32, 0)), '', 30);
+      labels.add(`<b>${qubitName(s.q)}</b>`, s.pos.clone().add(new THREE.Vector3(0, -1.3, 0)), 'strong');
+      const el = labels.add('', s.pos.clone().add(new THREE.Vector3(0, -1.3, 0)), 'bf-stat', 0);
+      el.dataset.long = `${tv('bloch.purity', { v: num(r.purity) })}<br>${tv('bloch.entropy', { v: num(r.entropy) })}`;
+      el.dataset.short = `${short('purity', num(r.purity))}<br>${short('entropy', num(r.entropy))}`;
+      el.title = `${qubitName(s.q)}: ${tv('bloch.purity', { v: num(r.purity, 3) })}, ${tv('bloch.entropy', { v: num(r.entropy, 3) })}`;
+      el.style.pointerEvents = 'auto'; el.style.textAlign = 'center'; el.style.lineHeight = '1.3'; el.style.transform = 'translate(-50%, 0)';
+      statEls.push(el);
       if (rm) s.cur.copy(s.tgt);
     });
     buildFils(pairsOf(nerd, ids));
+    layoutLabels(true);
   };
   const lp = loop(f.root, (dt) => {
     clock += dt;

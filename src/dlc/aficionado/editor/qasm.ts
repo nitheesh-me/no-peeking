@@ -1,7 +1,8 @@
 /**
  * QASM-like text view of the editable circuit (two-way synced with the grid). Grammar, one statement per line,
  * `;` optional, case-insensitive, `//` comments ignored, `# text` = annotation (NOTE):
- *   stage pre:  | stage post:              which editable phase follows (pre = before noise, post = after)
+ *   // preparation · // noise channel · // extraction and recovery   section headers (localised stage names;
+ *                                          `stage pre:` / `stage post:` are accepted too)
  *   x q · z q · h q · y q · s q · sdg q    single-qubit gates (sdg = S†)
  *   cx c, t · cz a, b · swap a, b          two-qubit gates (control, target)
  *   wait                                   one noise round (errors of round k strike at the k-th wait)
@@ -21,7 +22,12 @@ const G1: Record<string, GateKind> = { x: 'X', z: 'Z', h: 'H', y: 'Y', s: 'S', s
 const G2: Record<string, GateKind> = { cx: 'CNOT', cnot: 'CNOT', cz: 'CZ', swap: 'SWAP' };
 const NAME: Record<GateKind, string> = { X: 'x', Z: 'z', H: 'h', Y: 'y', S: 's', SDG: 'sdg', CNOT: 'cx', CZ: 'cz', SWAP: 'swap', MEASURE: 'measure', RESET: 'reset' };
 
-export function parseText(text: string, wires: QubitId[], phases: PhaseName[]): { stages: Partial<Record<PhaseName, Column[]>>; errors: TextError[] } {
+/** Section header names (the content pack's afi.stage.*); defaults are for tests and tooling. */
+export interface StageLabels { bedtime: string; night: string; morning: string }
+export const DEFAULT_LABELS: StageLabels = { bedtime: 'preparation', night: 'noise channel', morning: 'extraction and recovery' };
+const norm = (x: string) => x.trim().toLowerCase().replace(/\s+/g, ' ');
+
+export function parseText(text: string, wires: QubitId[], phases: PhaseName[], labels: StageLabels = DEFAULT_LABELS): { stages: Partial<Record<PhaseName, Column[]>>; errors: TextError[] } {
   const errors: TextError[] = [];
   const items: Partial<Record<PhaseName, Item[]>> = {};
   let cur: PhaseName = phases[0] ?? 'morning';
@@ -71,7 +77,15 @@ export function parseText(text: string, wires: QubitId[], phases: PhaseName[]): 
     const ln = idx + 1;
     let line = raw.trim();
     if (line.startsWith('#')) { items[cur]?.push({ c: { kind: 'NOTE', text: line.slice(1).trim() } }); return; }
-    const cm = line.indexOf('//'); if (cm >= 0) line = line.slice(0, cm).trim();
+    const cm = line.indexOf('//');
+    if (cm === 0) {
+      // a section header comment selects the stage; any other comment is ignored
+      const hd = norm(line.slice(2));
+      const p: PhaseName | null = hd === norm(labels.bedtime) ? 'bedtime' : hd === norm(labels.morning) ? 'morning' : null;
+      if (p) { if (!phases.includes(p)) errors.push({ line: ln, key: 'afi.editor.err.stageLocked', vars: { s: labels[p] } }); else cur = p; }
+      return;
+    }
+    if (cm > 0) line = line.slice(0, cm).trim();
     for (let stmt of line.split(';')) {
       stmt = stmt.trim();
       if (!stmt) continue;
@@ -127,10 +141,11 @@ function ctrlText(c: Ctrl): string {
   }
 }
 
-export function printText(stages: { phase: PhaseName; cols: Column[] }[], wires: QubitId[]): string {
+export function printText(stages: { phase: PhaseName; cols: Column[] }[], wires: QubitId[], labels: StageLabels = DEFAULT_LABELS): string {
   const out: string[] = [];
   for (const s of stages) {
-    if (stages.length > 1 || s.phase === 'bedtime') out.push(`stage ${s.phase === 'bedtime' ? 'pre' : 'post'}:`);
+    if (s.phase === 'morning' && out.length) out.push(`// ${labels.night}`, '');
+    out.push(`// ${labels[s.phase]}`);
     for (const c of s.cols) {
       if (c.ctrl) { out.push(ctrlText(c.ctrl)); continue; }
       const gs = orderColumn(c.gates, wires);

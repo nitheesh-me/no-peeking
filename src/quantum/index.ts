@@ -17,6 +17,6 @@ export type { RunOptions, NightResultX, Angles, Target } from './vm';
 export * as reference from './reference';
 export { computeNerd, pauliExpectation, stabilizerSet, NERD_MAX_AMPS, NERD_MI_MAX_LIVE } from './nerd';
 export type { NerdInfoX } from './nerd';
-export { toQiskit, toOpenQASM3 } from './export';
+// exporter: import from './export' directly (kept out of the classic startup bundle; used by the notebook, Codex and DLC)
 export type { ExportOptions } from './export';
 export { logicalErrorCurve } from './reference';

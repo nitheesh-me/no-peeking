@@ -29,9 +29,11 @@
       },
       "bloch": {
         "aria": "Reduced single-qubit Bloch vectors with mutual-information filaments between qubits",
-        "purity": "Tr ρ² = {v}",
-        "entropy": "S = {v} bit",
-        "mi": "I = {v} bit"
+        "purity": "purity Tr ρ² = {v}",
+        "entropy": "entropy S = {v} bits",
+        "mi": "I = {v} bit",
+        "purityShort": "Tr ρ² {v}",
+        "entropyShort": "S {v} b"
       },
       "tiling": {
         "aria": "Stabilizer generators as tiles over the data qubits, lit when the expectation value is −1"

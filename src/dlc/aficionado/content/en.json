@@ -1150,7 +1150,8 @@
     },
     "trace": {
       "gate": "{g} {q}",
-      "noise": "error {e} on {q}"
+      "noise": "error {e} on {q}",
+      "readoutFlip": "readout flipped: the reported bit differs from the collapsed state"
     },
     "lab": {
       "run": "Run once",

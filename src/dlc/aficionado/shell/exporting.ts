@@ -1,6 +1,6 @@
 /** Exports: download / copy, JSON / CSV / Qiskit / OpenQASM 3 (shared exporter in src/quantum). */
 import type { LevelDef, NightResult, Program } from '../../../core/contracts';
-import { toOpenQASM3, toQiskit } from '../../../quantum/index';
+import { toOpenQASM3, toQiskit } from '../../../quantum/export';
 import type { AfiRun } from '../state/store';
 
 export function download(name: string, text: string, type = 'text/plain'): void {

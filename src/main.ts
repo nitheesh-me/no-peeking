@@ -7,7 +7,6 @@ import { levelScreen } from './ui/screens/level';
 import { creditsScreen } from './ui/screens/credits';
 import { labScreen, endlessScreen } from './ui/screens/modes';
 import { openSettings } from './ui/settings';
-import { codexScreen } from './ui/screens/codex';
 import { afiScreen } from './ui/screens/afi';
 
 registerScreen('title', titleScreen);
@@ -16,7 +15,12 @@ registerScreen('level', levelScreen);
 registerScreen('credits', creditsScreen);
 registerScreen('lab', labScreen);
 registerScreen('endless', endlessScreen);
-registerScreen('codex', codexScreen);
+// the Codex is a route-level chunk (with its 3D Bloch widget), fetched on first visit
+registerScreen('codex', (root, n) => {
+  let off: (() => void) | void, dead = false;
+  import('./ui/screens/codex').then((m) => { if (!dead) off = m.codexScreen(root, n); }, (e) => { console.error(e); if (!dead) n.go('title'); });
+  return () => { dead = true; off?.(); };
+});
 registerScreen('afi', afiScreen);
 setSettingsOpener(openSettings);
 

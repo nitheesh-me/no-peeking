@@ -29,6 +29,8 @@ export interface EditorHandle {
 
 const SVGNS = 'http://www.w3.org/2000/svg';
 const CW = 48, RH = 42, GUT = 64, HEAD = 26, NOISE = 54, GATE = 30;
+/** upper bound for scaling a small circuit up to the available space */
+const MAX_SCALE = 1.8;
 const LETTER: Record<GateKind, string> = { X: 'X', Z: 'Z', H: 'H', Y: 'Y', S: 'S', SDG: 'S†', CNOT: '⊕', CZ: '•', SWAP: '×', MEASURE: '', RESET: '|0⟩' };
 const KEYGATE: Record<string, GateKind> = { x: 'X', z: 'Z', h: 'H', y: 'Y', s: 'S', d: 'SDG', m: 'MEASURE', r: 'RESET', c: 'CNOT', v: 'CZ', w: 'SWAP' };
 
@@ -54,6 +56,7 @@ export function createEditor(host: HTMLElement, opts: EditorOpts): EditorHandle 
   const sel = new Set<number>();
   let cursor: Cursor = { seg: Math.max(0, segs.findIndex((s) => !s.locked)), col: 0, wire: 0 };
   let hl: number | null = null;
+  let scale = 1;
   const undoStack: string[] = [], redoStack: string[] = [];
 
   const root = document.createElement('div');
@@ -114,7 +117,7 @@ export function createEditor(host: HTMLElement, opts: EditorOpts): EditorHandle 
 
   function hitAt(clientX: number, clientY: number): Hit | null {
     const r = svg.getBoundingClientRect();
-    const x = clientX - r.left, y = clientY - r.top;
+    const x = (clientX - r.left) / scale, y = (clientY - r.top) / scale;
     const w = Math.floor((y - HEAD) / RH);
     if (w < 0 || w >= wires.length) return null;
     for (let s = 0; s < segs.length; s++) {
@@ -299,9 +302,9 @@ export function createEditor(host: HTMLElement, opts: EditorOpts): EditorHandle 
       hover = drag.moved ? hitAt(e.clientX, e.clientY) : null; render();
     } else if (drag.kind === 'marquee') {
       const r = svg.getBoundingClientRect();
-      const x = Math.min(drag.x0, e.clientX) - r.left, y = Math.min(drag.y0, e.clientY) - r.top;
+      const x = (Math.min(drag.x0, e.clientX) - r.left) / scale, y = (Math.min(drag.y0, e.clientY) - r.top) / scale;
       drag.rect.setAttribute('x', String(x)); drag.rect.setAttribute('y', String(y));
-      drag.rect.setAttribute('width', String(Math.abs(e.clientX - drag.x0))); drag.rect.setAttribute('height', String(Math.abs(e.clientY - drag.y0)));
+      drag.rect.setAttribute('width', String(Math.abs(e.clientX - drag.x0) / scale)); drag.rect.setAttribute('height', String(Math.abs(e.clientY - drag.y0) / scale));
     }
   }
   function onUp(e: PointerEvent) {
@@ -317,8 +320,8 @@ export function createEditor(host: HTMLElement, opts: EditorOpts): EditorHandle 
       render();
     } else if (d.kind === 'marquee') {
       const r = svg.getBoundingClientRect();
-      const x0 = Math.min(d.x0, e.clientX) - r.left, x1 = Math.max(d.x0, e.clientX) - r.left;
-      const y0 = Math.min(d.y0, e.clientY) - r.top, y1 = Math.max(d.y0, e.clientY) - r.top;
+      const x0 = (Math.min(d.x0, e.clientX) - r.left) / scale, x1 = (Math.max(d.x0, e.clientX) - r.left) / scale;
+      const y0 = (Math.min(d.y0, e.clientY) - r.top) / scale, y1 = (Math.max(d.y0, e.clientY) - r.top) / scale;
       if (!d.additive) sel.clear();
       segs.forEach((s, si) => s.cols.forEach((c, ci) => c.gates.forEach((g) => {
         const x = colX(si, ci); const ys = spanOf(g, wires).map((w) => wireY(wires.indexOf(w)));
@@ -414,7 +417,10 @@ export function createEditor(host: HTMLElement, opts: EditorOpts): EditorHandle 
     const bl = bits();
     const totalW = segX(segs.length) + 16;
     const totalH = (bl.length ? bitY(bl.length - 1) + 18 : HEAD + wires.length * RH) + 6;
-    svg.setAttribute('width', String(totalW)); svg.setAttribute('height', String(totalH));
+    // fit: small circuits are scaled up (bounded) to the available space and centred by CSS; big ones scroll at 1×
+    const aw = scroller.clientWidth - 12, ah = scroller.clientHeight - 16;
+    scale = aw > 0 && ah > 0 ? Math.max(1, Math.min(MAX_SCALE, aw / totalW, ah / totalH)) : 1;
+    svg.setAttribute('width', String(Math.round(totalW * scale))); svg.setAttribute('height', String(Math.round(totalH * scale)));
     svg.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
     svg.replaceChildren();
     const gW = el('g', { class: 'wires' }, svg);
@@ -520,6 +526,9 @@ export function createEditor(host: HTMLElement, opts: EditorOpts): EditorHandle 
     if (ct.kind === 'IFJ') ct.conds.forEach((k) => { const i = bl.indexOf(k.who); if (i >= 0) el('circle', { class: `cdot ${k.is === 'BEEP' ? 'one' : 'zero'}`, cx, cy: bitY(i), r: 4.5 }, g); });
   }
 
+  let lastSize = '';
+  const ro = new ResizeObserver(() => { const k = `${scroller.clientWidth}x${scroller.clientHeight}`; if (k !== lastSize) { lastSize = k; render(); } });
+  ro.observe(scroller);
   svg.addEventListener('focus', () => { render(); announceCursor(); });
   svg.addEventListener('blur', () => render());
   render();
@@ -531,6 +540,6 @@ export function createEditor(host: HTMLElement, opts: EditorOpts): EditorHandle 
     setReadOnly(ro) { readOnly = ro; if (ro) { setTool(null); closeCond(); } root.classList.toggle('ro', ro); render(); },
     undo, redo,
     focus: () => svg.focus(),
-    destroy() { window.removeEventListener('pointermove', onMove); drag && 'ghost' in drag && drag.ghost.remove(); root.remove(); },
+    destroy() { ro.disconnect(); window.removeEventListener('pointermove', onMove); drag && 'ghost' in drag && drag.ghost.remove(); root.remove(); },
   };
 }

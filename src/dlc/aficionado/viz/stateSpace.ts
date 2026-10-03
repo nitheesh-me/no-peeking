@@ -78,7 +78,8 @@ type Frame = ReturnType<typeof frame>;
 interface Impl { setStructure(n: number): void; setData(n: NerdInfo | null): void; setVeil(v: number, animate: boolean): void; destroy(): void }
 
 function glImpl(f: Frame, th: AfiTheme, rm: boolean, opts: StateSpaceOpts): Impl {
-  const gl = createGL(f.root, th, undefined, 38);
+  let fitCam = () => {};
+  const gl = createGL(f.root, th, () => fitCam(), 38);
   const { scene, camera, renderer } = gl;
   scene.fog = new THREE.FogExp2(col(th.fog), 0.02);
   const glow = glowTexture();
@@ -111,10 +112,16 @@ function glImpl(f: Frame, th: AfiTheme, rm: boolean, opts: StateSpaceOpts): Impl
     }
     // frame the camera on the lattice extent
     let ext = 1; for (let i = 0; i < N; i++) ext = Math.max(ext, Math.abs(pos[i * 3]), Math.abs(pos[i * 3 + 2]));
-    const d = Math.max(13, ext * 3.4);
-    camera.position.set(d * 0.5, d * 0.42, d * 0.78);
-    controls.target.set(0, H * 0.16, 0);
-    controls.update();
+    fitCam = () => {
+      // fit lattice footprint (half-width ≈ 1.25·ext) and the tallest possible pillar (H) into the panel
+      const t = Math.tan((camera.fov * Math.PI) / 360), asp = Math.max(0.3, gl.w / gl.h);
+      const d = Math.max((ext * 1.35 + 1) / (t * asp), (H * 0.7 + ext * 0.4) / t, 8);
+      const dir = new THREE.Vector3(0.5, 0.42, 0.78).normalize();
+      camera.position.copy(dir.multiplyScalar(d));
+      controls.target.set(0, H * 0.3, 0);
+      controls.update();
+    };
+    fitCam();
   };
 
   // pillars: instanced hex prisms, base at y = 0, unit height; colour per instance
@@ -274,7 +281,7 @@ function canvasImpl(f: Frame, th: AfiTheme): Impl {
       const N = n <= 10 ? 1 << n : 0;
       let ext = 1;
       for (let i = 0; i < N; i++) { const [x, z] = basisPosition(i.toString(2).padStart(n, '0')); ext = Math.max(ext, Math.abs(x), Math.abs(z)); }
-      const s = Math.min(w / (ext * 4), h / (ext * 1.6 + H * 1.1));
+      const s = Math.min(w / (ext * 4), h / (ext * 1.6 + H * 1.35));
       const iso = (x: number, y: number, z: number) => ({ x: w / 2 + (x - z) * s * 0.87, y: h * 0.58 + (x + z) * s * 0.5 - y * s });
       g.fillStyle = rgba(th.ink2, 0.9);
       for (let i = 0; i < N; i++) { const [x, z] = basisPosition(i.toString(2).padStart(n, '0')); const p = iso(x, 0, z); g.beginPath(); g.arc(p.x, p.y, 1.8, 0, 6.283); g.fill(); }

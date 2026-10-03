@@ -10,9 +10,9 @@ import { save, persist, setProgress } from '../../engine/store';
 import { h, modal, toast, inputLabel, gremlinIcon, portraitSrc } from '../../engine/util';
 import type { OpName, TraceEvent } from '../../core/contracts';
 import { isBot } from '../../core/contracts';
-import { createBloch3D, type Bloch3D } from '../bloch3d';
+import type { Bloch3D } from '../bloch3d';
 import { NERD_PAGES, NOTEBOOK_UNLOCK, type NerdPageDef, type NerdPageId } from '../nerd/pages';
-import { findCreateNotebook, type NerdNotebook } from '../nerd/loader';
+import { findCreateNotebook, loadCreateNotebook, type NerdNotebook } from '../nerd/loader';
 import { Editor, type Progs } from '../editor/editor';
 import { Dialogue } from '../dialogue';
 import { cloneGlitch, floodColor } from '../meta';
@@ -101,6 +101,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   let stepMode = false;
   /** Schrödi's Lab Notebook (nerd mode) */
   let notebook: NerdNotebook | null = null;
+  let inspWant = 0, nbWant = 0; // async-load tokens (inspector sphere, notebook chunk)
   let nbKey = '';
   const snapIds = new WeakMap<object, number>(); let snapSeq = 0;
   /** X-ray Qubble inspector (see openInspector) */
@@ -188,7 +189,12 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   function mountNotebook() {
     if (notebook) return;
     const create = findCreateNotebook();
-    if (!create) return; // the notebook module hasn't landed yet: nerd mode shows only hover numbers + the inspector
+    if (!create) {
+      // first use: fetch the notebook chunk, then mount if nerd mode is still on and this screen is still alive
+      const want = ++nbWant;
+      void loadCreateNotebook().then((c) => { if (c && want === nbWant && !notebook && nerdOn() && nerdHost.isConnected) mountNotebook(); });
+      return; // until it lands (or if it is absent): nerd mode shows hover numbers + the inspector
+    }
     nerdHost.innerHTML = '';
     try {
       notebook = create(nerdHost, { level, isUnlocked: pageUnlocked, onDump: () => onDump(), prog: () => progs() });
@@ -201,7 +207,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     persist();
     updateNotebook();
   }
-  function unmountNotebook() { notebook?.destroy(); notebook = null; nerdHost.innerHTML = ''; }
+  function unmountNotebook() { nbWant++; notebook?.destroy(); notebook = null; nerdHost.innerHTML = ''; }
   function updateNotebook() {
     if (!notebook) return;
     const snap = currentSnap();
@@ -616,6 +622,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   }
   // ───────── X-ray Qubble inspector: a read-only 3D Bloch sphere of the TRUE reduced state (never under blankets) ─────────
   function closeInspector() {
+    inspWant++;
     if (!insp) return;
     insp.sphere.destroy(); insp.el.remove(); insp = null;
     window.removeEventListener('pointerdown', inspAway, true); window.removeEventListener('keydown', inspKey, true);
@@ -623,6 +630,12 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   const inspAway = (e: PointerEvent) => { if (insp && !insp.el.contains(e.target as Node)) closeInspector(); };
   const inspKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && insp) { e.stopPropagation(); closeInspector(); } };
   function openInspector(id: QubitId) {
+    closeInspector();
+    const want = ++inspWant;
+    // the 3D sphere widget is a lazily loaded chunk (also used by the Codex and the notebook)
+    void import('../bloch3d').then(({ createBloch3D }) => { if (want === inspWant && sceneArea.isConnected) showInspector(id, createBloch3D); }, (e) => console.error(e));
+  }
+  function showInspector(id: QubitId, createBloch3D: typeof import('../bloch3d').createBloch3D) {
     closeInspector();
     const b = currentSnap()?.bloch[id] ?? { x: 0, y: 0, z: 1 };
     const sphere = createBloch3D({ size: 150, interactive: false, rotatable: true, measure: false, labels: 'game', initial: b });

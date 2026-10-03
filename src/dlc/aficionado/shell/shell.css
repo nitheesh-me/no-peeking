@@ -148,8 +148,8 @@
 .afi-pal-btn.act { cursor: pointer; color: var(--afi-ink2); }
 .afi-pal-btn:disabled { opacity: 0.35; cursor: default; }
 .afi-pal-sep { flex: 1; }
-.afi-grid-scroll { overflow: auto; min-height: 0; padding: 6px 4px; }
-.afi-grid { display: block; outline: none; user-select: none; touch-action: none; }
+.afi-grid-scroll { overflow: auto; min-height: 0; padding: 8px 6px; display: flex; }
+.afi-grid { display: block; margin: auto; flex: none; outline: none; user-select: none; touch-action: none; }
 .afi-grid:focus-visible { outline: none; }
 .afi-editor-status { font-family: var(--afi-font-mono); font-size: var(--afi-fs-xs); color: var(--afi-ink2); padding: 3px 12px; min-height: 1.6em; }
 .afi-editor.ro .afi-grid { opacity: 0.92; }

@@ -2,7 +2,8 @@
 import type { QubitId } from '../../../core/contracts';
 import { t } from '../../../i18n/index';
 import type { Column, PhaseName } from './model';
-import { parseText, printText, type TextError } from './qasm';
+import { parseText, printText, type StageLabels, type TextError } from './qasm';
+import { stageName } from '../state/names';
 
 export interface TextPaneHandle {
   /** grid → text (ignored while the user is typing in the pane) */
@@ -23,6 +24,7 @@ export function createTextPane(host: HTMLElement, opts: { wires: QubitId[]; phas
   wrap.append(body, errs);
   host.appendChild(wrap);
   let typing = false, timer = 0;
+  const labels: StageLabels = { bedtime: stageName('bedtime'), night: stageName('night'), morning: stageName('morning') };
 
   const paintGutter = (bad: Set<number>) => {
     const n = ta.value.split('\n').length;
@@ -34,7 +36,7 @@ export function createTextPane(host: HTMLElement, opts: { wires: QubitId[]; phas
     paintGutter(new Set(es.map((e) => e.line)));
   };
   const reparse = () => {
-    const r = parseText(ta.value, opts.wires, opts.phases);
+    const r = parseText(ta.value, opts.wires, opts.phases, labels);
     showErrors(r.errors);
     if (!r.errors.length) opts.onParsed(r.stages);
   };
@@ -46,7 +48,7 @@ export function createTextPane(host: HTMLElement, opts: { wires: QubitId[]; phas
     if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey) { /* keep Tab for focus navigation */ }
   });
   return {
-    show(stages) { if (typing) return; ta.value = printText(stages, opts.wires); showErrors([]); },
+    show(stages) { if (typing) return; ta.value = printText(stages, opts.wires, labels); showErrors([]); },
     setReadOnly(ro) { ta.readOnly = ro; },
     destroy() { clearTimeout(timer); wrap.remove(); },
   };
