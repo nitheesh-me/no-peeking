@@ -688,12 +688,16 @@ export function drawDataBox(ctx: Ctx, x: number, y: number, s: number, v: Qubble
   if (st === 'scared') { jx = Math.sin(t * 48) * 1.6; flipK = Math.cos(t * 9); } // shake + digit spinning over
   if (st === 'mumble') rot = Math.sin(t * 2.6 + seed) * 0.07;
   if (st === 'giggle') rot = Math.sin(t * 18) * 0.05;
-  const breath = st === 'sleep' ? Math.sin(t * 1.6 + seed) * 0.6 : 0;
+  const breath = 0; // boxes don't breathe (or sleep)
+  // BOOP on a box = it flips over in the air (a bit flip you can see)
+  const tb = v.tumble ?? 0, tE = tb * tb * (3 - 2 * tb);
+  if (tb > 0 && tb < 1) hop += Math.sin(Math.PI * tb) * 24;
   // floor contact shadow (stays put while hopping)
   groundShadow(ctx, x, y + 1 * s, 34 * s * (1 - hop / 40), 15 * s * (1 - hop / 40), 0.3);
   ctx.save();
   ctx.translate(x + jx * s, y - hop * s);
   ctx.rotate(rot);
+  if (tb > 0 && tb < 1) { ctx.translate(0, -13 * s); ctx.rotate(Math.PI * 2 * tE); ctx.translate(0, 13 * s); }
   const P = (u: number, vv: number, z = 0) => bp(0, 0, s, u, vv, z);
   const Hz = H + breath / 48;
   const top = [P(-h, -h, Hz), P(h, -h, Hz), P(h, h, Hz), P(-h, h, Hz)];
@@ -779,7 +783,6 @@ export function drawDataBox(ctx: Ctx, x: number, y: number, s: number, v: Qubble
   ctx.strokeStyle = 'rgba(255,250,235,0.55)'; ctx.lineWidth = 1.2 * s;
   ctx.beginPath(); ctx.moveTo(top[3].x, top[3].y + 1.5 * s); ctx.lineTo(top[2].x, top[2].y + 1.5 * s); ctx.lineTo(top[1].x - 1 * s, top[1].y + 1.5 * s); ctx.stroke();
   // state accents
-  if (st === 'sleep' && closed) zzz(ctx, 18 * s, -40 * s, s, t + seed);
   if (st === 'mumble') {
     ctx.save(); ctx.font = `700 ${9 * s}px Quicksand, sans-serif`; ctx.fillStyle = INK; ctx.globalAlpha = Math.sin(((t * 0.6) % 1) * Math.PI);
     ctx.fillText('mmh', 16 * s, -40 * s - ((t * 0.6) % 1) * 10 * s); ctx.restore();

@@ -291,10 +291,11 @@ export class Scene {
         }
         return null; // the bot rolls over and slaps on its own
       }
-      const action = ({ BOOP: 'boop', SHUSH: 'shush', SPIN: 'spin', RESET: 'press' } as const)[ev.op];
+      // a classical box gets flipped over with both hands (SPIN pose) instead of a nose-boop
+      const action = this.level.classical && ev.op === 'BOOP' && !isBot(ev.t) ? 'spin' : ({ BOOP: 'boop', SHUSH: 'shush', SPIN: 'spin', RESET: 'press' } as const)[ev.op];
       return { dest: this.standAt(ev.t), target: this.place(ev.t), action };
     }
-    if (ev.k === 'measure') return isBot(ev.t) ? { dest: this.standAt(ev.t), target: this.place(ev.t), action: 'listen' } : { dest: this.standAt(ev.t), target: this.place(ev.t), action: 'peek', flashlight: true };
+    if (ev.k === 'measure') return isBot(ev.t) ? { dest: this.standAt(ev.t), target: this.place(ev.t), action: 'listen' } : { dest: this.standAt(ev.t), target: this.place(ev.t), action: 'peek', flashlight: !this.level.classical }; // boxes are opened by hand, no torch
     return null;
   }
   /** player-chosen homes (drag & drop; cosmetic only, saved per level) */
@@ -520,7 +521,9 @@ export class Scene {
       if (a?.ev.k === 'noise' && a.ev.e.t === q.id && a.p > 0.45 && a.p < 0.9) state = 'scared';
       if (a?.ev.k === 'measure' && a.ev.t === q.id && a.p > 0.45) state = a.ev.woke ? 'awake-grumpy' : 'giggle';
       let squash = 1;
-      if (a?.ev.k === 'gate' && (a.ev.t === q.id || a.ev.from === q.id)) squash = 1 + 0.12 * hump((a.p - 0.4) / 0.35);
+      let tumble: number | undefined;
+      if (this.level.classical && a?.ev.k === 'gate' && a.ev.op === 'BOOP' && a.ev.t === q.id) tumble = clamp((a.p - 0.25) / 0.5);
+      else if (a?.ev.k === 'gate' && (a.ev.t === q.id || a.ev.from === q.id)) squash = 1 + 0.12 * hump((a.p - 0.4) / 0.35);
       const hl = this.highlight.has(q.id) || this.hintHL.has(q.id) || this.hoverPick === q.id;
       let depth = pt.gx + pt.gy;
       // HIGHFIVE: a gooey arm pops out from under the blanket toward the partner
@@ -537,7 +540,7 @@ export class Scene {
         ctx.save();
         if (squash !== 1) { ctx.translate(sp.x, sp.y); ctx.scale(1 / squash, squash); ctx.translate(-sp.x, -sp.y); }
         if (roll) { ctx.translate(sp.x, sp.y); ctx.rotate(roll); ctx.translate(-sp.x, -sp.y); }
-        art.drawQubble(ctx, sp.x, sp.y, s, { bloch, blanket, state, label: q.id, classical: this.level.classical, highlight: hl, arm }, t);
+        art.drawQubble(ctx, sp.x, sp.y, s, { bloch, blanket, state, label: q.id, classical: this.level.classical, highlight: hl, arm, tumble }, t);
         ctx.restore();
       } });
     }

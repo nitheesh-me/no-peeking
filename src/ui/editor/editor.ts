@@ -75,7 +75,7 @@ export class Editor {
   private toolboxEl!: HTMLElement;
   private drag: null | {
     src: 'tool' | 'prog' | 'snip'; op: Op; phase?: EdPhase; index?: number; startX: number; startY: number; snip?: Snippet;
-    ghost?: HTMLElement; srcEl: HTMLElement; target?: { phase: EdPhase; index: number } | 'trash' | 'help' | null; pointerId: number; down: PointerEvent;
+    ghost?: HTMLElement; srcEl: HTMLElement; target?: { phase: EdPhase; index: number } | 'trash' | 'help' | { snipBefore: string } | null; pointerId: number; down: PointerEvent;
   } = null;
 
   slots: SlotState;
@@ -368,13 +368,19 @@ export class Editor {
         h('div', { class: 'snip-name' }, locked ? '🔒 ' : sn.starter ? '⭐ ' : '', locked ? '???' : sn.name),
         locked ? h('div', { class: 'muted snip-sub' }, issue) : ops,
         h('div', { class: 'muted snip-sub' }, locked ? '' : issue ?? `${lines.length} card${lines.length === 1 ? '' : 's'}`));
+      el.dataset.snip = sn.id;
       if (!sn.starter) {
+        const mine = this.snippets.findIndex((x) => x.id === sn.id);
+        const mv = (dir: -1 | 1) => (e: Event) => { e.stopPropagation(); this.moveSnippet(sn.id, mine + dir); };
+        el.appendChild(h('div', { class: 'snip-move' },
+          mine > 0 ? h('button', { type: 'button', title: 'Move left', 'aria-label': 'Move snippet left', onclick: mv(-1) }, '‹') : null,
+          mine < this.snippets.length - 1 ? h('button', { type: 'button', title: 'Move right', 'aria-label': 'Move snippet right', onclick: mv(1) }, '›') : null));
         el.appendChild(h('button', { class: 'x', title: 'Delete snippet', 'aria-label': 'Delete snippet', onclick: (e: Event) => {
           e.stopPropagation(); this.snippets = this.snippets.filter((x) => x.id !== sn.id); storeSnippets(this.snippets); this.renderDrawer();
         } }, '×'));
       }
       if (!issue) {
-        el.addEventListener('pointerdown', (e) => { if ((e.target as HTMLElement).closest('.x')) return; this.pointerDown(e, { src: 'snip', op: { op: 'NOTE', text: sn.id }, srcEl: el, snip: sn }); });
+        el.addEventListener('pointerdown', (e) => { if ((e.target as HTMLElement).closest('.x, .snip-move')) return; this.pointerDown(e, { src: 'snip', op: { op: 'NOTE', text: sn.id }, srcEl: el, snip: sn }); });
         el.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const c = this.cursor(); if (c) this.insertSnippet(sn, c.phase, c.index); } });
       }
       row.appendChild(el);
@@ -382,6 +388,16 @@ export class Editor {
     d.appendChild(row);
   }
   /** Insert a snippet's ops, renaming its labels so they don't clash with existing spots. */
+  /** Reorder the player's own snippets (starters always stay at the end). */
+  private moveSnippet(id: string, to: number): void {
+    const from = this.snippets.findIndex((x) => x.id === id);
+    if (from < 0) return;
+    to = Math.max(0, Math.min(this.snippets.length - 1, to));
+    if (to === from) return;
+    const [sn] = this.snippets.splice(from, 1);
+    this.snippets.splice(to, 0, sn);
+    storeSnippets(this.snippets); this.renderDrawer(); audio.sfx('card_drop');
+  }
   private insertSnippet(sn: Snippet, ph: EdPhase, index: number): void {
     this.commit(() => {
       const used = new Set<string>();
@@ -712,6 +728,11 @@ export class Editor {
     this.el.querySelectorAll('.prog-list.drop-active').forEach((n) => n.classList.remove('drop-active'));
     this.trash.classList.remove('hot'); this.help.classList.remove('hot');
     const under = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+    this.drawer.querySelectorAll('.snip.drop-before').forEach((n) => n.classList.remove('drop-before'));
+    const overSnip = d.src === 'snip' && d.snip && !d.snip.starter ? (under?.closest('.snip') as HTMLElement | null) : null;
+    if (overSnip && overSnip.dataset.snip && overSnip.dataset.snip !== d.snip!.id && this.snippets.some((x) => x.id === overSnip.dataset.snip)) {
+      overSnip.classList.add('drop-before'); d.target = { snipBefore: overSnip.dataset.snip }; return;
+    }
     if (d.src !== 'snip' && under?.closest('.help-slot')) { this.help.classList.add('hot'); d.target = 'help'; return; }
     if (d.src !== 'snip' && (under?.closest('.trash') || (d.src === 'prog' && under?.closest('.toolbox')))) {
       this.trash.classList.add('hot'); d.target = 'trash'; return;
@@ -755,6 +776,11 @@ export class Editor {
     }
     d.ghost.remove();
     const tg = d.target;
+    this.drawer.querySelectorAll('.snip.drop-before').forEach((n) => n.classList.remove('drop-before'));
+    if (tg && typeof tg === 'object' && 'snipBefore' in tg) {
+      if (d.snip) { const from = this.snippets.findIndex((x) => x.id === d.snip!.id); let to = this.snippets.findIndex((x) => x.id === tg.snipBefore); if (from < to) to--; this.moveSnippet(d.snip.id, to); }
+      return;
+    }
     if (tg === 'help') {
       const nm = (d.src === 'tool' ? (d.op as unknown as OpName) : d.op.op) as OpName;
       openCardGuide(nm, this.level); // the card stays where it was

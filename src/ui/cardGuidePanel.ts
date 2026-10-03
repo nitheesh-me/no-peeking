@@ -41,7 +41,8 @@ function demoCanvas(d: CardDemo, level: LevelDef, name: OpName): { el: HTMLEleme
         const reach = d.actor === 'none' ? 0 : Math.sin(Math.PI * act);
         art.drawQubble(g, qx + 10, qy, s * 0.9, { bloch: bl, blanket: 0.25, state, classical: false, arm: reach > 0.05 ? { dx: -80, dy: 0, t: reach } : undefined }, t);
       } else {
-        art.drawQubble(g, qx, qy, s, { bloch: bl, blanket, state, classical }, t);
+        const tumble = classical && name === 'BOOP' ? Math.min(1, Math.max(0, (act - 0.25) / 0.5)) : undefined;
+        art.drawQubble(g, qx, qy, s, { bloch: bl, blanket, state, classical, tumble: tumble && tumble < 1 ? tumble : undefined }, t);
       }
     }
     if (d.target === 'bot') {
@@ -50,7 +51,7 @@ function demoCanvas(d: CardDemo, level: LevelDef, name: OpName): { el: HTMLEleme
     }
     if (d.actor === 'caretaker' && art.drawCaretaker) {
       const walkIn = Math.min(1, p / 0.2);
-      art.drawCaretaker(g, W / 2 - 90 + 40 * walkIn, H - 28, s, { action: p < 0.2 ? 'tiptoe' : (d.action ?? 'boop'), phase: act, facing: 1, flashlight: d.action === 'peek' }, t);
+      art.drawCaretaker(g, W / 2 - 90 + 40 * walkIn, H - 28, s, { action: p < 0.2 ? 'tiptoe' : classical && name === 'BOOP' ? 'spin' : (d.action ?? 'boop'), phase: act, facing: 1, flashlight: d.action === 'peek' && !classical }, t);
     } else if (d.actor === 'bot') {
       const k = Math.sin(Math.PI * Math.min(1, p / 0.8));
       art.drawBot(g, W / 2 - 80 + 60 * k, H - 30, s, { light: after ? (d.light ?? null) : null, action: act > 0.3 && act < 0.7 ? 'highfive' : 'roll', facing: 1 }, t);
