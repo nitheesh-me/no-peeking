@@ -21,6 +21,7 @@ export function titleScreen(root: HTMLElement, nav: Nav): () => void {
       h('div', { class: 'row' },
         h('button', { class: 'btn small', onclick: () => nav.go('endless') }, 'Night Shift'),
         h('button', { class: 'btn small', onclick: () => nav.go('lab') }, 'Gremlin Lab'),
+        h('button', { class: 'btn small', title: 'Everything you have met in the daycare', onclick: () => nav.go('codex') }, '📖 Codex'),
         h('button', { class: 'btn small', onclick: () => nav.settings() }, 'Settings'),
         h('button', { class: 'btn small', onclick: () => nav.go('credits') }, 'Credits')),
       h('div', { class: 'title-hint' }, 'psst… don\'t hover over the letters'),

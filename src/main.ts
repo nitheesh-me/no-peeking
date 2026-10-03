@@ -7,6 +7,7 @@ import { levelScreen } from './ui/screens/level';
 import { creditsScreen } from './ui/screens/credits';
 import { labScreen, endlessScreen } from './ui/screens/modes';
 import { openSettings } from './ui/settings';
+import { codexScreen } from './ui/screens/codex';
 
 registerScreen('title', titleScreen);
 registerScreen('map', mapScreen);
@@ -14,6 +15,7 @@ registerScreen('level', levelScreen);
 registerScreen('credits', creditsScreen);
 registerScreen('lab', labScreen);
 registerScreen('endless', endlessScreen);
+registerScreen('codex', codexScreen);
 setSettingsOpener(openSettings);
 
 // audio must be unlocked by a user gesture
@@ -26,7 +28,7 @@ document.addEventListener('click', (e) => { if ((e.target as HTMLElement).closes
 function route() {
   const m = /^#(\w+)(?:\/(.+))?$/.exec(location.hash);
   const name = (m?.[1] ?? 'title') as ScreenName;
-  const ok: ScreenName[] = ['title', 'map', 'level', 'credits', 'lab', 'endless'];
+  const ok: ScreenName[] = ['title', 'map', 'level', 'credits', 'lab', 'endless', 'codex'];
   nav.go(ok.includes(name) ? name : 'title', name === 'level' ? m?.[2] : undefined);
 }
 

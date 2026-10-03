@@ -136,3 +136,27 @@ it in X-ray using its `seed`.
   errors, paused)`, and `__np.freeze = true` pauses playback updates (for mid-action screenshots). Scripts in
   `.scratch/pw`: `actions.mjs` (every action/party + gremlins, frozen at contact), `ui.mjs` (pokes, hints, snippets,
   slots, step mode, timeline), `playthrough.mjs` (all 16 levels: load solution via Text → Test all → win card).
+
+## v0.5: Codex
+- **Screen** `codex` (`src/ui/screens/codex.ts`, styles in `src/styles/codex.css`, deep link `#codex`). Entry points: title
+  menu "📖 Codex", the map topbar 📖, and Settings. Tabs per category with found/total counts; the grid uses the
+  designer's `codexCardSVG` frames and `drawSilhouette` for locked "???" entries (each shows its "found by…" hint).
+  Unlocked thumbnails animate at ~12 fps; element cards carry a `drawGlyph` badge.
+- **Data** `src/ui/codexData.ts`: 33 entries (5 characters, 3 enemies, 5 elements, 8 objects, 12 cards from
+  `CARD_GUIDE`). Each has a flavor line in the game voice, "In real life: …" (auto-linked through `learnLinks.linkify`),
+  a hint, and what clicking its live view does.
+- **Detail panel** (modal, Esc closes): a live art canvas; click / Enter / Space cycles poses, states and actions
+  (caretaker and Schrödi actor actions, gremlin poses, bot actions plus a light button, qubble states plus a
+  blanket/X-ray button and a draggable Bloch dial (φ dial with arrow keys plus a Sunny↔Moony θ slider), data box flip
+  with tumble plus lid, a wall sign with your own text, props via `drawProp` with day/night). Characters speak a
+  Qubblese line through `audio.voice`. Cards show the Card Guide demo canvas and tips.
+- **Unlocks** (`src/ui/unlocks.ts`): `unlockCodex(id)` sets `save.flags['codex:'+id]` and shows a sparkly toast plus
+  sfx. Hooks in level.ts: clicking a qubble (→ qubble, blanket if covered; in X-ray also sunny/moony/swirl and silk if
+  a thread is attached), a data box (→ databox, sunny/moony), a bot (→ bot, lights if lit), Schrödi, the caretaker
+  (grab), a gremlin in X-ray (→ its kind; 'both' gives Phasey too), window, clock, door, the new **sign** and **bed**
+  hit kinds; moving Schrödi's box → box; LISTEN impact → lights; a PEEK impact → flashlight. Cards unlock the first
+  time they appear in a placed program (editor onChange).
+- **Unlock all content!** (Settings) toggles `save.flags.unlockAll`, read by every gate via `unlockAll()` /
+  `levelDone(id)`: map levels, Codex entries, card-guide pro terms and starter snippets. Toast: "Everything unlocked
+  (judge mode)".
+- QA: `.scratch/pw/codex.mjs` (locked grid → click bot a in 2-3 → entry unlocked → detail interactive → unlock all).

@@ -1,0 +1,65 @@
+/* ───────── Codex screen ───────── */
+.codex-screen { background: var(--paper); }
+.codex-body { flex: 1; overflow: auto; padding: 14px 24px 60px; }
+.codex-tabs { display: flex; gap: 8px; flex-wrap: wrap; position: sticky; top: -14px; padding: 10px 0; background: var(--paper); z-index: 2; }
+.codex-tab {
+  font-family: var(--display); font-size: 15px; padding: 6px 12px; border: var(--line); border-radius: 999px; background: #fff;
+  box-shadow: var(--shadow-sm); cursor: pointer; display: inline-flex; gap: 6px; align-items: center;
+}
+.codex-tab .n { font-family: var(--body); font-weight: 800; font-size: 11px; color: var(--ink2); }
+.codex-tab.on { background: var(--sunny); }
+.codex-tab:focus-visible, .codex-entry:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+.codex-count { font-weight: 800; }
+.codex-cat { font-weight: 400; font-size: 20px; margin: 18px 0 8px; }
+.codex-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(156px, 1fr)); gap: 14px; }
+.codex-entry {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 8px 12px;
+  border: var(--line); border-radius: 18px; background: #fff; box-shadow: var(--shadow); cursor: pointer; font: inherit; color: inherit;
+  transition: transform 0.12s; min-height: 160px;
+}
+.codex-entry::before { /* card frame inner rim */
+  content: ''; position: absolute; inset: 5px; border: 2px dashed rgba(14,14,14,0.12); border-radius: 13px; pointer-events: none;
+}
+.codex-entry:hover { transform: translateY(-3px) rotate(-1deg); }
+.codex-entry.cat-characters { background: #fff7e3; }
+.codex-entry.cat-enemies { background: #ffe9ec; }
+.codex-entry.cat-elements { background: #efedff; }
+.codex-entry.cat-objects { background: #e8f7ef; }
+.codex-entry.cat-cards { background: #f4f1ea; }
+.codex-entry.locked { background: var(--paper2); color: var(--ink3); cursor: help; }
+.codex-entry.locked:hover { transform: none; }
+.codex-entry.nope { animation: codex-nope 0.35s ease; }
+@keyframes codex-nope { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.ce-name { font-family: var(--display); font-size: 15px; text-align: center; line-height: 1.15; }
+.ce-hint { font-size: 11px; text-align: center; line-height: 1.25; }
+.codex-cardpic { width: 132px; height: 100px; display: flex; align-items: center; justify-content: center; }
+.codex-cardpic .card { cursor: inherit; padding-right: 12px; }
+
+.codex-modal { width: min(500px, 100%); }
+.codex-detail .cd-head { display: flex; gap: 10px; align-items: center; padding-right: 40px; }
+.codex-detail .cd-head h2 { margin: 0; }
+.cd-cat { font-size: 26px; }
+.cd-live { margin: 10px 0 4px; border: var(--line); border-radius: 16px; overflow: hidden; background: #f7f4ec; display: flex; justify-content: center; }
+.cd-canvas { display: block; cursor: pointer; max-width: 100%; height: auto !important; }
+.cd-canvas:focus-visible, .bloch-dial:focus-visible { outline: 3px solid var(--sky); outline-offset: -3px; }
+.cd-card { flex-direction: column; align-items: center; gap: 8px; padding: 12px; }
+.cd-pose { font-size: 12px; font-weight: 700; color: var(--ink2); text-align: center; min-height: 16px; }
+.cd-controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: center; margin: 8px 0; }
+.cd-label { display: flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 700; flex-wrap: wrap; }
+.cd-label input[type=range] { accent-color: var(--moony); width: 150px; }
+.bloch-ctl { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.bloch-dial { cursor: grab; touch-action: none; }
+.cd-flavor { margin: 10px 0; padding: 10px 14px; border-left: 5px solid var(--sunny); background: #fffaf0; border-radius: 0 12px 12px 0; font-size: 15px; font-style: italic; }
+.cd-flavor.by-flipper { border-color: var(--red); background: #fff0ef; }
+.cd-flavor.by-phasey { border-color: var(--phasey); background: #f7efff; }
+.cd-flavor.by-wobbles { border-color: var(--mint); background: #eefcf5; }
+.cd-real { font-size: 14px; line-height: 1.45; }
+.toast.codex-toast { background: var(--sunny); position: relative; overflow: visible; }
+.toast.codex-toast::after { content: '✨'; position: absolute; right: -10px; top: -12px; font-size: 20px; animation: codex-spark 0.9s ease-in-out infinite alternate; }
+@keyframes codex-spark { to { transform: scale(1.3) rotate(20deg); } }
+
+/* designer card frame (art.codexCardSVG): 4:5 frame drawn as the background */
+.codex-entry.framed { background-color: transparent !important; background-size: 100% 100%; background-repeat: no-repeat; border: none; box-shadow: none; border-radius: 0; aspect-ratio: 4 / 5; padding: 12% 8% 16%; justify-content: flex-start; }
+.codex-entry.framed::before { display: none; }
+.codex-entry.framed .ce-name { margin-top: auto; }
+.codex-entry.framed canvas, .codex-entry.framed .codex-cardpic { max-width: 100%; }

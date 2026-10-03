@@ -6,12 +6,13 @@ import { save } from '../engine/store';
 import { h, modal } from '../engine/util';
 import { CARD_GUIDE, peekTips, type CardDemo } from './cardGuide';
 import { linkify } from './learnLinks';
+import { levelDone } from './unlocks';
 
 const BLOCH: Record<NonNullable<CardDemo['from']>, Bloch> = {
   sunny: { x: 0, y: 0, z: 1 }, moony: { x: 0, y: 0, z: -1 }, plus: { x: 1, y: 0, z: 0 }, minus: { x: -1, y: 0, z: 0 },
 };
 
-function demoCanvas(d: CardDemo, level: LevelDef, name: OpName): { el: HTMLElement; stop: () => void } {
+export function demoCanvas(d: CardDemo, level: LevelDef, name: OpName): { el: HTMLElement; stop: () => void } {
   const W = 300, H = 150, dpr = Math.min(2, devicePixelRatio || 1);
   const cv = h('canvas', { class: 'guide-demo', width: W * dpr, height: H * dpr, style: `width:${W}px;height:${H}px` }) as HTMLCanvasElement;
   const g = cv.getContext('2d')!;
@@ -66,7 +67,7 @@ export function openCardGuide(name: OpName, level: LevelDef): void {
   if (!g) return;
   audio.sfx('ui_click', { pitch: 1.2 });
   const demo = demoCanvas(g.demo, level, name);
-  const proOpen = g.pro && (save.progress[g.pro.unlockAfter]?.done || save.flags.unlockAll);
+  const proOpen = g.pro && levelDone(g.pro.unlockAfter);
   const peekWakes = !(level.classical || level.allowPeekData);
   const title = name === 'PEEK' ? (peekWakes ? 'PEEK (wakes it!)' : level.classical ? 'PEEK: look in the box' : 'PEEK (allowed here)') : g.name;
   const what = level.classical && name === 'PEEK' ? 'Open the box and read the number inside. On the day shift this is totally fine.'

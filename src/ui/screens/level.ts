@@ -1,4 +1,5 @@
 /** Level screen: isometric scene + playback controls + Bot Code editor + tests + win card. */
+import { levelDone, unlockCodex, codexHas } from '../unlocks';
 import type { LevelDef, NightResult, TestReport, QubitId, Phase, Snapshot, InputState, ErrorEvent } from '../../core/contracts';
 import { quantum, audio, art, getLevel, LEVELS } from '../../engine/deps';
 import { enumerateErrors, randomErrors, makeRng } from '../../quantum/index';
@@ -106,9 +107,10 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     editor = new Editor(level, progKey ? save.programs[progKey] ?? {} : {}, {
       peekMode: level.classical || level.allowPeekData ? 'safe' : 'wakes',
       slots: progKey ? save.slots?.[progKey] : undefined,
-      isDone: (id) => !!save.progress[id]?.done,
+      isDone: (id) => levelDone(id),
       onChange: (p, slots) => {
         if (progKey) { save.programs[progKey] = p; (save.slots ??= {})[progKey] = slots; persist(); }
+        for (const ph of ['bedtime', 'morning'] as const) for (const o of p[ph] ?? []) if (!codexHas('card-' + o.op)) unlockCodex('card-' + o.op); // cards: first placement
         stopRun();
       },
       beginPick: (allowed, cb) => {
@@ -278,7 +280,11 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
       onLine: (ref) => editor.setCurrent(ref),
       onChange: syncControls,
       onBlocked: () => toast('Snap! Measurements are a one-way door. You can\'t un-look.', 'bad'),
-      onImpact: (ev) => { if (ev.k === 'jump') editor.pulseJump(ev.taken); },
+      onImpact: (ev) => {
+        if (ev.k === 'measure') {
+          if (isBot(ev.t)) unlockCodex('lights');
+          else { unlockCodex('flashlight'); if (peekSafe) unlockCodex(ev.result ? 'moony' : 'sunny'); }
+        } if (ev.k === 'jump') editor.pulseJump(ev.taken); },
       onEnd: (n) => { if (token === runToken) opts.onEnd?.(n as NightX); },
     });
     pb.setFast(fast); scene.speed = fast ? 4 : 1;
@@ -539,6 +545,26 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
       case 'window': return 'The window';
       case 'clock': return 'The clock';
       case 'door': return 'The door';
+      case 'sign': return 'A daycare rule (laminated)';
+      case 'bed': return `${hit.id}'s bed`;
+    }
+  }
+  /** Codex discoveries from clicking a Qubble / data box (cosmetic; reads the displayed snapshot only) */
+  function codexOnQubble(id: QubitId) {
+    const b = currentSnap()?.bloch[id];
+    if (level.classical) {
+      unlockCodex('databox');
+      if (b) unlockCodex(b.z >= 0 ? 'sunny' : 'moony');
+      return;
+    }
+    unlockCodex('qubble');
+    const covered = scene.xray < 0.5 && !scene.peeked.has(id);
+    if (covered) unlockCodex('blanket');
+    if (scene.xray > 0.5 && b) {
+      if (b.z > 0.6) unlockCodex('sunny');
+      if (b.z < -0.6) unlockCodex('moony');
+      if (Math.hypot(b.x, b.y) > 0.5) unlockCodex('swirl');
+      if (currentSnap()?.links.some((l) => (l.a === id || l.b === id) && l.strength > 0.1)) unlockCodex('silk');
     }
   }
   function interact(hit: NonNullable<ReturnType<Scene['hitAny']>>) {
@@ -546,6 +572,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     switch (hit.kind) {
       case 'qubble': {
         const id = hit.id!;
+        codexOnQubble(id);
         if (peekSafe) { // peeking is allowed here: pop the lid and show the value (no warnings)
           const z = currentSnap()?.bloch[id]?.z ?? 1;
           const v = level.classical ? (z >= 0 ? 0 : 1) : null;
@@ -572,6 +599,8 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
       case 'bot': {
         const id = hit.id!;
         scene.poke('bot:' + id, 1.2);
+        unlockCodex('bot');
+        if (currentSnap()?.lights[id] != null) unlockCodex('lights');
         const idx = level.bots.findIndex((b) => b.id === id);
         const snap = currentSnap();
         audio.botNote(Math.max(0, idx), (snap?.lights[id] ?? 0) === 1 ? 1 : 0);
@@ -579,11 +608,13 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
         break;
       }
       case 'schrodi':
+        unlockCodex('schrodi');
         audio.sfx('schrodi_meow', { volume: 0.7 });
         scene.poke('sch', 2);
         scene.say(pick(QUIPS), 'schrodi', 'speech', 2.4);
         break;
       case 'caretaker': {
+        unlockCodex('caretaker');
         const yawn = Math.random() < 0.5;
         scene.pokeCaretaker(yawn ? 'yawn' : 'cheer');
         scene.say(yawn ? '*yaaawn*' : 'hi! 👋', 'caretaker', 'speech', 1.4);
@@ -593,23 +624,42 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
         scene.poke('gremlin', 1.2);
         const a = scene.anim; const k = a?.ev.k === 'noise' ? (a.ev.e.kind === 'phase' ? 'phasey' : a.ev.e.kind === 'wobble' ? 'wobbles' : 'flipper') : 'flipper';
         scene.say(pick(TAUNTS[k]), 'gremlin', 'speech', 1.4);
+        unlockCodex(k);
+        if (a?.ev.k === 'noise' && a.ev.e.kind === 'both') unlockCodex('phasey');
         audio.sfx('glitch', { volume: 0.4 });
         break;
       }
       case 'window': {
+        unlockCodex('window');
         const c = scene.objectCentre('window');
         if (c) { scene.say(scene.night > 0.5 ? pick(['🌙 the moon is napping too', '🌠 a shooting star!', '✨ twinkle twinkle']) : pick(['☁ a cloud shaped like a cat', '🐦 tweet', '☀ nice day for a nap']), c, 'info', 2); if (art.burst) art.burst('reset', c.x, c.y); }
         audio.sfx('ui_hover', { pitch: 1.5 });
         break;
       }
       case 'clock': {
+        unlockCodex('clock');
         const c = scene.objectCentre('clock');
         const hr = scene.night > 0.5 ? `${1 + Math.floor(Math.random() * 4)}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')} am` : 'nap o\'clock';
         if (c) scene.say(`tick… tock… ${hr}`, c, 'info', 2);
         audio.sfx('ui_click', { pitch: 0.6 }); setTimeout(() => audio.sfx('ui_click', { pitch: 1.1 }), 260);
         break;
       }
+      case 'sign': {
+        unlockCodex('sign');
+        const text = hit.label.replace(/^sign: /, '');
+        scene.signShake.set(text, 0.8);
+        audio.sfx('reset', { volume: 0.3, pitch: 1.4 });
+        break;
+      }
+      case 'bed': {
+        unlockCodex('bed');
+        scene.poke('q:' + hit.id, 0.8);
+        scene.say(pick(['*boing*', 'firm mattress. 10/10', 'shh, someone\'s sleeping here']), hit.id!, 'speech', 1.4);
+        audio.sfx('boop', { pitch: 0.6, volume: 0.4 });
+        break;
+      }
       case 'door': {
+        unlockCodex('door');
         const c = scene.objectCentre('door');
         if (c) scene.say(pick(['knock knock… nobody. (a gremlin?)', 'locked. for your own good.', '*creak*… nope, still night']), c, 'info', 2.2);
         scene.shake = 3; audio.sfx('reset', { volume: 0.4, pitch: 0.6 });
@@ -639,6 +689,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   const busy = () => !!pb && !pb.done;
   function drop() {
     const tile = scene.dropCarry(); if (!tile) return;
+    if (grabKindLast === 'box') unlockCodex('box');
     (save.homes ??= {})[homeKey] = structuredClone(scene.homes); persist();
     audio.sfx('boop', { pitch: 1.8, volume: 0.7 }); setTimeout(() => audio.sfx('boop', { pitch: 2.3, volume: 0.4 }), 110);
     scene.say('boing!', grabKindLast === 'box' ? 'schrodi' : 'caretaker', 'speech', 1);
@@ -673,6 +724,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     if (hit && (hit.kind === 'caretaker' || hit.kind === 'schrodi')) {
       if (busy()) { scene.say('busy!', hit.kind === 'schrodi' ? 'schrodi' : 'caretaker', 'speech', 1); if (hit.kind === 'schrodi') interact(hit); return; }
       grab = { kind: hit.kind === 'caretaker' ? 'caretaker' : 'box', x0: p.x, y0: p.y, held: true, hit };
+      if (hit.kind === 'caretaker') unlockCodex('caretaker');
       return;
     }
     if (hit) interact(hit);

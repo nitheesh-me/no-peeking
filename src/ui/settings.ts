@@ -3,6 +3,7 @@ import { audio } from '../engine/deps';
 import { save, persist, resetSave, lastRepair } from '../engine/store';
 import { h, modal, toast } from '../engine/util';
 import { applySettings, nav } from './app';
+import { setUnlockAll, unlockAll } from './unlocks';
 import { fsSupported, isFullscreen, setFullscreen } from './fullscreen';
 
 export function openSettings(): void {
@@ -37,7 +38,8 @@ export function openSettings(): void {
     h('div', { class: 'save-joke' }, 'Save data protected by 3-qubit repetition code ✓',
       h('div', { class: 'muted', style: 'font-size:11px;margin-top:2px' }, lastRepair ? 'A corrupted copy was found and outvoted on load. It works!' : 'Really: three copies, majority vote on load.')),
     h('div', { class: 'row' },
-      h('button', { class: 'btn small', onclick: () => { save.flags.unlockAll = !save.flags.unlockAll; persist(); toast(save.flags.unlockAll ? 'All levels unlocked (judge mode)' : 'Normal unlocks'); } }, 'Unlock all levels'),
+      h('button', { class: 'btn small', title: 'Judge mode: all levels, the whole Codex, pro terms and snippets', onclick: (e: Event) => { setUnlockAll(!unlockAll()); (e.currentTarget as HTMLElement).classList.toggle('on', unlockAll()); } }, 'Unlock all content!'),
+      h('button', { class: 'btn small', onclick: () => { close(); nav.go('codex'); } }, '📖 Codex'),
       h('button', { class: 'btn small', onclick: () => { if (confirm('Erase all progress?')) { resetSave(); applySettings(); close(); nav.go('title'); } } }, 'Erase save')),
   );
   close = modal(body);

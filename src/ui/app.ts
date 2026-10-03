@@ -5,7 +5,7 @@
 import { audio } from '../engine/deps';
 import { save, persist } from '../engine/store';
 
-export type ScreenName = 'title' | 'map' | 'level' | 'credits' | 'lab' | 'endless';
+export type ScreenName = 'title' | 'map' | 'level' | 'credits' | 'lab' | 'endless' | 'codex';
 export interface Nav { go(name: ScreenName, arg?: unknown): void; settings(): void }
 export type ScreenFn = (root: HTMLElement, nav: Nav, arg?: unknown) => (() => void) | void;
 

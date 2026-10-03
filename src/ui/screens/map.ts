@@ -3,6 +3,7 @@
  * parallax drift, the current node pulses, and a tiny caretaker stands on it (tiptoes to the next node on unlock).
  * DOM buttons sit over every node for keyboard focus / screen readers. Includes the 'map-flip' syndrome beat.
  */
+import { unlockAll } from '../unlocks';
 import type { LevelDef, MapNodeVisual } from '../../core/contracts';
 import { LEVELS, CHAPTERS, art, audio } from '../../engine/deps';
 import { onFrame } from '../../engine/loop';
@@ -15,7 +16,7 @@ import { fullscreenButton } from '../fullscreen';
 export function isUnlocked(id: string): boolean {
   const i = LEVELS.findIndex((l) => l.id === id);
   if (i <= 0) return true;
-  if (save.flags.unlockAll) return true;
+  if (unlockAll()) return true;
   return !!save.progress[LEVELS[i - 1].id]?.done || !!save.progress[id]?.done;
 }
 
@@ -37,6 +38,7 @@ export function mapScreen(root: HTMLElement, nav: Nav): () => void {
       h('div', { class: 'title' }, 'The Dream Map'),
       h('div', { class: 'spacer' }),
       h('span', { class: 'tag' }, `${done}/${LEVELS.length} nights`), h('span', { class: 'tag' }, `★ ${starsTotal}`),
+      h('button', { class: 'btn icon small', title: 'Codex: everything you have met', 'aria-label': 'Codex', onclick: () => nav.go('codex') }, '📖'),
       h('button', { class: 'btn icon small', title: 'Settings', onclick: () => nav.settings() }, '⚙'), fullscreenButton()),
     area,
   );

@@ -34,7 +34,7 @@ export type CaptionKind = 'good' | 'bad' | 'beep' | 'quiet' | 'think' | 'speech'
 export type CaptionAt = QubitId | 'actor' | 'caretaker' | 'schrodi' | 'gremlin' | { x: number; y: number };
 interface Caption { text: string; kind: CaptionKind; at: CaptionAt; t0: number; life: number }
 
-export type HitKind = 'qubble' | 'bot' | 'caretaker' | 'schrodi' | 'gremlin' | 'window' | 'clock' | 'door';
+export type HitKind = 'qubble' | 'bot' | 'caretaker' | 'schrodi' | 'gremlin' | 'window' | 'clock' | 'door' | 'sign' | 'bed';
 export interface Hit { kind: HitKind; id?: QubitId; label: string }
 
 export class Scene {
@@ -179,11 +179,20 @@ export class Scene {
     const R = 30 * this.s;
     const near = (p: { x: number; y: number } | null, lift: number, r = R) => !!p && Math.hypot(px - p.x, py - (p.y - lift * this.s)) < r;
     if (this.gremlinPos && this.xray > 0.5 && near(this.gremlinPos, 24)) return { kind: 'gremlin', label: 'a gremlin!' };
+    if (!this.level.classical) for (const q of this.level.qubbles) { // the foot of a bed (below the sleeper)
+      const p = this.screenPos.get(q.id);
+      if (p && Math.abs(px - p.x) < 30 * this.s && py > p.y - 3 * this.s && py < p.y + 13 * this.s) return { kind: 'bed', id: q.id, label: `${q.id}'s bed` };
+    }
     const id = this.hitTest(px, py);
     if (id) return { kind: isBot(id) ? 'bot' : 'qubble', id, label: isBot(id) ? `bot ${id}` : id };
     if (near(this.ctScreen, 32, 26 * this.s)) return { kind: 'caretaker', label: 'you (the caretaker)' };
     if (this.showSchrodi && near(this.schScreen, 22, 30 * this.s)) return { kind: 'schrodi', label: 'Schrödi' };
     for (const o of this.objects()) if (inPoly(px, py, o.quad)) return { kind: o.kind, label: o.label };
+    if (art.drawWallSign && this.room) for (const sl of this.signSlots()) { // signs: parallelogram in the wall plane
+      const c = this.iso(sl.gx, sl.gy, sl.gz), dx = px - c.x, dy = py - c.y;
+      const a = (sl.wall === 'right' ? dx : -dx) / (this.TW / 2), b = (a * this.TH / 2 - dy) / this.TH;
+      if (Math.abs(a) < 1.1 && Math.abs(b) < 0.5) return { kind: 'sign', label: `sign: ${sl.text}` };
+    }
     return null;
   }
 
@@ -433,6 +442,7 @@ export class Scene {
 
   /** a plain empty cardboard box while Schrödi is out */
   private drawEmptyBox(x: number, y: number): void {
+    if (artExtra.drawCatBox) { artExtra.drawCatBox(this.ctx, x, y, this.s * 0.95); return; }
     const { ctx } = this, s = this.s * 0.95;
     ctx.save(); ctx.translate(x, y);
     ctx.lineWidth = 2.5 * s; ctx.strokeStyle = '#0e0e0e'; ctx.lineJoin = 'round';
@@ -704,7 +714,7 @@ export class Scene {
     ctx.restore();
   }
 
-  private signSlots(): { text: string; wall: 'left' | 'right'; gx: number; gy: number; gz: number }[] {
+  signSlots(): { text: string; wall: 'left' | 'right'; gx: number; gy: number; gz: number }[] {
     const signs = this.level.signs ?? [];
     const slots = artExtra.wallSignSlots?.(this.cols, this.rows) ?? [];
     const free = [...slots];

@@ -43,7 +43,7 @@ export function portraitSrc(s: string): string {
   return s;
 }
 
-export function toast(msg: string, kind: 'good' | 'bad' | '' = '', ms = 2600): void {
+export function toast(msg: string, kind: 'good' | 'bad' | '' | (string & {}) = '', ms = 2600): void {
   let host = document.querySelector('.toasts');
   if (!host) { host = h('div', { class: 'toasts' }); document.body.appendChild(host); }
   for (const old of host.querySelectorAll('.toast')) if (old.textContent === msg) old.remove();
