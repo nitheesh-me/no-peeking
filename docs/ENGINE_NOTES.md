@@ -190,8 +190,8 @@ it in X-ray using its `seed`.
   runs when the step, snapshot, X-ray or night changes. `isUnlocked(page)` = `levelDone(page.unlockAfter)`; dump =
   `save.flags['nerd:dump']` (set by `onDump`; the dump page has its own download button). Pages unlocked since the
   notebook was last mounted get `pulseUnlock` once (`save.flags['nerd:seen:'+id]`).
-- The inspector's "📓 open in notebook" switches to the Bloch page (via `openPage` if the notebook adds it; otherwise
-  it remounts the notebook open on the Bloch page through its localStorage keys).
+- The inspector's "📓 open in notebook" calls `notebook.openPage('bloch', { qubit })` (feature-detected; otherwise
+  it remounts the notebook open on the Bloch page through its localStorage keys). The notebook gets `prog: () => progs()` so the Export page can emit the dynamic circuit.
 - The Codex card entries show the designer's `cardAnatomy(op, level)` (annotated diagram + walkthrough), which is
   destroyed on close. The Card Guide demo is the fallback.
 - QA: `.scratch/pw/prog-nerd.mjs` (fresh-save unlock flow, nerd off, blankets 🙈 vs X-ray, judge mode pages, 4-2) and

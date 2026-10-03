@@ -191,7 +191,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     if (!create) return; // the notebook module hasn't landed yet: nerd mode shows only hover numbers + the inspector
     nerdHost.innerHTML = '';
     try {
-      notebook = create(nerdHost, { level, isUnlocked: pageUnlocked, onDump: () => onDump() });
+      notebook = create(nerdHost, { level, isUnlocked: pageUnlocked, onDump: () => onDump(), prog: () => progs() });
     } catch (e) { console.error(e); notebook = null; return; }
     nbKey = '';
     // surprise beats: pages unlocked since the notebook was last open
@@ -231,7 +231,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   /** open the notebook on a page: uses notebook.openPage when the designer provides it, else remounts on that page */
   function openNotebookPage(page: NerdPageId, qubit?: QubitId) {
     if (!notebook) return;
-    if (notebook.openPage) { notebook.openPage(page, qubit); return; }
+    if (typeof notebook.openPage === 'function') { notebook.openPage(page, { qubit }); return; }
     try { localStorage.setItem('np.nb.page', page); localStorage.setItem('np.nb.open', '1'); } catch { /* ignore */ }
     unmountNotebook(); mountNotebook();
   }

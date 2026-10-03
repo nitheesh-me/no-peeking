@@ -106,3 +106,22 @@ API (unchanged from the stub): `createBloch3D({ size?, interactive?, rotatable?,
 - **Interaction:** drag the dot (it stays on the sphere surface, on the dot's current hemisphere), drag empty space to orbit, and a gentle idle spin resumes 2.5 s after any interaction. Arrow keys change θ/φ in 5° steps; Shift + arrows orbit. The canvas is focusable, with a focus ring and a live `aria-label`.
 - **`measure: true`:** a Z/X/Y basis pill, Measure (Born rule: P(0) = (1 + n·r)/2; collapses to the pole with a 420 ms tween, a ring pop and `audio.sfx('peek_collapse')`), Reset (back to `initial`), two probability bars labelled with kets plus game names, and a message line. The message covers the first collapse, the same basis again ("stays put") and a basis switch ("the previous answer is gone for good").
 - **Perf:** one rAF loop only while the widget is on screen (IntersectionObserver); `destroy()` cancels everything. It renders at up to DPR 3 and works from 200 to 420 px.
+
+## Lab Notebook (Nerd mode, v0.6b, `src/ui/nerd/` + `src/styles/nerd.css`, owned by the Designer; spec in docs/NERD_MODE.md)
+```ts
+createNerdNotebook(host, { level, isUnlocked(page), onDump?(), prog?(): { bedtime?, morning? } | undefined })
+  → { update({ night, step, snap, xray, lightsOut }), pulseUnlock(page), openPage(page, { qubit? }?), destroy() }
+```
+- **Mounting:** mount it in the stage container (`position: relative`). It docks to the left edge, as a spine tab when closed and a 360px book when open. A drag handle resizes the book (300 px to 60% of the host; arrow keys work on the handle), and 📌 toggles between wide and 360px. Open/closed state, the current page, the width and the pages already viewed are remembered in localStorage (`np.nb.*`).
+- **Rendering:** only the open page renders, and only when its key (page, night, step, xray, lightsOut, selection) changes. The Bloch page reuses `createBloch3D` widgets (at most 8, interactive: false) and destroys them on leaving the page.
+- **Hiding:** needsXray pages show 🙈 under blankets. On the stabilizers page the ⟨…⟩ values and the gremlin column are hidden unless X-ray is on, while the record and syndrome bits stay live. Lights Out replaces every page with the beep waveform of the bot bits.
+- **Surprise beats:**
+  - `pulseUnlock` wiggles the spine, puts a NEW badge on the tab and queues a marginal note; the next visit tears the page in with a pencil scribble.
+  - Pages already viewed are never re-badged.
+  - The "NOT A COPY. ENTANGLED." sticker appears whenever an off-diagonal I ≥ 1.9; it slaps on with an animation the first time only.
+  - The density page shows "caught in the act" when a selected subsystem's off-diagonals vanish across a single forward step (a bot gate or a LISTEN).
+  - "LOGICAL QUBIT SURVIVED ✓" appears when the fidelity dips after a gremlin and returns to 1.
+  - The first open of the Circuit page plays the cards→gates morph.
+- **Easter egg:** 5 clicks on the title, or typing `|ψ⟩` / `|psi>` while the notebook is open, reveals the RAW DUMP page and calls `onDump`.
+- **Export:** `toQiskit` / `toOpenQASM3(level, night, { includeErrors, prog, dynamic })` from src/quantum/export, with executed-path / dynamic toggles and an "include gremlin errors" option (X-ray only). It falls back to the notebook's own transcription if the exporter throws.
+- **Test page:** `/src/ui/nerd/notebook-test.html`, with mock nights (`mock.ts`, an exact mini statevector sim) plus REAL sim nights from `quantum.runNight(..., { nerd: true })`.

@@ -27,7 +27,7 @@ export interface NerdNotebookOpts {
   prog?(): { bedtime?: Program; morning?: Program } | undefined;
 }
 
-const LS = { open: 'np.nb.open', page: 'np.nb.page', dump: 'np.nb.dump', morphed: 'np.nb.morphed', sticker: 'np.nb.sticker' };
+const LS = { seen: 'np.nb.seen', w: 'np.nb.w', open: 'np.nb.open', page: 'np.nb.page', dump: 'np.nb.dump', morphed: 'np.nb.morphed', sticker: 'np.nb.sticker' };
 const lsGet = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
 const lsSet = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* private mode */ } };
 
@@ -60,11 +60,13 @@ export function createNerdNotebook(host: HTMLElement, o: NerdNotebookOpts): Nerd
   let page: NerdPageId = (lsGet(LS.page) as NerdPageId) || 'state';
   let u: NerdUpdate = { night: null, step: -1, snap: null, xray: false, lightsOut: false };
   let lastKey = '', raf = 0, dead = false;
-  const fresh = new Set<NerdPageId>(); // unlocked since the notebook was last opened on that page
+  const fresh = new Set<NerdPageId>(); // unlocked but not viewed yet (NEW badge)
+  const seen = new Set<NerdPageId>((lsGet(LS.seen) ?? '').split(',').filter(Boolean) as NerdPageId[]);
+  const markSeen = (id: NerdPageId) => { fresh.delete(id); if (!seen.has(id)) { seen.add(id); lsSet(LS.seen, [...seen].join(',')); } };
   const pendingNote = new Map<NerdPageId, string>();
 
   // ── DOM ──
-  const root = h('div', { class: 'nb' + (reduced ? ' nb-reduced' : '') + (open ? ' nb-open' : '') });
+  const root = h('div', { class: 'nb' + (reduced ? ' nb-reduced' : '') + (open ? ' nb-open' : ''), lang: 'en' });
   const spine = h('button', { class: 'nb-spine', 'aria-expanded': String(open), title: 'Schrödi\'s lab notebook (Nerd mode)' }, h('span', null, '📓 Lab notebook'));
   const titleEl = h('h2', { class: 'nb-title', title: '' }, 'Schrödi\'s Lab Notebook');
   const closeBtn = h('button', { class: 'nb-close', 'aria-label': 'Close notebook' }, '×');
@@ -75,10 +77,28 @@ export function createNerdNotebook(host: HTMLElement, o: NerdNotebookOpts): Nerd
   const margin = h('aside', { class: 'nb-margin' });
   const sheet = h('section', { class: 'nb-sheet' }, pTitle, pPlain, body, margin);
   const book = h('div', { class: 'nb-book', role: 'dialog', 'aria-label': 'Schrödi\'s lab notebook' },
-    h('header', { class: 'nb-head' }, titleEl, closeBtn), h('div', { class: 'nb-main' }, tabs, sheet));
-  root.append(book, spine);
+    h('header', { class: 'nb-head' }, titleEl, h('span', { id: 'nb-pin-slot' }), closeBtn), h('div', { class: 'nb-main' }, tabs, sheet));
+  const grip = h('div', { class: 'nb-grip', role: 'separator', 'aria-orientation': 'vertical', 'aria-label': 'Resize notebook', tabindex: '0', title: 'Drag to resize' });
+  const pin = h('button', { class: 'nb-pin', title: 'Pin wide / narrow', 'aria-pressed': 'false' }, '📌');
+  root.append(book, grip, spine);
+  const maxW = () => Math.max(300, host.clientWidth * 0.6);
+  let width = Math.max(300, Number(lsGet(LS.w)) || 360);
+  const applyW = (w: number, save = true) => { width = Math.max(300, Math.min(maxW(), w)); book.style.width = width + 'px'; pin.setAttribute('aria-pressed', String(width > 420)); if (save) lsSet(LS.w, String(Math.round(width))); };
+  applyW(width, false);
+  pin.onclick = () => applyW(width > 420 ? 360 : maxW());
+  grip.onpointerdown = (e) => {
+    e.preventDefault(); grip.setPointerCapture(e.pointerId); root.classList.add('nb-resizing');
+    const x0 = e.clientX, w0 = width;
+    const mv = (ev: PointerEvent) => applyW(w0 + ev.clientX - x0, false);
+    const up = () => { grip.removeEventListener('pointermove', mv); grip.removeEventListener('pointerup', up); root.classList.remove('nb-resizing'); applyW(width); lastKey = ''; schedule(); };
+    grip.addEventListener('pointermove', mv); grip.addEventListener('pointerup', up);
+  };
+  grip.onkeydown = (e) => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); applyW(width + (e.key === 'ArrowRight' ? 24 : -24)); lastKey = ''; schedule(); } };
+  const ro = new ResizeObserver(() => { if (width > maxW()) applyW(maxW(), false); if (open && page === 'circuit') { lastKey = ''; schedule(); } });
+  ro.observe(host);
   host.append(root);
 
+  book.querySelector('#nb-pin-slot')!.replaceWith(pin);
   const pages = () => NERD_PAGES.filter((p) => p.id !== 'dump' || dumpOn);
   const def = (id: NerdPageId) => NERD_PAGES.find((p) => p.id === id)!;
   const unlocked = (p: NerdPageDef) => (p.id === 'dump' ? dumpOn : o.isUnlocked(p.id));
@@ -100,7 +120,7 @@ export function createNerdNotebook(host: HTMLElement, o: NerdNotebookOpts): Nerd
     if (page !== id) disposePage();
     page = id; lsSet(LS.page, id);
     const tear = fresh.has(id);
-    fresh.delete(id);
+    markSeen(id);
     buildTabs();
     lastKey = '';
     render(true);
@@ -109,7 +129,7 @@ export function createNerdNotebook(host: HTMLElement, o: NerdNotebookOpts): Nerd
   function setOpen(v: boolean) {
     open = v; lsSet(LS.open, v ? '1' : '0');
     root.classList.toggle('nb-open', v); spine.setAttribute('aria-expanded', String(v));
-    if (v) { if (!unlocked(def(page))) page = pages().find(unlocked)?.id ?? 'state'; buildTabs(); lastKey = ''; render(true); }
+    if (v) { if (!unlocked(def(page))) page = pages().find(unlocked)?.id ?? 'state'; markSeen(page); buildTabs(); lastKey = ''; render(true); }
     else disposePage();
   }
   spine.onclick = () => setOpen(!open);
@@ -282,7 +302,7 @@ export function createNerdNotebook(host: HTMLElement, o: NerdNotebookOpts): Nerd
     if (maxOff >= 1.9) {
       const first = !stickerShown;
       stickerShown = true; lsSet(LS.sticker, '1');
-      wrap.append(h('div', { class: 'nb-sticker' + (first && !reduced ? ' slap' : '') }, 'NOT A COPY.', h('br'), 'ENTANGLED.'));
+      wrap.insertBefore(h('div', { class: 'nb-sticker' + (first && !reduced ? ' slap' : '') }, 'NOT A COPY.', h('br'), 'ENTANGLED.'), wrap.children[1] ?? null);
     }
     return wrap;
   }
@@ -299,7 +319,9 @@ export function createNerdNotebook(host: HTMLElement, o: NerdNotebookOpts): Nerd
     const wires = wiresFor(o.level, u.snap?.nerd?.order);
     const { cols, stepToCol } = buildCircuit(night, u.xray);
     const cur = u.step >= 0 ? stepToCol[Math.min(u.step, stepToCol.length - 1)] ?? -1 : -1;
-    const WY = 30, CW = 31, L = 8, T = 24;
+    // wire spacing scales to the sheet height (legend + headings + margin note need ~250px)
+    const avail = Math.max(160, sheet.clientHeight - 250);
+    const WY = Math.max(26, Math.min(48, (avail - 32) / Math.max(1, wires.length))), CW = Math.max(31, Math.min(40, WY * 0.95)), L = 8, T = 24;
     const W = L + Math.max(1, cols.length) * CW + 20, H = T + wires.length * WY + 8;
     const y = (q: QubitId) => T + wires.indexOf(q) * WY + WY / 2;
     const parts: string[] = [];
@@ -335,7 +357,7 @@ export function createNerdNotebook(host: HTMLElement, o: NerdNotebookOpts): Nerd
     const scroller = h('div', { class: 'nb-cscroll', html: svg });
     requestAnimationFrame(() => { scroller.scrollLeft = prevScroll; });
     requestAnimationFrame(() => { if (cur >= 0 && scroller.scrollWidth > scroller.clientWidth) { const cx = L + cur * CW + CW / 2; if (cx < scroller.scrollLeft + 20 || cx > scroller.scrollLeft + scroller.clientWidth - 20) scroller.scrollLeft = Math.max(0, cx - scroller.clientWidth * 0.6); } });
-    const legend = h('div', { class: 'nb-clegend' }, ...[['BOOP', 'X'], ['SHUSH', 'Z'], ['SPIN', 'H'], ['HIGHFIVE', 'CNOT'], ['LISTEN / PEEK', 'measure'], ['RESET', '|0⟩'], ['IF … BEEP', 'classical control ═']].map(([a, b]) => h('span', null, h('b', null, a), ' = ', b)),
+    const legend = h('div', { class: 'nb-clegend' }, ...[['BOOP', 'X'], ['SHUSH', 'Z'], ['SPIN', 'H'], ['HIGHFIVE', 'CNOT'], ['LISTEN', 'meter'], ['PEEK', 'meter'], ['RESET', '|0⟩'], ['IF BEEP', '═ control']].map(([a, b]) => h('span', null, h('b', null, a), ' = ', b)),
       ...(u.xray ? [h('span', { class: 'err' }, h('b', null, 'red'), ' = gremlin (X-ray)')] : []));
     return h('div', null, h('p', { class: 'nb-big' }, 'Your Bot Code is a quantum circuit.'), h('div', { class: 'nb-cwrap' }, h('div', { html: labSvg }), scroller), legend);
   }
@@ -398,7 +420,7 @@ export function createNerdNotebook(host: HTMLElement, o: NerdNotebookOpts): Nerd
 
   // ── threshold ──
   function thresholdView(): HTMLElement {
-    const W = 300, H = 190, L = 34, B = 26, pw = W - L - 10, ph = H - B - 10;
+    const W = 250, H = 175, L = 30, B = 26, pw = W - L - 10, ph = H - B - 10;
     const X = (p: number) => L + (p / 0.5) * pw, Y = (v: number) => 10 + ph - (v / 0.5) * ph;
     const pts = (f: (p: number) => number) => Array.from({ length: 51 }, (_, i) => { const p = (i / 50) * 0.5; return `${X(p).toFixed(1)},${Y(Math.min(0.5, f(p))).toFixed(1)}`; }).join(' ');
     const logical = (p: number) => 3 * p * p - 2 * p * p * p;
@@ -555,6 +577,7 @@ export function createNerdNotebook(host: HTMLElement, o: NerdNotebookOpts): Nerd
   return {
     update(nu: NerdUpdate) { u = nu; if (open) schedule(); },
     pulseUnlock(id: NerdPageId) {
+      if (seen.has(id)) return; // already read: no badge, no wiggle (judge mode re-pulses everything)
       fresh.add(id);
       const note = UNLOCK_NOTE[id]; if (note) pendingNote.set(id, note);
       spine.classList.remove('wiggle'); void spine.offsetWidth; spine.classList.add('wiggle');
@@ -566,6 +589,6 @@ export function createNerdNotebook(host: HTMLElement, o: NerdNotebookOpts): Nerd
       if (!open) { page = id; lsSet(LS.page, id); setOpen(true); } else go(id);
       lastKey = ''; render(true);
     },
-    destroy() { dead = true; if (raf) cancelAnimationFrame(raf); disposePage(); removeEventListener('keydown', onKey); root.remove(); nightIds = new WeakMap(); },
+    destroy() { dead = true; ro.disconnect(); if (raf) cancelAnimationFrame(raf); disposePage(); removeEventListener('keydown', onKey); root.remove(); nightIds = new WeakMap(); },
   };
 }
