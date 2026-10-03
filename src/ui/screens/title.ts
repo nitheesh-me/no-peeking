@@ -5,6 +5,7 @@ import { onFrame } from '../../engine/loop';
 import { save } from '../../engine/store';
 import { h, easeOutBack, clamp } from '../../engine/util';
 import type { Nav } from '../app';
+import { fullscreenButton } from '../fullscreen';
 
 interface Letter { ch: string; x: number; y: number; collapsed: 0 | 1 | null; at: number; phase: number }
 
@@ -13,6 +14,7 @@ export function titleScreen(root: HTMLElement, nav: Nav): () => void {
   const anyProgress = Object.values(save.progress).some((p) => p.done);
   root.append(
     canvas,
+    h('div', { class: 'title-corner' }, fullscreenButton('btn icon')),
     h('div', { class: 'title-tagline' }, 'The Qubble Daycare needs a night-shift caretaker. One rule.'),
     h('div', { class: 'title-menu' },
       h('button', { class: 'btn primary', onclick: () => { audio.sfx('ui_click'); nav.go('map'); } }, anyProgress ? 'Continue' : 'Play'),

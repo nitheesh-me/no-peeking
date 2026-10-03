@@ -10,6 +10,8 @@ import { quantum, audio } from '../../engine/deps';
 import { reference as quantumReference } from '../../quantum/index';
 import type { LineRef } from '../../engine/playback';
 import { h, modal, toast } from '../../engine/util';
+import { doodleSvg, openDoodle } from './doodle';
+import { openCardGuide } from '../cardGuidePanel';
 
 export type EdPhase = 'bedtime' | 'morning';
 export type Progs = { bedtime?: Program; morning?: Program };
@@ -67,12 +69,13 @@ export class Editor {
   private popClose: (() => void) | null = null;
   private pickCancel: (() => void) | null = null;
   private trash!: HTMLElement;
+  private help!: HTMLElement;
   private statsEl!: HTMLElement;
   private columnsEl!: HTMLElement;
   private toolboxEl!: HTMLElement;
   private drag: null | {
     src: 'tool' | 'prog' | 'snip'; op: Op; phase?: EdPhase; index?: number; startX: number; startY: number; snip?: Snippet;
-    ghost?: HTMLElement; srcEl: HTMLElement; target?: { phase: EdPhase; index: number } | 'trash' | null; pointerId: number; down: PointerEvent;
+    ghost?: HTMLElement; srcEl: HTMLElement; target?: { phase: EdPhase; index: number } | 'trash' | 'help' | null; pointerId: number; down: PointerEvent;
   } = null;
 
   slots: SlotState;
@@ -118,16 +121,20 @@ export class Editor {
   private build(): void {
     const lv = this.level;
     this.toolboxEl = h('div', { class: 'toolbox' }, h('h5', null, 'Cards'));
-    const tools = TOOL_ORDER.filter((t) => lv.toolbox.includes(t));
+    const tools = TOOL_ORDER.filter((t) => lv.toolbox.includes(t) || (t === 'NOTE' && !this.opts.readonly));
     for (const name of tools) {
       const op = this.defaultOp(name, 'morning', true);
       const c = this.cardEl(op, { tool: true });
       c.title = this.helpFor(name);
       if (name === 'PEEK' && this.peekWakes) c.appendChild(h('small', { class: 'wakes' }, 'wakes it!'));
+      const info = h('button', { class: 'info', type: 'button', title: `About ${name === 'NOTE' ? 'COMMENT' : name}`, 'aria-label': `About ${name === 'NOTE' ? 'COMMENT' : name}` }, 'i');
+      info.addEventListener('pointerdown', (e) => e.stopPropagation());
+      info.addEventListener('click', (e) => { e.stopPropagation(); openCardGuide(name, this.level); });
+      c.appendChild(info);
       c.addEventListener('pointerdown', (e) => this.pointerDown(e, { src: 'tool', op: name as unknown as Op, srcEl: c }));
       this.toolboxEl.appendChild(c);
     }
-    if (!tools.length) this.toolboxEl.appendChild(h('div', { class: 'muted', style: 'font-size:12px' }, 'No cards! The best code is no code.'));
+    if (!tools.some((t) => t !== 'NOTE')) this.toolboxEl.appendChild(h('div', { class: 'muted', style: 'font-size:12px' }, 'No cards! The best code is no code.'));
 
     this.columnsEl = h('div', { class: 'columns' });
     const phases: EdPhase[] = ['bedtime', 'morning'];
@@ -167,11 +174,13 @@ export class Editor {
     }
 
     this.trash = h('div', { class: 'trash', title: 'Drag a card here to delete it' }, '🗑 trash');
+    this.help = h('div', { class: 'help-slot', title: 'Drag a card here to learn about it' }, '❓ help');
     this.statsEl = h('div', { class: 'stats' });
     this.snipBtn = h('button', { class: 'btn small', title: 'Snippet library: saved bits of Bot Code', onclick: () => this.toggleDrawer() }, '📚 Snippets');
     this.saveSnipBtn = h('button', { class: 'btn small sun hidden', title: 'Save the selected cards as a snippet', onclick: () => this.saveSnippet() }, '＋ Save as snippet');
     const foot = h('div', { class: 'editor-foot' },
       this.trash,
+      this.help,
       h('button', { class: 'btn icon small', title: 'Undo (Ctrl+Z)', onclick: () => this.undo() }, '↶'),
       h('button', { class: 'btn icon small', title: 'Redo (Ctrl+Y)', onclick: () => this.redo() }, '↷'),
       h('button', { class: 'btn small', title: 'Copy / paste your program as text', onclick: () => this.openText() }, 'Text'),
@@ -187,7 +196,7 @@ export class Editor {
   // ───────────── model helpers ─────────────
   get peekWakes(): boolean { return this.opts.peekMode ? this.opts.peekMode === 'wakes' : !(this.level.classical || this.level.allowPeekData); }
   private helpFor(name: OpName): string {
-    if (name === 'PEEK') return this.peekWakes ? CARD_HELP.PEEK : this.level.classical ? 'Peek: look at the bit-ball' : 'Peek: look at it (allowed here)';
+    if (name === 'PEEK') return this.peekWakes ? 'PEEK: on a Qubble it WAKES it (pops its double-dream). On a bot it is safe.' : this.level.classical ? 'Peek: look in the box' : 'Peek: look at it (allowed here)';
     return CARD_HELP[name];
   }
   /** write the live programs back into their active slots */
@@ -517,10 +526,15 @@ export class Editor {
   private cardEl(op: Op, o: { tool?: boolean; readonly?: boolean; phase?: EdPhase; index?: number; error?: boolean }): HTMLElement {
     const c = h('div', { class: `card op-${op.op}${o.error ? ' error' : ''}`, tabindex: o.tool ? 0 : null });
     if (op.op === 'PEEK') {
-      if (this.peekWakes) c.classList.add('hazard');
-      if (!o.tool) c.title = this.helpFor('PEEK');
+      // PEEK only wakes a *Qubble* in a no-peek level; peeking at a bot is always safe (it's an ancilla, like LISTEN)
+      const onBot = !o.tool && isBot(op.t);
+      if (this.peekWakes && !onBot) c.classList.add('hazard');
+      if (!o.tool) {
+        c.title = onBot ? `PEEK ${op.t}: look at a bot. Safe: bots don't dream (same as LISTEN)` : this.helpFor('PEEK');
+        c.appendChild(h('small', { class: 'peek-tag' + (this.peekWakes && !onBot ? ' wakes' : ' safe') }, this.peekWakes && !onBot ? 'wakes it!' : 'safe'));
+      }
     }
-    const name = o.tool ? op.op : op.op === 'LABEL' ? '⚑' : op.op === 'NOTE' ? '✎' : op.op;
+    const name = o.tool ? (op.op === 'NOTE' ? 'COMMENT' : op.op) : op.op === 'LABEL' ? '⚑' : op.op === 'NOTE' ? '✎' : op.op;
     c.appendChild(h('span', { class: 'cname' }, name));
     if (o.tool) return c;
     const live = !o.readonly && o.phase != null && o.index != null && !this.opts.readonly;
@@ -580,6 +594,19 @@ export class Editor {
           inp.addEventListener('change', () => this.commit(() => { (this.progs[ph][idx] as typeof op).text = inp.value; }, null));
           c.appendChild(inp);
         } else c.appendChild(h('span', null, op.text));
+        const pad = h('div', { class: 'doodle-box' + (op.drawing ? '' : ' empty'), title: live ? 'Click to doodle' : '' }, doodleSvg(op.drawing));
+        if (!op.drawing && live) pad.appendChild(h('span', { class: 'doodle-hint' }, '✏️ doodle'));
+        if (live) {
+          pad.addEventListener('pointerdown', (e) => e.stopPropagation());
+          pad.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openDoodle(op.drawing, op.text, (drawing, text) => this.commit(() => {
+              const o2 = this.progs[ph][idx] as typeof op;
+              o2.text = text; if (drawing) o2.drawing = drawing; else delete o2.drawing;
+            }, 'ui_click'));
+          });
+        }
+        if (op.drawing || live) c.appendChild(pad);
         break;
       }
       case 'END': break;
@@ -683,8 +710,9 @@ export class Editor {
     // find target
     this.el.querySelectorAll('.drop-marker').forEach((n) => n.remove());
     this.el.querySelectorAll('.prog-list.drop-active').forEach((n) => n.classList.remove('drop-active'));
-    this.trash.classList.remove('hot');
+    this.trash.classList.remove('hot'); this.help.classList.remove('hot');
     const under = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+    if (d.src !== 'snip' && under?.closest('.help-slot')) { this.help.classList.add('hot'); d.target = 'help'; return; }
     if (d.src !== 'snip' && (under?.closest('.trash') || (d.src === 'prog' && under?.closest('.toolbox')))) {
       this.trash.classList.add('hot'); d.target = 'trash'; return;
     }
@@ -712,7 +740,7 @@ export class Editor {
     const d = this.drag; this.drag = null; if (!d) return;
     this.el.querySelectorAll('.drop-marker').forEach((n) => n.remove());
     this.el.querySelectorAll('.prog-list.drop-active').forEach((n) => n.classList.remove('drop-active'));
-    this.trash.classList.remove('hot');
+    this.trash.classList.remove('hot'); this.help.classList.remove('hot');
     d.srcEl.classList.remove('dragging-src');
     if (!d.ghost) {
       // a click: toolbox card appends to the active column
@@ -727,6 +755,11 @@ export class Editor {
     }
     d.ghost.remove();
     const tg = d.target;
+    if (tg === 'help') {
+      const nm = (d.src === 'tool' ? (d.op as unknown as OpName) : d.op.op) as OpName;
+      openCardGuide(nm, this.level); // the card stays where it was
+      return;
+    }
     if (tg === 'trash') {
       if (d.src === 'prog') this.commit(() => this.progs[d.phase!].splice(d.index!, 1));
       return;

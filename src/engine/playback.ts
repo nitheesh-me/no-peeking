@@ -247,7 +247,7 @@ export class Playback {
           sc.peeked.add(ev.t);
           if (!this.peekedAt.has(ev.t)) this.peekedAt.set(ev.t, this.i);
           if (ev.woke || !peekSafe) sc.say(`woke ${ev.t}!`, ev.t, 'bad');
-          else sc.say(`peeked: ${this.level.classical ? `${ev.result} ` : ''}${ev.result ? '🌙' : '☀'}`, ev.t, 'good');
+          else sc.say(`peeked: ${this.level.classical ? ev.result : ev.result ? '🌙' : '☀'}`, ev.t, 'good');
           if (ev.woke) {
             sc.woke.add(ev.t);
             audio.sfx('peek_collapse');

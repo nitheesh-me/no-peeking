@@ -691,3 +691,45 @@ button { font-family: inherit; color: inherit; }
   position: absolute; z-index: 6; pointer-events: none; white-space: nowrap; max-width: 280px;
   background: var(--ink); color: var(--paper); font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 9px; box-shadow: var(--shadow-soft);
 }
+
+/* fullscreen button (v0.4) */
+.title-corner { position: absolute; top: 16px; right: 16px; z-index: 5; }
+.fs-btn svg { display: block; margin: auto; }
+
+/* help slot, info buttons, doodles, card guide (v0.4) */
+.help-slot {
+  display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 84px; height: 44px; padding: 0 12px;
+  border: 2.5px dashed var(--moony); border-radius: 12px; color: var(--moony); font-size: 13px; font-weight: 700; transition: all 0.15s;
+}
+.help-slot.hot { background: #ecebff; transform: scale(1.08); border-style: solid; }
+.toolbox .card { position: relative; }
+.toolbox .card .info {
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid currentColor; background: rgba(255,255,255,.85); color: var(--ink); font: 700 11px/1 var(--body);
+  display: grid; place-items: center; cursor: help; opacity: .55; padding: 0;
+}
+.toolbox .card:hover .info, .toolbox .card .info:focus-visible { opacity: 1; }
+.card.op-NOTE { flex-wrap: wrap; }
+.doodle-box { flex: 1 1 100%; height: 44px; border: 2px dashed rgba(14,14,14,.25); border-radius: 8px; background: #fffdf6; position: relative; cursor: pointer; }
+.doodle-box .doodle { width: 100%; height: 100%; display: block; }
+.doodle-box.empty .doodle { display: none; }
+.doodle-hint { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; color: var(--ink3); }
+.doodle-modal .doodle-pad { width: min(500px, 80vw); aspect-ratio: 5 / 2; height: auto; border: var(--line); border-radius: 12px; touch-action: none; display: block; margin: 10px 0; }
+.doodle-modal .note-input { width: 100%; font: 600 16px var(--body); padding: 8px 10px; border: 2px solid var(--ink); border-radius: 10px; }
+.doodle-tools { gap: 6px; align-items: center; flex-wrap: wrap; }
+.doodle-tools .pen { width: 28px; height: 28px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px var(--ink); cursor: pointer; padding: 0; }
+.doodle-tools .pen.on { box-shadow: 0 0 0 3px var(--red); transform: scale(1.12); }
+.guide { max-width: 360px; }
+.guide-head { display: inline-flex; margin: 0 0 8px; pointer-events: none; }
+.guide-what { font-size: 16px; line-height: 1.4; margin: 6px 0 10px; }
+.guide-demo { display: block; border: var(--line); border-radius: 14px; margin: 0 auto 10px; }
+.guide h4 { font-family: var(--display); font-weight: 400; margin: 8px 0 4px; }
+.guide-tips { margin: 0; padding-left: 20px; line-height: 1.45; font-size: 14px; }
+.guide-pro { margin-top: 10px; display: inline-block; font-size: 13px; background: var(--ink); color: var(--paper); padding: 4px 12px; border-radius: 999px; }
+
+.card .peek-tag { font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 999px; margin-left: 4px; }
+.card .peek-tag.wakes { background: var(--ink); color: #ffd400; }
+.card .peek-tag.safe { background: var(--mint); color: var(--ink); }
+.toolbox .card .info { top: -7px; right: -7px; transform: none; width: 18px; height: 18px; opacity: 0; background: #fff; box-shadow: 0 1px 0 var(--ink); }
+.toolbox .card:hover .info, .toolbox .card:focus-within .info, .toolbox .card .info:focus-visible { opacity: 1; }
+.toolbox { overflow-x: visible; padding-top: 12px; }

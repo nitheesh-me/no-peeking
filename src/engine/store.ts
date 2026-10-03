@@ -13,6 +13,8 @@ export interface SaveData {
   v: 1;
   progress: Record<string, LevelProgress>;
   programs: Record<string, { bedtime?: Program; morning?: Program }>;
+  /** player-chosen caretaker / Schrödi-box spots per level key (cosmetic, v0.4) */
+  homes?: Record<string, { ct?: { gx: number; gy: number }; box?: { gx: number; gy: number } }>;
   /** A/B/C program slots per level key (v0.3) */
   slots?: Record<string, { active: { bedtime: number; morning: number }; bedtime: Program[]; morning: Program[] }>;
   settings: Settings;
@@ -48,7 +50,7 @@ function load(): SaveData {
   try {
     const d = JSON.parse(winner) as SaveData;
     const base = defaults();
-    return { ...base, ...d, settings: { ...base.settings, ...d.settings }, flags: { ...d.flags }, progress: { ...d.progress }, programs: { ...d.programs }, slots: { ...(d.slots ?? {}) }, endlessBest: { ...d.endlessBest } };
+    return { ...base, ...d, settings: { ...base.settings, ...d.settings }, flags: { ...d.flags }, progress: { ...d.progress }, programs: { ...d.programs }, slots: { ...(d.slots ?? {}) }, homes: { ...(d.homes ?? {}) }, endlessBest: { ...d.endlessBest } };
   } catch {
     return defaults();
   }

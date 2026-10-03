@@ -3,6 +3,7 @@ import { audio } from '../engine/deps';
 import { save, persist, resetSave, lastRepair } from '../engine/store';
 import { h, modal, toast } from '../engine/util';
 import { applySettings, nav } from './app';
+import { fsSupported, isFullscreen, setFullscreen } from './fullscreen';
 
 export function openSettings(): void {
   const s = save.settings;
@@ -26,6 +27,13 @@ export function openSettings(): void {
     toggle('Nerd mode', 'X-ray also shows amplitudes, kets and ⟨Z⟩ numbers', 'nerd'),
     toggle('X-ray on by default', 'for replays and the curious (spoils the blanket!)', 'xrayDefault'),
     toggle('Reduced motion', 'fewer wiggles and shakes', 'reducedMotion'),
+    fsSupported() ? (() => {
+      const inp = h('input', { type: 'checkbox' }) as HTMLInputElement;
+      inp.checked = isFullscreen();
+      inp.addEventListener('change', () => { void setFullscreen(inp.checked); audio.sfx('ui_click'); });
+      document.addEventListener('fullscreenchange', () => { inp.checked = isFullscreen(); });
+      return h('label', { class: 'toggle' }, h('span', null, h('div', null, 'Fullscreen'), h('div', { class: 'muted', style: 'font-size:12px' }, 'hide the browser for maximum cozy (Esc to leave)')), inp);
+    })() : null,
     h('div', { class: 'save-joke' }, 'Save data protected by 3-qubit repetition code ✓',
       h('div', { class: 'muted', style: 'font-size:11px;margin-top:2px' }, lastRepair ? 'A corrupted copy was found and outvoted on load. It works!' : 'Really: three copies, majority vote on load.')),
     h('div', { class: 'row' },

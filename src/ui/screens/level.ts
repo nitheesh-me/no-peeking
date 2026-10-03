@@ -14,6 +14,7 @@ import { Dialogue } from '../dialogue';
 import { cloneGlitch, floodColor } from '../meta';
 import { openNightLab } from '../nightLab';
 import type { Nav } from '../app';
+import { fullscreenButton } from '../fullscreen';
 
 export interface LevelArg {
   def: LevelDef;
@@ -78,6 +79,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     la.extra ? la.extra({ setLevel, runNight: (i, e) => startRun(i, e), testAll, root }) : null,
     story ? hintBtn : null,
     h('button', { class: 'btn icon small', title: 'Settings', onclick: () => nav.settings() }, '⚙'),
+    fullscreenButton(),
   );
 
   // ───────── scene / editor ─────────
@@ -196,7 +198,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   const evLabel = (ev: TraceEvent): string => {
     switch (ev.k) {
       case 'gate': return ev.op === 'HIGHFIVE' ? `HIGHFIVE ${ev.from} → ${ev.t}` : `${ev.op} ${ev.t}`;
-      case 'measure': return isBot(ev.t) ? `LISTEN ${ev.t}: ${ev.result ? 'BEEP' : 'QUIET'} (one-way door)` : ev.woke ? `PEEK ${ev.t}: woke it! (one-way door)` : `PEEK ${ev.t}: ${ev.result ? '🌙' : '☀'} (one-way door)`;
+      case 'measure': return isBot(ev.t) ? `LISTEN ${ev.t}: ${ev.result ? 'BEEP' : 'QUIET'} (one-way door)` : ev.woke ? `PEEK ${ev.t}: woke it! (one-way door)` : `PEEK ${ev.t}: ${level.classical ? ev.result : ev.result ? '🌙' : '☀'}`;
       case 'jump': return ev.taken ? 'jump taken ↪' : 'IF: no jump';
       case 'noise': return `gremlin: ${ev.e.kind} on ${ev.e.t}`;
       case 'end': return ev.reason === 'END' ? 'END' : ev.reason === 'maxSteps' ? 'out of night' : 'end';
@@ -520,16 +522,18 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   // ───────── input: canvas picking, poking & tooltips ─────────
   const pos = (e: PointerEvent) => { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
   const pick = <T,>(xs: T[]): T => xs[Math.floor(Math.random() * xs.length)];
+  const peekSafe = !!(level.classical || level.allowPeekData);
+  const BOXLINES = ['peek-a-boo!', 'yep, still a bit', 'looking is fine on day shift', 'ta-da!', 'one bit, zero drama'];
   const SLEEPY = ['mmh… five more minutes…', 'zzz… not telling…', '*mumble* …the blanket stays…', 'snrk… go \'way…', 'mmf… dreaming… of… nope.', '*rolls over*'];
   const QUIPS = ['I am both bored and not bored.', 'I contain multitudes. Mostly naps.', 'Meow. That\'s all you get.', 'Don\'t look at me. Literally.', 'I sit in boxes. It\'s a whole thing.', 'Your code. My box. Same energy.', 'Poke the bots, not the cat.'];
   const TAUNTS: Record<string, string[]> = { flipper: ['nyeh! flip flip!', 'can\'t catch me!', 'upside down, baby!'], phasey: ['wooOOoo… swirl!', 'you can\'t see meee', 'phase happens~'], wobbles: ['wibble wobble!', 'just a little nudge…', 'whoopsie~'] };
   const pokeCount = new Map<string, { n: number; t: number }>();
   function tipFor(hit: NonNullable<ReturnType<Scene['hitAny']>>): string {
     switch (hit.kind) {
-      case 'qubble': return level.classical ? `${hit.id}: a sleepy bit-ball` : scene.woke.has(hit.id!) ? `${hit.id}: awake and grumpy` : `${hit.id}: fast asleep under the blanket (poke gently)`;
+      case 'qubble': return level.classical ? `${hit.id}: a box with one bit inside (peeking is fine here: click!)` : peekSafe ? `${hit.id}: peeking is allowed here` : scene.woke.has(hit.id!) ? `${hit.id}: awake and grumpy` : `${hit.id}: fast asleep under the blanket (poke gently)`;
       case 'bot': return `bot ${hit.id}: says hi when clicked`;
-      case 'caretaker': return 'You, the caretaker';
-      case 'schrodi': return 'Schrödi: supervisor. Cat. Possibly both.';
+      case 'caretaker': return busy() ? 'You, the caretaker (busy!)' : 'You, the caretaker: click or drag to move me';
+      case 'schrodi': return busy() ? 'Schrödi: supervisor. Cat. Possibly both.' : 'Schrödi: drag his box somewhere comfier';
       case 'gremlin': return 'A gremlin! Click to shoo';
       case 'window': return 'The window';
       case 'clock': return 'The clock';
@@ -541,6 +545,14 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     switch (hit.kind) {
       case 'qubble': {
         const id = hit.id!;
+        if (peekSafe) { // peeking is allowed here: pop the lid and show the value (no warnings)
+          const z = currentSnap()?.bloch[id]?.z ?? 1;
+          const v = level.classical ? (z >= 0 ? 0 : 1) : null;
+          scene.poke('lid:' + id, 1.3);
+          audio.sfx('ui_click', { pitch: 1.5 });
+          scene.say(v == null ? pick(['peek! (allowed here)', 'just a quick look…']) : `${v === 0 ? '0 ☀' : '1 🌙'} · ${pick(BOXLINES)}`, id, 'good', 1.8);
+          break;
+        }
         scene.poke('q:' + id, 1.1);
         audio.sfx('qubble_snore', { volume: 0.6, pitch: 0.9 + Math.random() * 0.3 });
         if (!scene.woke.has(id)) scene.say(pick(SLEEPY), id, 'speech', 1.8);
@@ -619,12 +631,49 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     } else sceneTip.classList.add('hidden');
   });
   canvas.addEventListener('pointerleave', () => { sceneTip.classList.add('hidden'); scene.hover = null; });
+  // ── pick up & drop the caretaker / Schrödi's box (cosmetic only: never touches physics or the trace) ──
+  const homeKey = progKey ?? level.id;
+  scene.homes = structuredClone(save.homes?.[homeKey] ?? {});
+  let grab: { kind: 'caretaker' | 'box'; x0: number; y0: number; held: boolean; hit: NonNullable<ReturnType<Scene['hitAny']>> } | null = null;
+  const busy = () => !!pb && !pb.done;
+  function drop() {
+    const tile = scene.dropCarry(); if (!tile) return;
+    (save.homes ??= {})[homeKey] = structuredClone(scene.homes); persist();
+    audio.sfx('boop', { pitch: 1.8, volume: 0.7 }); setTimeout(() => audio.sfx('boop', { pitch: 2.3, volume: 0.4 }), 110);
+    scene.say('boing!', grabKindLast === 'box' ? 'schrodi' : 'caretaker', 'speech', 1);
+    canvas.style.cursor = '';
+  }
+  let grabKindLast: 'caretaker' | 'box' = 'caretaker';
+  window.addEventListener('pointermove', onCarryMove);
+  window.addEventListener('pointerup', onCarryUp);
+  cleanups.push(() => { window.removeEventListener('pointermove', onCarryMove); window.removeEventListener('pointerup', onCarryUp); });
+  function onCarryMove(e: PointerEvent) {
+    if (!grab && !scene.carry) return;
+    const p = pos(e);
+    if (grab && !scene.carry && Math.hypot(p.x - grab.x0, p.y - grab.y0) > 6) { scene.carry = { kind: grab.kind, x: p.x, y: p.y }; grabKindLast = grab.kind; audio.sfx('card_pick'); }
+    if (scene.carry) { scene.carry.x = p.x; scene.carry.y = p.y; canvas.style.cursor = 'grabbing'; sceneTip.classList.add('hidden'); }
+  }
+  function onCarryUp(e: PointerEvent) {
+    if (!grab) return;
+    const g = grab; grab = null;
+    if (scene.carry && g.held) { drop(); return; }      // drag & drop
+    if (!scene.carry) {
+      if (g.kind === 'caretaker') { const p = pos(e); scene.carry = { kind: 'caretaker', x: p.x, y: p.y }; grabKindLast = 'caretaker'; audio.sfx('card_pick'); scene.say('wheee!', 'caretaker', 'speech', 1); } // click = pick up, next click drops
+      else interact(g.hit);                              // a click on Schrödi = meow + quip
+    }
+  }
   canvas.addEventListener('pointerdown', (e) => {
     const p = pos(e); const id = scene.hitTest(p.x, p.y);
+    if (scene.carry) { drop(); return; }               // carrying after a click: this click drops
     if (pickState && id && pickState.allowed.has(id)) { const cb = pickState.cb; cb(id); audio.sfx('ui_click'); return; }
     if (pickState) return;
     if (dialogue.active) { dialogue.advance(); return; }
     const hit = scene.hitAny(p.x, p.y);
+    if (hit && (hit.kind === 'caretaker' || hit.kind === 'schrodi')) {
+      if (busy()) { scene.say('busy!', hit.kind === 'schrodi' ? 'schrodi' : 'caretaker', 'speech', 1); if (hit.kind === 'schrodi') interact(hit); return; }
+      grab = { kind: hit.kind === 'caretaker' ? 'caretaker' : 'box', x0: p.x, y0: p.y, held: true, hit };
+      return;
+    }
     if (hit) interact(hit);
   });
 
@@ -666,7 +715,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   }));
 
   function setLevel(def: LevelDef) {
-    level = def; scene.setLevel(def); report = null; stripHost.innerHTML = ''; won = false;
+    level = def; scene.setLevel(def); scene.homes = {}; report = null; stripHost.innerHTML = ''; won = false;
     (topbar.querySelector('.title') as HTMLElement).textContent = def.title;
     (topbar.querySelector('.sub') as HTMLElement).textContent = def.subtitle ?? '';
     makeEditor(); stopRun();

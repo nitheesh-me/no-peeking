@@ -297,8 +297,42 @@ export class Scene {
     if (ev.k === 'measure') return isBot(ev.t) ? { dest: this.standAt(ev.t), target: this.place(ev.t), action: 'listen' } : { dest: this.standAt(ev.t), target: this.place(ev.t), action: 'peek', flashlight: true };
     return null;
   }
-  ctHome(): Pt { return this.freeSpot({ gx: this.cols / 2, gy: this.rows - 0.45 }, [[0, 0], [1, 0], [-1, 0.2], [1.6, -0.2], [-1.6, 0.3], [2.2, 0], [0.5, 0.4]]); }
-  schHome(): Pt { return this.room ? { gx: 0.4, gy: this.rows - 0.4 } : { gx: -0.35, gy: this.rows - 0.6 }; }
+  /** player-chosen homes (drag & drop; cosmetic only, saved per level) */
+  homes: { ct?: Pt; box?: Pt } = {};
+  /** the thing being carried by the pointer (screen px) and the floor tile it would land on */
+  carry: { kind: 'caretaker' | 'box'; x: number; y: number } | null = null;
+  dropTile: Pt | null = null;
+  private landT = -9;
+  /** screen px → grid coords (on the floor) */
+  toGrid(x: number, y: number): Pt { const dx = (x - this.ox) / (this.TW / 2), dy = (y - this.oy) / (this.TH / 2); return { gx: (dx + dy) / 2, gy: (dy - dx) / 2 }; }
+  /** nearest free floor tile (centre) to a grid point; beds, bots, the box/caretaker and walls are not free */
+  freeTile(p: Pt, kind: 'caretaker' | 'box'): Pt {
+    const occ = new Set<string>([...this.level.qubbles, ...this.level.bots].map((q) => `${q.x},${q.y}`));
+    const other = kind === 'caretaker' ? this.schHome() : this.ctAt ?? this.ctHome();
+    if (kind === 'caretaker' && this.showSchrodi) occ.add(`${Math.floor(other.gx)},${Math.floor(other.gy)}`);
+    if (kind === 'box') occ.add(`${Math.floor(other.gx)},${Math.floor(other.gy)}`);
+    const tx0 = clamp(Math.floor(p.gx), 0, this.cols - 1), ty0 = clamp(Math.floor(p.gy), 0, this.rows - 1);
+    let best: Pt | null = null, bd = 1e9;
+    for (let tx = 0; tx < this.cols; tx++) for (let ty = 0; ty < this.rows; ty++) {
+      if (occ.has(`${tx},${ty}`)) continue;
+      const d = Math.hypot(tx - tx0, ty - ty0) + (tx === tx0 && ty === ty0 ? -1 : 0);
+      if (d < bd) { bd = d; best = { gx: tx + 0.5, gy: ty + 0.5 }; }
+    }
+    return best ?? { gx: tx0 + 0.5, gy: ty0 + 0.5 };
+  }
+  /** the floor point under the carried thing (its shadow) */
+  carryFloor(): number { const c = this.carry!; return c.y + (c.kind === 'caretaker' ? 76 : 46) * this.s; }
+  /** drop the carried thing: it becomes the new home (cosmetic) */
+  dropCarry(): Pt | null {
+    const c = this.carry; if (!c) return null;
+    const tile = this.freeTile(this.toGrid(c.x, this.carryFloor()), c.kind);
+    this.carry = null; this.dropTile = null; this.landT = this.lastT;
+    if (c.kind === 'caretaker') { this.homes.ct = tile; this.ctAt = tile; this.ctVis = tile; }
+    else { this.homes.box = tile; this.schRest = tile; this.schVis = tile; this.schIn = true; }
+    return tile;
+  }
+  ctHome(): Pt { if (this.homes.ct) return this.homes.ct; return this.freeSpot({ gx: this.cols / 2, gy: this.rows - 0.45 }, [[0, 0], [1, 0], [-1, 0.2], [1.6, -0.2], [-1.6, 0.3], [2.2, 0], [0.5, 0.4]]); }
+  schHome(): Pt { if (this.homes.box) return this.homes.box; return this.room ? { gx: 0.4, gy: this.rows - 0.4 } : { gx: -0.35, gy: this.rows - 0.6 }; }
   /** where Schrödi lands after hopping out of the box (the actor art offsets him ~40px to the right) */
   schExit(): Pt { const h = this.schHome(); return { gx: h.gx + 0.38, gy: h.gy - 0.38 }; }
   get schrodiActs(): boolean { return this.showSchrodi && typeof art.drawSchrodiActor === 'function'; }
@@ -477,6 +511,7 @@ export class Scene {
       const bloch = this.blochOf(q.id);
       const peeked = this.peeked.has(q.id);
       let blanket = peeked ? 0 : lerp(1, 0.25, xr);
+      if (this.poked('lid:' + q.id)) { const left = (this.pokes.get('lid:' + q.id) ?? 0) - this.lastT; blanket = Math.min(blanket, 1 - smooth(Math.min(1.3 - left, left) / 0.2)); } // click-peek (safe levels only)
       if (this.anim?.ev.k === 'measure' && this.anim.ev.t === q.id) blanket = Math.min(blanket, this.anim.p > 0.5 ? 0 : 1 - smooth((this.anim.p - 0.35) / 0.15));
       let state: QubbleVisual['state'] = this.woke.has(q.id) ? 'awake-grumpy' : this.mood ?? 'sleep';
       const mumbling = state === 'sleep' && this.poked('q:' + q.id);
@@ -553,9 +588,10 @@ export class Scene {
     }
     {
       const ct = this.caretakerPose(dt);
-      const sp = this.iso(ct.pt.gx, ct.pt.gy);
-      this.ctScreen = sp;
-      ds.push({ depth: ct.pt.gx + ct.pt.gy + 0.02, fn: () => this.drawCaretaker(sp.x, sp.y, ct.v, t) });
+      const land = this.lastT - this.landT < 0.45 ? Math.abs(Math.sin((this.lastT - this.landT) / 0.45 * Math.PI * 2)) * 10 * s * (1 - (this.lastT - this.landT) / 0.45) : 0;
+      const sp0 = this.iso(ct.pt.gx, ct.pt.gy), sp = { x: sp0.x, y: sp0.y - land };
+      this.ctScreen = sp0;
+      if (this.carry?.kind !== 'caretaker') ds.push({ depth: ct.pt.gx + ct.pt.gy + 0.02, fn: () => this.drawCaretaker(sp.x, sp.y, ct.v, t) });
     }
     if (this.showSchrodi) {
       const home = this.schHome();
@@ -569,7 +605,7 @@ export class Scene {
       } else {
         this.schScreen = hp;
         const mood = this.poked('sch') ? 'smug' : this.schrodiMood;
-        ds.push({ depth: home.gx + home.gy, fn: () => art.drawSchrodi(ctx, hp.x, hp.y, s * 0.95, mood, t) });
+        if (this.carry?.kind !== 'box') ds.push({ depth: home.gx + home.gy, fn: () => art.drawSchrodi(ctx, hp.x, hp.y, s * 0.95, mood, t) });
       }
     }
 
@@ -582,6 +618,14 @@ export class Scene {
         if (p1 && p2) art.drawLink(ctx, p1.x, p1.y - 24 * s, p2.x, p2.y - 24 * s, l.strength, t);
       }
       ctx.restore();
+    }
+    // drag & drop: highlight the landing tile (under everything standing on the floor)
+    if (this.carry) {
+      const tile = this.freeTile(this.toGrid(this.carry.x, this.carryFloor()), this.carry.kind);
+      this.dropTile = tile;
+      const c = [this.iso(tile.gx - 0.5, tile.gy - 0.5), this.iso(tile.gx + 0.5, tile.gy - 0.5), this.iso(tile.gx + 0.5, tile.gy + 0.5), this.iso(tile.gx - 0.5, tile.gy + 0.5)];
+      ctx.save(); ctx.beginPath(); c.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))); ctx.closePath();
+      ctx.fillStyle = 'rgba(61,220,151,0.35)'; ctx.fill(); ctx.setLineDash([6 * s, 4 * s]); ctx.lineDashOffset = -t * 20; ctx.lineWidth = 2.5 * s; ctx.strokeStyle = '#0e0e0e'; ctx.stroke(); ctx.restore();
     }
     ds.sort((x, y) => x.depth - y.depth);
     for (const d of ds) d.fn();
@@ -602,6 +646,7 @@ export class Scene {
     }
 
     art.drawParticles?.(ctx, t);
+    if (this.carry) this.drawCarried(t);
 
     // ── lights-out dimming overlay: gremlins are only silhouettes + sound ──
     const darkness = this.lightsOut ? 0.985 * (1 - this.revealColor) : this.dim * (1 - xr);
@@ -640,6 +685,19 @@ export class Scene {
         ctx.restore();
       }
     }
+    ctx.restore();
+  }
+
+  /** the carried caretaker (dangling + wiggling) or Schrödi's box, with a shadow on the floor below */
+  private drawCarried(t: number): void {
+    const c = this.carry!, { ctx, s } = this;
+    const feet = c.y + (c.kind === 'caretaker' ? 50 : 22) * s, floor = this.carryFloor();
+    ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath(); ctx.ellipse(c.x, floor, 16 * s, 6 * s, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    ctx.save();
+    ctx.translate(c.x, c.y); ctx.rotate(Math.sin(t * 9) * 0.16); ctx.translate(-c.x, -c.y); // dangle from the pointer
+    if (c.kind === 'caretaker') this.drawCaretaker(c.x, feet, { action: 'cheer', phase: (t * 2) % 1, facing: this.ctFacing }, t);
+    else art.drawSchrodi(ctx, c.x, feet, s * 0.95, 'shock', t);
     ctx.restore();
   }
 

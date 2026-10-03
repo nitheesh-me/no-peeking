@@ -10,6 +10,7 @@ import { save, persist } from '../../engine/store';
 import { h, toast, smooth, clamp, lerp } from '../../engine/util';
 import type { Nav } from '../app';
 import { openNightLab } from '../nightLab';
+import { fullscreenButton } from '../fullscreen';
 
 export function isUnlocked(id: string): boolean {
   const i = LEVELS.findIndex((l) => l.id === id);
@@ -36,7 +37,7 @@ export function mapScreen(root: HTMLElement, nav: Nav): () => void {
       h('div', { class: 'title' }, 'The Dream Map'),
       h('div', { class: 'spacer' }),
       h('span', { class: 'tag' }, `${done}/${LEVELS.length} nights`), h('span', { class: 'tag' }, `★ ${starsTotal}`),
-      h('button', { class: 'btn icon small', title: 'Settings', onclick: () => nav.settings() }, '⚙')),
+      h('button', { class: 'btn icon small', title: 'Settings', onclick: () => nav.settings() }, '⚙'), fullscreenButton()),
     area,
   );
 
