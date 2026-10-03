@@ -1,0 +1,205 @@
+# Quantum notes (Quantum Expert & Tester)
+
+Code: `src/quantum/` (`sim.ts` simulator, `vm.ts` interpreter + goals + test suites, `text.ts` parser/printer,
+`reference.ts` reference programs, `index.ts` public API). Tests: `tests/quantum/` (`npx vitest run tests/quantum`).
+
+## Physics accuracy statement (for the README)
+
+> Every Qubble and every Ancillabot in NO PEEKING! is a real qubit in an exact state-vector simulation
+> (complex amplitudes, double precision, up to 17 qubits). Every card is a real operation: BOOP = X,
+> SHUSH = Z, SPIN = Hadamard, HIGHFIVE = CNOT, LISTEN/PEEK = projective measurement in the computational
+> basis with Born-rule random outcomes and true collapse, RESET = reset to |0⟩. Gremlins apply real
+> errors: X (Flipper), Z (Phasey), Y (both) and *partial* rotations exp(−iθX/2) (Wobbles). Nothing is
+> faked: a level is won only if the final state of the Qubbles has fidelity ≥ 99.9% with the ideal
+> encoded state, checked on many test nights (random input states × every error the code should fix).
+> The bit-flip, phase-flip and Shor 9-qubit codes in the game are the textbook ones, and our test suite
+> verifies that they correct every single error, that two errors defeat the 3-qubit code, that
+> partial "wobble" errors are corrected perfectly (error discretization), and that the logical error rate
+> of the 3-qubit code matches the textbook 3p² − 2p³. Simplifications: gates themselves are perfect,
+> errors only strike during the "night" between encoding and correction, and measurement is perfect.
+
+## Conventions
+
+- **Qubit names**: data qubits `q1..q9` (Qubbles), ancillas `a..h` (bots). The simulator never exposes bit positions;
+  everything is keyed by id.
+- **Single-qubit states**: `|ψ⟩ = cos(θ/2)|0⟩ + e^{iφ} sin(θ/2)|1⟩`. Presets: zero (θ=0), one (θ=π), plus (π/2, 0),
+  minus (π/2, π), plusI (π/2, π/2), minusI (π/2, −π/2). `'random'` = Haar random: θ = acos(1−2u), φ = 2πv.
+- **Gates** (exact matrices): X, Z, H = (X+Z)/√2, CNOT(control=from, target=to), Y = [[0,−i],[i,0]] = iXZ.
+  Wobble: `exp(−i·angle/2·σ)`, σ = X (axis 'x', default) or Z (axis 'z').
+- **Bloch vector** (`Snapshot.bloch`): reduced state ρ = (I + xX + yY + zZ)/2, so x = 2Re ρ01, y = −2Im ρ01,
+  z = ρ00 − ρ11. z = +1 is Sunny |0⟩, z = −1 Moony |1⟩. Length < 1 ⇔ the qubit is entangled with something.
+- **Links** (`Snapshot.links`): von Neumann mutual information I(A:B) = S(A)+S(B)−S(AB) of the 2-qubit reduced state
+  (eigenvalues of the 4×4 ρ_AB by Jacobi). Drawn if I > 0.1 bit; `strength = I/2` ∈ [0,1].
+  Bell pair: strength 1. GHZ (any pair): 0.5 (classical correlation only).
+- **Amplitudes** (`Snapshot.amps`): top 8 by probability. Ket label = Qubble bits in the level's `qubbles` order
+  (leftmost = first Qubble, usually q1), then `|a=0,b=1` for bots in the level's `bots` order, e.g. `011|a=1,b=0`.
+  Global phase is fixed so that the largest amplitude is real and positive.
+- **Snapshot.logicalFidelity**: fidelity of the current data state with the *ideal* final target (no errors).
+  So it is low during an unencoded bedtime, 1 after encoding, drops when a gremlin strikes, back to 1 after a fix.
+
+## VM semantics
+
+- **Phases**: bedtime → night → morning. In each of bedtime/morning the code that runs is `fixed<Phase>` (if any)
+  **followed by** the player's program (if the phase is editable), as one phase. Labels are local to each part.
+  `line` trace events carry `part: 'fixed' | 'mine'` and `pc` indexes into that part. `END` ends the current phase
+  (the night still happens after a bedtime `END`).
+- **Lights**: `LISTEN`/`PEEK` set `lights[t]` to the outcome. `RESET` does **not** change the light (the light is the
+  bot's memory of its last LISTEN). `IF x BEEP` ⇔ light 1; `IF x QUIET` ⇔ light 0 **or never measured**.
+  Conditions may name a peeked Qubble.
+- **PEEK** on a Qubble when `!classical && !allowPeekData`: the measurement really happens (collapse) and the Qubble
+  is marked woke ⇒ the night fails `'woke'`.
+- **Errors** (`failReason: 'error'`, with `message`): LISTEN/RESET on a non-bot, a creature not in the level,
+  unknown label, `HIGHFIVE x -> x`, non-unitary ops in a `targetCircuit`.
+- **Steps**: every executed op except LABEL/NOTE. Total over both phases > `maxSteps` (default 500) ⇒ `'maxSteps'`.
+- **Fail priority**: error > maxSteps > woke > wrong-dream > wrong-report.
+- **RESET** is implemented as measure-then-flip-if-1. Averaged over runs this *is* the reset channel; in a single run
+  it is one Born-rule trajectory (so resetting an entangled bot can disturb the data, as it physically would).
+- **Randomness**: one seeded PRNG per night (`seed`); measurement outcomes and a `'random'` input are drawn from it.
+  `runNight(level, prog, input, errors, seed)` reproduces a test night exactly (every `NightResult` carries `seed`).
+
+## Goals
+
+- **Target**: run `targetCircuit` on (input on `inputQubble`, every other qubit |0⟩); the target is the reduced state on
+  `goal.dataQubits` (all other qubits traced out). If it is pure, fidelity = ⟨t|ρ_data|t⟩ with ρ_data the reduced
+  state of the simulation (bots and other Qubbles traced out). If the reduced target is mixed (only allowed for one
+  data qubit), we use the Uhlmann fidelity F = Tr(ρσ) + 2√(det ρ det σ).
+- **'state'**: pass ⇔ fidelity ≥ `minFidelity` (default **0.999**).
+- **'state+report'**: the state target is the ideal target **with the night's errors applied** ("report without
+  disturbing the dream"). The report is the bot's final light. Expected value = the parity (XOR of computational-basis
+  values) of `report.of` in the *actual* simulated state right after the night's errors, when that parity is definite
+  (probability > 1−10⁻⁹). If it is not definite (e.g. a wobble put the Qubbles in a superposition of parities), the
+  report counts as correct iff the final state's parity equals the light with certainty (i.e. the bot's measurement
+  collapsed it and the light tells the truth). A bot that never LISTENed (light null) always fails the report.
+  (No level currently uses this kind; 2-1 uses 'state' with a fix.)
+- **'classical'** with an explicit `expect`: fidelity = Π P(qubble = expected bit); pass ⇔ ≥ 0.999. `'restore'` is not
+  supported (classical levels use 'state' with `classical: true`).
+- **'rate'**: a night passes ⇔ fidelity ≥ `minFidelity` (default **0.99**). `testLevel` runs `goal.nights` nights;
+  input k = `inputs[k mod len]` (a `'random'` entry is a fresh Haar state per night); errors from `noise` (random mode:
+  each target independently with probability p; kind uniform from `kinds`; wobble angle uniform in (0, π)).
+  Level passes ⇔ passRate ≥ `minRate`.
+
+## Test suites (`testLevel`)
+
+Nights = inputs × noise cases (non-rate goals). Every `'random'` input entry expands to 4 Haar-random states
+(deterministic from the suite seed, default 1). Noise cases:
+- `none` → no errors; `fixed` → that list;
+- `enumerate` → no error, every single event, and (maxErrors 2) every pair of events on two *different* targets.
+  Targets default to all Qubbles. Kinds: flip → X, phase → Z, both → Y, wobble → one event per angle
+  (`wobbleAngles`, default [0.6, 1.3, 2.2]) per axis (`wobbleAxis`/`wobbleAxes`, default 'x');
+- `random` → 8 random nights per input.
+
+`lines` = player's editable-phase ops excluding LABEL/NOTE; `botsUsed` = distinct bots referenced there.
+`testLevel` skips snapshots (every step shares `EMPTY_SNAPSHOT`); replay a night with `quantum.runNight(..., night.seed)`
+for the full trace.
+
+## Performance
+
+- **Dynamic register**: untouched qubits are not stored; a measured/reset qubit is exactly a product state and is
+  *detached* (the vector halves). X/Y/Z/CNOT-with-classical-control on detached qubits stay classical. Exact, no
+  approximation. Shor-9 with two reused bots never exceeds 11 live qubits.
+- **Snapshot cache**: after a 1-qubit unitary only that qubit's Bloch vector is recomputed (MI is invariant under local
+  unitaries); after CNOT(c,t) only Bloch(c,t) and pairs containing c or t; measurement/reset recompute everything.
+  A test checks cached == uncached at every step.
+- Measured (Node, this laptop): Shor-9 full suite (13 inputs × 28 error cases = 364 nights, ~69 steps each) ≈ 130–190 ms
+  without snapshots; one Shor-9 night with full snapshots ≈ 40 ms; pathological 17-live-qubit night: 7 ms without
+  snapshots, ≈ 0.5 s with snapshots. Whole `tests/quantum` ≈ 2 s.
+
+## Reference programs (`src/quantum/reference.ts`)
+
+```
+# 2-1 parity check (a BEEPs ⇔ q1 ≠ q2)
+HIGHFIVE q1 -> a
+HIGHFIVE q2 -> a
+LISTEN a
+
+# bit-flip encode (bedtime)            # phase-flip encode (bedtime)
+HIGHFIVE q1 -> q2                      HIGHFIVE q1 -> q2
+HIGHFIVE q1 -> q3                      HIGHFIVE q1 -> q3
+                                       SPIN q1
+                                       SPIN q2
+                                       SPIN q3
+
+# bit-flip correct (morning). Syndrome a = q1⊕q2, b = q2⊕q3
+HIGHFIVE q1 -> a
+HIGHFIVE q2 -> a
+HIGHFIVE q2 -> b
+HIGHFIVE q3 -> b
+LISTEN a
+LISTEN b
+IF a BEEP and b QUIET -> fix1
+IF a BEEP and b BEEP -> fix2
+IF a QUIET and b BEEP -> fix3
+JUMP done
+fix1:
+BOOP q1
+JUMP done
+fix2:
+BOOP q2
+JUMP done
+fix3:
+BOOP q3
+done:
+
+# phase-flip correct = SPIN q1..q3, the bit-flip correction above, SPIN q1..q3
+# (it falls through to done:, so the final SPINs always run)
+
+# 2-4 one bot with RESET
+HIGHFIVE q1 -> a
+HIGHFIVE q2 -> a
+LISTEN a
+RESET a
+IF a BEEP -> diff12
+HIGHFIVE q2 -> a
+HIGHFIVE q3 -> a
+LISTEN a
+IF a BEEP -> fix3
+END
+diff12:
+HIGHFIVE q2 -> a
+HIGHFIVE q3 -> a
+LISTEN a
+IF a BEEP -> fix2
+BOOP q1
+END
+fix2:
+BOOP q2
+END
+fix3:
+BOOP q3
+
+# Shor-9 encode (bedtime)
+HIGHFIVE q1 -> q4
+HIGHFIVE q1 -> q7
+SPIN q1
+SPIN q4
+SPIN q7
+HIGHFIVE q1 -> q2
+HIGHFIVE q1 -> q3
+HIGHFIVE q4 -> q5
+HIGHFIVE q4 -> q6
+HIGHFIVE q7 -> q8
+HIGHFIVE q7 -> q9
+
+# Shor-9 correct (morning), two bots reused:
+#  1. bit-flip correction on (q1,q2,q3) with a,b (labels b1fix1.. b1done), RESET a, RESET b
+#  2. same on (q4,q5,q6), RESET a, RESET b      3. same on (q7,q8,q9), RESET a, RESET b
+#  4. phase check X⊗6 on q1..q6 with a:  SPIN a, HIGHFIVE a -> q1 … HIGHFIVE a -> q6, SPIN a, LISTEN a
+#     phase check X⊗6 on q4..q9 with b:  SPIN b, HIGHFIVE b -> q4 … q9, SPIN b, LISTEN b
+#  5. IF a BEEP and b QUIET -> SHUSH q1;  a BEEP and b BEEP -> SHUSH q4;  a QUIET and b BEEP -> SHUSH q7
+```
+Full text: `printProgram(reference.SHOR9_CORRECT)`. Why HIGHFIVE *from* the bot: a bot in |+⟩ controlling X on six
+Qubbles picks up the eigenvalue of X⊗6 as a phase (phase kickback); SPIN turns it into a BEEP/QUIET.
+Any phase flip inside a block is fixed by SHUSH on any one Qubble of that block (Z_iZ_j is a stabilizer).
+
+`logicalErrorCurve(ps, nights, seed)` → `{p, physical, logical, theory}[]` for the 2-5 Night Shift Lab chart
+(3-qubit code, iid X with probability p, input |0⟩, logical error ⇔ fidelity < 0.5; theory = 3p² − 2p³).
+
+## Level verification
+
+`tests/quantum/levels.test.ts` runs every level's solution with suite seeds 1, 2, 3 (must pass, no 'error' nights)
+and every trap (must fail for a physics reason, never 'error'). Status 2026-10-03 ~13:00: **all levels green**
+(16 levels, 38 traps). Physics review notes:
+- 1-2 *Twirl*: X noise on |0⟩/|1⟩ inside SPIN…SPIN becomes Z, which is harmless on |0⟩/|1⟩ — correct physics.
+- 2-1 uses goal 'state' with the flip on q2 and expects the player to *fix* it after the parity check — consistent.
+- 2-5: coded success ≈ 1 − (3p² − 2p³) = 0.972 at p = 0.1 (plus random-input nights where a logical X happens to
+  leave the state nearly unchanged, which pass the 0.99 threshold) vs minRate 0.93 — OK with margin.

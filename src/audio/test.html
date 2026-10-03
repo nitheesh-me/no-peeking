@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NO PEEKING! audio test bench</title>
+<style>
+  :root { --paper:#f2f0eb; --ink:#0e0e0e; --ink2:#55524b; --red:#fe443d; --mint:#3ddc97; --moony:#6c63ff; }
+  body { margin:0; padding:16px; background:var(--paper); color:var(--ink); font:14px/1.4 system-ui, sans-serif; }
+  h1 { font-size:20px; margin:0 0 4px } h2 { font-size:14px; margin:18px 0 6px; color:var(--ink2); text-transform:uppercase; letter-spacing:.08em }
+  button { font:inherit; border:2px solid var(--ink); background:#fff; border-radius:10px; padding:6px 10px; margin:3px; cursor:pointer; }
+  button:hover { background:#fff7e0 } button.on { background:var(--moony); color:#fff }
+  #unlock { background:var(--red); color:#fff; font-weight:700; padding:10px 18px }
+  .row { display:flex; flex-wrap:wrap; align-items:center; gap:4px }
+  label { display:inline-flex; gap:8px; align-items:center; margin-right:16px }
+  pre { background:#fff; border:2px solid var(--ink); border-radius:10px; padding:8px; white-space:pre-wrap; max-width:900px }
+</style>
+</head>
+<body>
+<h1>NO PEEKING! audio test bench</h1>
+<p>Click <b>Unlock</b> first (browsers need a gesture). Then try scenes, sliders, SFX and syndromes.</p>
+<button id="unlock">Unlock audio</button>
+<h2>Scenes</h2><div class="row" id="scenes"></div>
+<h2>Physics</h2>
+<div class="row">
+  <label>Harmony (fidelity) <input id="harmony" type="range" min="0" max="1" step="0.01" value="1" /> <span id="hv">1.00</span></label>
+  <label>Tension (gremlins) <input id="tension" type="range" min="0" max="1" step="0.01" value="0" /> <span id="tv">0.00</span></label>
+</div>
+<h2>Volumes</h2>
+<div class="row">
+  <label>Master <input id="vmaster" type="range" min="0" max="1" step="0.01" value="0.9" /></label>
+  <label>Music <input id="vmusic" type="range" min="0" max="1" step="0.01" value="0.6" /></label>
+  <label>SFX <input id="vsfx" type="range" min="0" max="1" step="0.01" value="0.85" /></label>
+</div>
+<h2>Syndromes (2 bots)</h2><div class="row" id="syn2"></div>
+<h2>Syndromes (3+ bots) &amp; single bots</h2><div class="row" id="syn3"></div><div class="row" id="bots"></div>
+<h2>SFX</h2><div class="row" id="sfx"></div>
+<h2>Offline render meter</h2>
+<div class="row"><button id="meter">Measure all scenes + SFX (offline)</button></div>
+<pre id="out">(results appear here)</pre>
+<script type="module" src="./test.ts"></script>
+</body>
+</html>
