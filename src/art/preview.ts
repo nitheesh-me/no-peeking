@@ -1,7 +1,7 @@
 // Art preview harness: open /src/art/preview.html under `npx vite`.
 // Query params: ?night=0..1  ?t=<seconds> (freeze time)  ?only=scene|qubbles|cast  ?scale=1
 import { art } from './index';
-import type { Bloch, BotVisual, IsoFn, QubbleVisual, Speaker, DialogueLine } from '../core/contracts';
+import type { Bloch, BotVisual, IsoFn, QubbleVisual, Speaker, DialogueLine, CaretakerVisual } from '../core/contracts';
 
 const qs = new URLSearchParams(location.search);
 const nightEl = document.getElementById('night') as HTMLInputElement;
@@ -25,7 +25,7 @@ if (only) { (document.getElementById('logo') as HTMLElement).style.display = 'no
 const cv = document.getElementById('c') as HTMLCanvasElement;
 const ctx = cv.getContext('2d')!;
 const W = 1400;
-const H = only === 'closeup' ? 1000 : only === 'scene' ? 760 : only === 'qubbles' ? 1060 : only === 'cast' ? 900 : 2700;
+const H = only === 'closeup' ? 1000 : only === 'room' ? 1180 : only === 'map' ? 900 : only === 'scene' ? 760 : only === 'qubbles' ? 1060 : only === 'cast' ? 900 : 2700;
 const dpr = window.devicePixelRatio || 1;
 cv.width = W * dpr; cv.height = H * dpr;
 cv.style.width = W + 'px'; cv.style.height = H + 'px';
@@ -176,6 +176,57 @@ function closeup(t: number) {
   art.drawSign(ctx, 900, 800, 2, 'NO COPIES', t);
 }
 
+function roomPanel(x0: number, w: number, t: number, night: number) {
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x0, 0, w, 640); ctx.clip();
+  ctx.translate(x0, 0);
+  art.drawBackground(ctx, w, 640, t, night);
+  const iso = makeIso(w / 2, 175, 86, 43);
+  const s = 86 / 96;
+  art.drawRoom!(ctx, 6, 5, iso, t, night);
+  const c = (gx: number, gy: number) => iso(gx + 0.5, gy + 0.5);
+  const xr = night > 0.5 ? 0.25 : 1;
+  const ents: { y: number; draw: () => void }[] = [];
+  const q = (gx: number, gy: number, v: QubbleVisual) => { const p = c(gx, gy); ents.push({ y: p.y, draw: () => art.drawQubble(ctx, p.x, p.y, s, v, t) }); };
+  q(1, 1, { bloch: B(0, 0), blanket: xr, state: 'sleep', label: 'q1' });
+  q(3, 1, { bloch: B(PI / 2, 0), blanket: xr, state: 'sleep', label: 'q2', arm: { dx: -60, dy: 40, t: 1 } } as any);
+  q(5, 1, { bloch: B(PI, 0), blanket: xr, state: 'sleep', label: 'q3' });
+  const bp = c(2, 2); ents.push({ y: bp.y, draw: () => art.drawBot(ctx, bp.x, bp.y, s, { light: 1, action: 'highfive', facing: 1, label: 'a' }, t) });
+  const kp = c(3, 3); ents.push({ y: kp.y, draw: () => art.drawCaretaker!(ctx, kp.x, kp.y, s, { action: night > 0.5 ? 'peek' : 'boop', phase: 0.5, facing: -1, flashlight: true }, t) });
+  ents.sort((a, b) => a.y - b.y).forEach((e) => e.draw());
+  const sp = iso(1.5, 0); art.drawSign(ctx, sp.x + 20, sp.y - 70, s, 'LOOKING = WAKING', t);
+  ctx.restore();
+}
+function roomSheet(t: number) {
+  ctx.fillStyle = '#f2f0eb'; ctx.fillRect(0, 0, W, H);
+  roomPanel(0, W / 2, t, 0);
+  roomPanel(W / 2, W / 2, t, 1);
+  heading('Caretaker', 690);
+  const acts: CaretakerVisual['action'][] = ['idle', 'tiptoe', 'boop', 'shush', 'spin', 'peek', 'listen', 'press', 'cheer', 'facepalm', 'yawn'];
+  acts.forEach((a, i) => {
+    for (const [j, ph] of [[0, 0.5], [1, 0.25]] as const) {
+      art.drawCaretaker!(ctx, 70 + i * 122, 800 + j * 130, 1.3, { action: a, phase: ph, facing: j ? -1 : 1, flashlight: true }, t);
+    }
+    label(a, 70 + i * 122, 830, 13);
+  });
+  // highfive arm sweep
+  [0, 0.4, 0.8, 1].forEach((k, i) => art.drawQubble(ctx, 120 + i * 140, 1120, 1, { bloch: B(PI / 2, 0), blanket: i % 2 ? 1 : 0, state: 'sleep', arm: { dx: 50, dy: -10, t: k } } as any, t));
+  label('qubble arm t=0, .4 (blanketed), .8, 1 (blanketed)', 330, 1160, 12);
+}
+function mapSheet(t: number) {
+  art.drawMapBackdrop!(ctx, W, H, t);
+  const cols = ['#ffb72b', '#6c63ff', '#3ddc97', '#b04dff', '#fe443d'];
+  const pts: { x: number; y: number }[] = [];
+  for (let ch = 0; ch < 5; ch++) {
+    const x = 160 + ch * 270, y = 300 + (ch % 2) * 140;
+    art.drawMapIsland!(ctx, x, y, 1, ch, cols[ch], ch !== 3, t);
+    pts.push({ x, y: y + 120 });
+  }
+  art.drawMapPath!(ctx, pts, 0.7, t);
+  const st = ['done', 'done', 'current', 'open', 'locked'] as const;
+  st.forEach((s0, i) => art.drawMapNode!(ctx, 160 + i * 150, 780, 1, { id: `2-${i + 1}`, title: 'Who Got Flipped', state: s0, stars: 3 - (i % 4), color: cols[i], hover: i === 3 }, t));
+}
+
 let last = performance.now(), frames = 0, fpsT = 0, tAcc = 0, nextBurst = 0;
 const fpsEl = document.getElementById('fps')!;
 const kinds = ['highfive', 'collapse', 'flip', 'phase', 'wobble', 'win', 'reset'] as const;
@@ -195,6 +246,8 @@ function frame(now: number) {
   if (only === 'qubbles') qubbleSheet(0, t);
   if (only === 'cast') castSheet(0, t);
   if (only === 'closeup') closeup(t);
+  if (only === 'room') roomSheet(t);
+  if (only === 'map') mapSheet(t);
   (window as any).__frameDone = true;
   requestAnimationFrame(frame);
 }

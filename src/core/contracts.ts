@@ -205,6 +205,8 @@ export interface QubbleVisual {
   label?: string;      // 'q1'
   classical?: boolean; // bit-ball with sleep mask
   highlight?: boolean;
+  /** HIGHFIVE gooey arm: screen-px vector to partner, t = reach 0..1 */
+  arm?: { dx: number; dy: number; t: number };
 }
 export interface BotVisual {
   light: 0 | 1 | null;

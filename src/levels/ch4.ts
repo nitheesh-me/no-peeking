@@ -138,7 +138,7 @@ const L41: LevelDef = {
   noise: { mode: 'enumerate', kinds: ['flip', 'phase', 'both'], maxErrors: 1, targets: NINE_IDS },
   goal: { kind: 'state', dataQubits: NINE_IDS, targetCircuit: ENCODE9 },
   maxSteps: 1000,
-  challenges: { lines: 75, bots: 8 },
+  challenges: { lines: 78, bots: 8 },
   intro: [
     { who: 'schrodi', text: 'Nine Qubbles. Three rows of three. Each row is a Who Got Flipped. The rows together are sideways. Like a nesting doll. Or a lasagna.', mood: 'deadpan' },
     { who: 'flipper', text: 'flip gang 💀', mood: 'smug' },

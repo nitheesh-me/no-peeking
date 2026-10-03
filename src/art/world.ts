@@ -9,14 +9,14 @@ const add = (a: P, dx: number, dy: number): P => ({ x: a.x + dx, y: a.y + dy });
 interface FloorCache { day: HTMLCanvasElement; night: HTMLCanvasElement; ox: number; oy: number; w: number; h: number }
 const floorCache = new Map<string, FloorCache>();
 
-function newCanvas(w: number, h: number) {
+export function newCanvas(w: number, h: number) {
   const c = document.createElement('canvas');
   c.width = Math.max(1, Math.ceil(w));
   c.height = Math.max(1, Math.ceil(h));
   return c;
 }
 
-function floorGeom(cols: number, rows: number, iso: IsoFn) {
+export function floorGeom(cols: number, rows: number, iso: IsoFn) {
   const o = iso(0, 0), ex = iso(1, 0), ey = iso(0, 1);
   const tile = Math.hypot(ex.x - o.x, ex.y - o.y);
   const tileH = Math.abs(ex.y - o.y) + Math.abs(ey.y - o.y); // full diamond height
@@ -73,16 +73,16 @@ export function drawFloor(ctx: Ctx, cols: number, rows: number, iso: IsoFn, t: n
   }
 }
 
-function poly(ctx: Ctx, pts: P[]) {
+export function poly(ctx: Ctx, pts: P[]) {
   ctx.beginPath();
   pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
   ctx.closePath();
 }
-function tileQuad(iso: IsoFn, gx: number, gy: number, w = 1, h = 1): P[] {
+export function tileQuad(iso: IsoFn, gx: number, gy: number, w = 1, h = 1): P[] {
   return [iso(gx, gy), iso(gx + w, gy), iso(gx + w, gy + h), iso(gx, gy + h)];
 }
 
-function renderFloor(ctx: Ctx, cols: number, rows: number, iso: IsoFn, night: number) {
+export function renderFloor(ctx: Ctx, cols: number, rows: number, iso: IsoFn, night: number, island = true) {
   const g = floorGeom(cols, rows, iso);
   const N = night;
   const k = Math.max(0.6, g.tile / 64); // stroke scale relative to a ~64px tile edge
@@ -90,6 +90,7 @@ function renderFloor(ctx: Ctx, cols: number, rows: number, iso: IsoFn, night: nu
   const D = g.depth;
   const ink = N ? '#0b0b16' : INK;
 
+  if (island) {
   // ── island underside (rocky taper) ──
   const lo = c.map((p) => add(p, 0, D));
   const sorted = [...lo].sort((a, b) => b.y - a.y);
@@ -178,6 +179,7 @@ function renderFloor(ctx: Ctx, cols: number, rows: number, iso: IsoFn, night: nu
     ctx.beginPath(); ctx.moveTo(a.x, a.y + lip); ctx.lineTo(b.x, b.y + lip); ctx.lineWidth = 1.3 * k; ctx.stroke();
   }
 
+  }
   // ── top: wooden border trim ──
   poly(ctx, c);
   ctx.fillStyle = N ? '#3b3d63' : '#e3c79a';

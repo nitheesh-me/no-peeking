@@ -288,10 +288,19 @@ export class Scene {
       let squash = 1;
       if (a?.ev.k === 'gate' && (a.ev.t === q.id || a.ev.from === q.id)) squash = 1 + 0.12 * hump((a.p - 0.4) / 0.35);
       const hl = this.highlight.has(q.id) || this.hoverPick === q.id;
+      // HIGHFIVE: a gooey arm pops out from under the blanket toward the partner
+      let arm: QubbleVisual['arm'];
+      if (a?.ev.k === 'gate' && a.ev.op === 'HIGHFIVE' && a.ev.from && (a.ev.t === q.id || a.ev.from === q.id)) {
+        const other = a.ev.t === q.id ? a.ev.from : a.ev.t;
+        const op = isBot(other) ? this.botPose(other).pt : this.place(other);
+        const osp = this.iso(op.gx, op.gy);
+        const reach = (isBot(other) ? 1 : 0.5) * (a.p < 0.5 ? smooth((a.p - 0.3) / 0.2) : a.p < 0.62 ? 1 : 1 - smooth((a.p - 0.62) / 0.18));
+        if (reach > 0) arm = { dx: osp.x - sp.x, dy: osp.y - sp.y, t: reach };
+      }
       ds.push({ depth: pt.gx + pt.gy, fn: () => {
         ctx.save();
         if (squash !== 1) { ctx.translate(sp.x, sp.y); ctx.scale(1 / squash, squash); ctx.translate(-sp.x, -sp.y); }
-        art.drawQubble(ctx, sp.x, sp.y, s, { bloch, blanket, state, label: q.id, classical: this.level.classical, highlight: hl }, t);
+        art.drawQubble(ctx, sp.x, sp.y, s, { bloch, blanket, state, label: q.id, classical: this.level.classical, highlight: hl, arm }, t);
         ctx.restore();
       } });
     }

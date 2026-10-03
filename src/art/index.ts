@@ -7,6 +7,9 @@ import { drawSchrodi } from './schrodi';
 import { drawFloor, drawBackground, drawLink, drawSign } from './world';
 import { burst, drawParticles, clearParticles, particleCount } from './particles';
 import { portrait } from './portraits';
+import { drawRoom } from './room';
+import { drawCaretaker } from './caretaker';
+import { drawMapBackdrop, drawMapIsland, drawMapNode, drawMapPath } from './map';
 
 async function loadFonts() {
   if (typeof document === 'undefined' || !('fonts' in document)) return;
@@ -40,9 +43,16 @@ export const art: ArtAPI = {
   burst,
   portrait,
   palette: { ...PALETTE },
+  drawRoom,
+  drawCaretaker,
+  drawMapBackdrop,
+  drawMapIsland,
+  drawMapNode,
+  drawMapPath,
 };
 
 /** Extras outside the contract (optional to use). */
+export type { QubbleArm } from './qubble';
 export { drawBed, clearParticles, particleCount };
 export const LOGO_URL = 'art/logo.svg';
 export const FAVICON_URL = 'art/favicon.svg';

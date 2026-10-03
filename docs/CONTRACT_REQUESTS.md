@@ -18,3 +18,6 @@
 
 ## Director decisions (12:50 IST)
 - Programmer requests ACCEPTED: `line` TraceEvent gains `part?: fixed|mine`; `NightResult` gains `seed?`. Quantum to emit both.
+
+## From Art Designer — v0.2
+1. **`QubbleVisual.arm?: { dx: number; dy: number; t: number }`** (non-breaking). Gooey HIGHFIVE arm popping out from under the blanket. `dx,dy` = screen-px vector from the qubble's ground point toward the partner (bot/caretaker); `t` 0..1 extension (≥0.85 shows a spark). Art already reads it via a cast (`QubbleVisual & { arm?: QubbleArm }`, type exported as `QubbleArm` from src/art), so the engine can pass it today with `as any` until merged. While blanket ≥ 0.5 the arm wears a neutral lavender sleeve + pink mitten, so it never leaks the dream colour.

@@ -121,16 +121,18 @@ export function mapScreen(root: HTMLElement, nav: Nav): () => void {
     S = clamp(vertical ? Math.min(W / 520, H / (n * 170)) : Math.min(W / (n * 250), H / 560), 0.5, 1.4);
     islands.forEach((isl, k) => {
       if (vertical) { isl.x = W * (k % 2 ? 0.66 : 0.34); isl.y = H * ((k + 0.65) / (n + 0.3)); }
-      else { isl.x = W * (0.5 + (k - (n - 1) / 2) / n * 0.98); isl.y = H * (0.56 + 0.13 * Math.sin(k * 1.9 + 0.4)); }
+      else { isl.x = W * (0.5 + (k - (n - 1) / 2) / n * 0.98); isl.y = H * (0.42 + 0.08 * Math.sin(k * 1.9 + 0.4)); }
       isl.card.style.left = `${isl.x}px`; isl.card.style.top = `${isl.y - 92 * S}px`;
       isl.card.style.setProperty('--s', String(S));
       const lv = nodes.filter((nd) => nd.lv.chapter === isl.ch.id);
-      const m = lv.length, gap = Math.min(46, 200 / Math.max(1, m - 1)) * S;
+      // levels float as a smile-shaped arc of pillows just below their island
+      const m = lv.length, gap = Math.min(60, 216 / Math.max(1, m - 1)) * S, half = (m - 1) / 2 || 1;
       lv.forEach((nd, i) => {
+        const u = (i - (m - 1) / 2) / half;
         nd.x = isl.x + (i - (m - 1) / 2) * gap;
-        nd.y = isl.y + (i % 2 ? 12 : -8) * S;
+        nd.y = isl.y + (146 + 20 * (1 - u * u)) * S;
         nd.btn.style.left = `${nd.x}px`; nd.btn.style.top = `${nd.y}px`;
-        nd.btn.style.width = nd.btn.style.height = `${36 * S}px`;
+        nd.btn.style.width = nd.btn.style.height = `${44 * S}px`;
       });
     });
   };
@@ -181,7 +183,7 @@ export function mapScreen(root: HTMLElement, nav: Nav): () => void {
         state: n.lv.id === current.id && !p?.done ? 'current' : p?.done ? 'done' : un ? 'open' : 'locked',
         stars: p?.stars.filter(Boolean).length ?? 0, hover: hoverId === n.lv.id,
       };
-      if (art.drawMapNode) art.drawMapNode(ctx, n.x, n.y, S, v, t); else fallbackNode(n.x, n.y, v, t);
+      if (art.drawMapNode) art.drawMapNode(ctx, n.x, n.y, S * 0.78, v, t); else fallbackNode(n.x, n.y, v, t);
       if (flipTiles.includes(n.lv.id)) blanket(n.x, n.y, t);
     }
     // caretaker
@@ -191,7 +193,7 @@ export function mapScreen(root: HTMLElement, nav: Nav): () => void {
       const k = fromId === current.id ? 1 : smooth((t - walkT0) / 1.4);
       const x = lerp(a.x, b.x, k), y = lerp(a.y, b.y, k) - 22 * S - (k > 0 && k < 1 ? Math.abs(Math.sin(k * Math.PI * 6)) * 5 * S : 0);
       const action = k > 0 && k < 1 ? 'tiptoe' : 'idle';
-      if (art.drawCaretaker) art.drawCaretaker(ctx, x + 16 * S, y + 22 * S, S * 0.7, { action, phase: (t * 1.5) % 1, facing: b.x >= a.x ? 1 : -1 }, t);
+      if (art.drawCaretaker) art.drawCaretaker(ctx, x - 30 * S, y + 10 * S, S * 0.7, { action, phase: (t * 1.5) % 1, facing: b.x >= a.x ? 1 : -1 }, t);
       else { ctx.font = `${22 * S}px sans-serif`; ctx.textAlign = 'center'; ctx.fillText('🧒', x + 16 * S, y + 14 * S); }
     }
     ctx.restore();

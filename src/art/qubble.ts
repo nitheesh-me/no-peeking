@@ -482,6 +482,8 @@ function drawBlob(ctx: Ctx, x: number, y: number, s: number, v: QubbleVisual, t:
     ctx.restore();
   }
 
+  const arm = (v as QubbleVisual & { arm?: QubbleArm }).arm;
+  if (arm && arm.t > 0.01) gooArm(ctx, s, w, h, arm, blanket >= 0.5 ? null : base, t);
   if (st === 'sleep' && blanket < 0.98) zzz(ctx, w * 0.7, -h * 1.05, s, t + seed, mist > 0.5 ? '#55524b' : INK);
   if (fullCover && st === 'sleep') zzz(ctx, w * 0.9, -h * 1.15, s, t + seed);
   if (st === 'giggle') giggleNotes(ctx, s, t, w, h);
@@ -566,6 +568,43 @@ function drawBitBall(ctx: Ctx, x: number, y: number, s: number, v: QubbleVisual,
   } else {
     ctx.fillText(one ? '1' : '0', 0, maskY + 0.5 * s);
     drawFace(ctx, st, s * 0.85, t, 0, faceY + 3 * s, 6);
+  }
+  ctx.restore();
+}
+
+/** Optional HIGHFIVE arm (pending contract field `QubbleVisual.arm`). dx,dy = screen-px direction toward the partner. */
+export interface QubbleArm { dx: number; dy: number; t: number }
+/** Gooey arm popping out from under the blanket. When the qubble is hidden (blanket ≥ 0.5) the arm wears a neutral
+ *  mitten-sleeve so it never leaks the dream colour. */
+function gooArm(ctx: Ctx, s: number, w: number, h: number, arm: QubbleArm, col: RGB | null, t: number) {
+  const k = clamp(arm.t);
+  const e = k * k * (3 - 2 * k);
+  const d = Math.hypot(arm.dx, arm.dy) || 1;
+  const ux = arm.dx / d, uy = arm.dy / d;
+  const side = ux >= 0 ? 1 : -1;
+  const x0 = side * w * 0.78, y0 = -h * 0.32;
+  const len = Math.min(d * 0.55, 34 * s) * e;
+  const x1 = x0 + ux * len, y1 = y0 + uy * len - Math.sin(e * Math.PI) * 8 * s;
+  const cx = (x0 + x1) / 2 + side * 2 * s, cy = Math.min(y0, y1) - 6 * s * e;
+  const fill = col ? rgba(col) : '#d8d3ea';
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(cx, cy, x1, y1);
+  ctx.lineWidth = (7 + LINE * 2) * s; ctx.strokeStyle = INK; ctx.stroke();
+  ctx.lineWidth = 7 * s; ctx.strokeStyle = fill; ctx.stroke();
+  // goo blob hand / mitten
+  const hr = 5.5 * s * (0.8 + 0.2 * e);
+  circle(ctx, x1, y1, hr);
+  ctx.fillStyle = col ? rgba(lighten(col, 0.15)) : '#f7a8b8';
+  ctx.fill(); inkStroke(ctx, s, 2);
+  if (!col) { ctx.fillStyle = '#fff1dc'; ctx.fillRect(x1 - hr * 0.9, y1 + hr * 0.2, hr * 1.8, hr * 0.45); }
+  ctx.fillStyle = 'rgba(255,255,255,0.7)'; circle(ctx, x1 - hr * 0.35, y1 - hr * 0.35, hr * 0.28); ctx.fill();
+  if (k > 0.85) {
+    ctx.strokeStyle = PALETTE.sunny; ctx.lineWidth = 2 * s;
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * TAU + t * 2;
+      ctx.beginPath(); ctx.moveTo(x1 + Math.cos(a) * hr * 1.4, y1 + Math.sin(a) * hr * 1.4); ctx.lineTo(x1 + Math.cos(a) * hr * 2.1, y1 + Math.sin(a) * hr * 2.1); ctx.stroke();
+    }
   }
   ctx.restore();
 }
