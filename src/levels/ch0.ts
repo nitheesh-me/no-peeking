@@ -1,13 +1,13 @@
 import type { LevelDef } from '../core/contracts';
 import { P, ENCODE3 } from './dsl';
 
-/** Ch 0 — Day Shift. Classical bit-balls; peeking is allowed (and expected). */
+/** Ch 0 — Day Shift. Classical data boxes (homage to 7 Billion Humans); peeking is allowed (and expected). */
 
 const L01: LevelDef = {
   id: '0-1',
   chapter: 0,
   title: 'Good Morning',
-  subtitle: 'One bit-ball. One gremlin. Maybe.',
+  subtitle: 'One box. One gremlin. Maybe.',
   qubbles: [{ id: 'q1', x: 4, y: 3 }],
   bots: [],
   signs: [{ text: 'DAY SHIFT: PEEKING OK', x: 1, y: 0 }],
@@ -22,17 +22,17 @@ const L01: LevelDef = {
   challenges: { lines: 4, steps: 4 },
   intro: [
     { who: 'schrodi', text: 'Welcome to the Qubble Daycare. You are the new caretaker. I am the cat. I am in a box.', mood: 'deadpan' },
-    { who: 'schrodi', text: 'This one is a Bit-ball. It should wake up Sunny. Sometimes a gremlin flips it at night.', mood: 'deadpan' },
+    { who: 'schrodi', text: 'This is a data box. It holds a 0. It should still hold a 0 in the morning. Sometimes a gremlin flips it at night.', mood: 'deadpan' },
     { who: 'flipper', text: 'skibidi FLIP 💀 or maybe not. guess. no cap.', mood: 'smug' },
     { who: 'schrodi', text: 'Day shift rules: you may PEEK. Enjoy it while it lasts.', mood: 'deadpan' },
   ],
   hints: [
     'Not every night has a gremlin. Find out before you fix anything.',
-    'PEEK the Bit-ball. Its light tells you what it dreamt.',
+    'PEEK the box. The number inside is the answer.',
     'PEEK q1, then IF q1 BEEP jump to a BOOP. Otherwise END.',
   ],
   winLine: [
-    { who: 'schrodi', text: 'Sunny. Every time. Tremendous. I will tell nobody.', mood: 'deadpan' },
+    { who: 'schrodi', text: 'A 0. Every time. Tremendous. I will tell nobody.', mood: 'deadpan' },
     { who: 'flipper', text: 'bro checked first 😭 ratio', mood: 'shock' },
   ],
   reveal: 'Look first, then fix only what is broken.',
@@ -76,12 +76,12 @@ const L02: LevelDef = {
   goal: { kind: 'state', dataQubits: ['q1', 'q2', 'q3'], targetCircuit: ENCODE3 },
   challenges: { lines: 15 },
   intro: [
-    { who: 'schrodi', text: 'Three Bit-balls. Same dream. Could be Sunny, could be Moony. Nobody told me.', mood: 'deadpan' },
+    { who: 'schrodi', text: 'Three boxes. Same number in each. Could be 0, could be 1. Nobody told me.', mood: 'deadpan' },
     { who: 'flipper', text: 'i flip ONE. which one? its giving mystery 🕵️', mood: 'smug' },
-    { who: 'schrodi', text: 'By morning all three should dream what they started with.', mood: 'deadpan' },
+    { who: 'schrodi', text: 'By morning all three should hold what they started with.', mood: 'deadpan' },
   ],
   hints: [
-    'You do not know the right dream. But two of them still do.',
+    'You do not know the right number. But two of the boxes still do.',
     'PEEK all three. The odd one out is the one Flipper got.',
     'q1 is the odd one if it is BEEP while q2 and q3 are QUIET, or QUIET while both are BEEP. Same idea for q2 and q3. Six IFs, three BOOPs, and an END after each BOOP.',
   ],
@@ -115,7 +115,7 @@ BOOP q3
   },
   traps: [
     {
-      name: 'Fix whoever is Moony (forgets the dream might be Moony)',
+      name: 'Fix whoever holds a 1 (forgets the answer might be 1)',
       morning: P(`
 PEEK q1
 PEEK q2

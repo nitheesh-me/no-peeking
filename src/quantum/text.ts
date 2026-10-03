@@ -25,7 +25,10 @@ export function parseProgram(text: string): { prog: Program; errors: ParseError[
     let line = raw.trim();
     if (!line) return;
     if (line.startsWith('#') || line.startsWith('//')) {
-      prog.push({ op: 'NOTE', text: line.replace(/^(#|\/\/)\s?/, '').trim() }); lineOf.push(ln); return;
+      const body = line.replace(/^(#|\/\/)\s?/, '');
+      const dm = body.match(/\{draw:([^}]*)\}\s*$/);
+      const note: Op = dm ? { op: 'NOTE', text: body.slice(0, dm.index).trim(), drawing: dm[1].trim() } : { op: 'NOTE', text: body.trim() };
+      prog.push(note); lineOf.push(ln); return;
     }
     // strip trailing comment
     const hash = line.indexOf('#');
@@ -124,7 +127,7 @@ export function printOp(o: Op): string {
     case 'JUMP': return `JUMP ${o.label}`;
     case 'LABEL': return `${o.name}:`;
     case 'END': return 'END';
-    case 'NOTE': return `# ${o.text}`;
+    case 'NOTE': return `# ${o.text}${o.drawing ? ` {draw:${o.drawing}}` : ''}`;
   }
 }
 

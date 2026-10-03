@@ -32,3 +32,13 @@ describe('Bot Code text form', () => {
     expect(errors.map(e => e.line)).toEqual([1, 2, 3, 4]);
   });
 });
+
+import { parseProgram as parseP, printProgram as printP } from '../../src/quantum/text';
+describe('doodle comments', () => {
+  it('round-trips NOTE drawings', () => {
+    const prog = [{ op: 'NOTE' as const, text: 'fix q2 here', drawing: 'M10 20L30 25L50 10' }, { op: 'BOOP' as const, t: 'q2' as const }];
+    const back = parseP(printP(prog));
+    expect(back.errors).toEqual([]);
+    expect(back.prog).toEqual(prog);
+  });
+});

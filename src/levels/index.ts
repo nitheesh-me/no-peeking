@@ -6,7 +6,7 @@ import { CH3 } from './ch3';
 import { CH4 } from './ch4';
 
 export const CHAPTERS: { id: number; title: string; blurb: string; color: string }[] = [
-  { id: 0, title: 'Day Shift', blurb: 'Bit-balls only. Peeking is allowed. Enjoy it.', color: '#ffb72b' },
+  { id: 0, title: 'Day Shift', blurb: 'Plain boxes with 0s and 1s. Peeking is allowed. Enjoy it.', color: '#ffb72b' },
   { id: 1, title: 'Night Shift', blurb: 'Real Qubbles. Two dreams at once. No peeking.', color: '#6c63ff' },
   { id: 2, title: 'Whisper Network', blurb: 'Ask the bots, not the Qubbles.', color: '#fe443d' },
   { id: 3, title: 'Ghost Stories', blurb: 'Some damage hides from the question you ask.', color: '#b04dff' },

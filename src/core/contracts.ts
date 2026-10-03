@@ -30,7 +30,7 @@ export type Op =
   | { op: 'JUMP'; label: string }
   | { op: 'LABEL'; name: string }
   | { op: 'END' }
-  | { op: 'NOTE'; text: string };
+  | { op: 'NOTE'; text: string; drawing?: string }; // drawing = SVG path data in a 0..100 × 0..40 box (doodle comment)
 
 export type Program = Op[];
 export type Phase = 'bedtime' | 'night' | 'morning';
