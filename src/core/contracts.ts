@@ -201,7 +201,7 @@ export interface AudioAPI {
 export interface QubbleVisual {
   bloch: Bloch;        // drives colour: z>0 Sunny, z<0 Moony; x/y phase → swirl dir & rim hue; |r|<1 → misty
   blanket: number;     // 0 = no blanket … 1 = fully covered (opaque); X-ray uses ~0.25
-  state: 'sleep' | 'awake-grumpy' | 'collapsed' | 'happy' | 'scared' | 'giggle';
+  state: 'sleep' | 'awake-grumpy' | 'collapsed' | 'happy' | 'scared' | 'giggle' | 'mumble'; // mumble = rolls over in sleep (poked)
   label?: string;      // 'q1'
   classical?: boolean; // bit-ball with sleep mask
   highlight?: boolean;
@@ -210,7 +210,7 @@ export interface QubbleVisual {
 }
 export interface BotVisual {
   light: 0 | 1 | null;
-  action: 'idle' | 'roll' | 'highfive' | 'listen' | 'reset' | 'celebrate' | 'confused';
+  action: 'idle' | 'roll' | 'highfive' | 'listen' | 'reset' | 'celebrate' | 'confused' | 'wave';
   facing: -1 | 1;
   label?: string;
 }
@@ -240,6 +240,18 @@ export interface ArtAPI {
   drawMapIsland?(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, chapter: number, color: string, unlocked: boolean, t: number): void;
   drawMapNode?(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, v: MapNodeVisual, t: number): void;
   drawMapPath?(ctx: CanvasRenderingContext2D, pts: { x: number; y: number }[], progress: number, t: number): void;
+  // ── v0.3 additions ──
+  /** A sign/poster mounted FLAT on a back wall, sheared into the wall plane. Anchor = centre of the sign on the wall surface.
+   *  wall 'left' = the back wall along the grid edge gx=0 (it runs along +gy); 'right' = the back wall along gy=0 (runs along +gx). */
+  drawWallSign?(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, text: string, wall: 'left' | 'right', t: number, shake?: number): void;
+  /** Schrödi OUT of the box, performing his checklist (the level's fixed cards). Anchor = feet. */
+  drawSchrodiActor?(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, v: SchrodiActorVisual, t: number): void;
+}
+export interface SchrodiActorVisual {
+  action: 'sit' | 'walk' | 'boop' | 'shush' | 'spin' | 'point' | 'listen' | 'press' | 'stretch' | 'hop-in' | 'hop-out' | 'yawn';
+  phase: number; // 0..1, contact ~0.5
+  facing: -1 | 1;
+  mood?: DialogueLine['mood'];
 }
 export interface CaretakerVisual {
   action: 'idle' | 'tiptoe' | 'boop' | 'shush' | 'spin' | 'peek' | 'listen' | 'press' | 'cheer' | 'facepalm' | 'yawn';
