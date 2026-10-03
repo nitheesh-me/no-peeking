@@ -6,6 +6,8 @@ import { save } from '../../engine/store';
 import { h, easeOutBack, clamp } from '../../engine/util';
 import type { Nav } from '../app';
 import { fullscreenButton } from '../fullscreen';
+import { MODES } from '../../modes/registry';
+import { levelDone, unlockAll } from '../unlocks';
 
 interface Letter { ch: string; x: number; y: number; collapsed: 0 | 1 | null; at: number; phase: number }
 
@@ -26,6 +28,8 @@ export function titleScreen(root: HTMLElement, nav: Nav): () => void {
         h('button', { class: 'btn small', onclick: () => nav.go('credits') }, 'Credits')),
       h('div', { class: 'title-hint' }, 'psst… don\'t hover over the letters'),
     ),
+    // optional extension entry (hidden until classic Ch.1 is complete, or judge mode)
+    MODES[0].visible(levelDone, unlockAll()) ? h('button', { class: 'afi-glyph', title: 'an extension', 'aria-label': 'an extension', onclick: () => nav.go('afi') }, MODES[0].glyph) : '',
   );
   const ctx = canvas.getContext('2d')!;
   const text = 'NO PEEKING!';

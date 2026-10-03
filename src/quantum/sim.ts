@@ -169,6 +169,27 @@ export class QState {
       }
   }
 
+  /** S = diag(1, i) (S† if dagger); on a classical bit only a global phase. */
+  s(id: string, dagger = false): void { if (this.pos.has(id)) this.apply1(id, [1, 0, 0, 0, 0, 0, 0, dagger ? -1 : 1]); }
+
+  /** Controlled-Z (symmetric, exact; keeps classical qubits classical). */
+  cz(a: string, b: string): void {
+    const ca = this.classical(a), cb = this.classical(b);
+    if (ca !== null || cb !== null) { if (ca) this.z(b); if (cb) this.z(a); return; }
+    const m = (1 << this.pos.get(a)!) | (1 << this.pos.get(b)!), re = this.re, im = this.im;
+    for (let i = 0; i < re.length; i++) if ((i & m) === m) { re[i] = -re[i]; im[i] = -im[i]; }
+  }
+
+  /** SWAP = exact relabelling (no amplitudes move). */
+  swap(a: string, b: string): void {
+    const { pos, cval, order } = this, pa = pos.get(a), pb = pos.get(b), ca = cval.get(a), cb = cval.get(b);
+    for (const q of [a, b]) { pos.delete(q); cval.delete(q); }
+    if (pa !== undefined) { pos.set(b, pa); order[pa] = b; }
+    if (pb !== undefined) { pos.set(a, pb); order[pb] = a; }
+    if (ca !== undefined) cval.set(b, ca);
+    if (cb !== undefined) cval.set(a, cb);
+  }
+
   rx(id: string, t: number): void { this.apply1(id, MAT.rx(t)); }
   rz(id: string, t: number): void { this.apply1(id, MAT.rz(t)); }
 

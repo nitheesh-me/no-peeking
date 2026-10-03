@@ -1,0 +1,1326 @@
+{
+  "_meta": {
+    "locale": "en",
+    "name": "Technical Aficionado: English content pack",
+    "version": "1.0",
+    "notes": {
+      "variables": "Text in {braces} is filled at runtime (numbers, names, symbols). Keep the braces and the names unchanged; you may move them within the sentence.",
+      "math": "Kets |0⟩ |+⟩ |ψ⟩, operators X Y Z H S S† CNOT CZ, subscripts Z₁Z₂, ⊗, ⟨·⟩ and [[n,k,d]] are notation. Copy them exactly.",
+      "tone": "Precise, calm, quietly mysterious. No characters, no jokes, no exclamation marks, never anthropomorphic. Exactly one plain-language gloss per technical term, at its first use.",
+      "honesty": "Captions that say 'metaphor', 'decoration' or 'simulator oracle: not observable on hardware' are statements of fact. They must survive translation with the same meaning.",
+      "keys": "Exercise copy lives at afi.modules.<M>.ex.<levelId>.*; module copy at afi.modules.<M>.*. Hints are numbered objects (hints.1, hints.2), never arrays. All six briefing fields of an exercise are filled with the same variables as its criterion (criterionVars)."
+    },
+    "glossary": {
+      "qubit": "Keep the established term in your language (e.g. Qubit, qubit). Never translate as 'bit'.",
+      "data qubit": "A qubit that holds part of the encoded state. Do not translate 'data' as 'information'.",
+      "ancilla": "Helper qubit used for measurement. Use the standard term in your language (Ancilla, ancilla, 補助量子ビット), not 'assistant'.",
+      "syndrome": "The pattern of stabilizer measurement outcomes. Keep the technical term (Syndrom, síndrome), not a medical word for 'symptoms'.",
+      "stabilizer": "Technical term (Stabilisator, estabilizador). Not 'stabiliser device'.",
+      "logical operator / logical qubit": "'Logical' means 'of the encoded qubit', never 'reasonable'.",
+      "fidelity": "Quantum fidelity F, a number in [0,1]. Not 'loyalty'.",
+      "logical error rate": "Probability that decoding leaves the wrong logical state. Keep 'logical' as above.",
+      "parity": "Even/odd of a sum of bits. Not 'equality' or 'par'.",
+      "code distance": "The minimum weight of a logical operator (d). Not physical distance.",
+      "Born rule": "Proper name: keep 'Born'.",
+      "Wilson interval": "Proper name: keep 'Wilson'.",
+      "threshold / pseudo-threshold": "Technical terms from fault tolerance. Not 'doorstep'.",
+      "readout": "The classical result of a measurement. Not 'reading aloud'.",
+      "simulator oracle": "The full simulated state, available only because this is a simulation. Translate 'oracle' with its computer-science sense.",
+      "surface code, Shor code, Steane code, perfect code": "Names of codes; keep 'Shor' and 'Steane'. 'Perfect' is the technical sense (saturates the Hamming bound).",
+      "Technical Aficionado": "Product name. Do not translate."
+    }
+  },
+  "afi": {
+    "glyph": {
+      "tooltip": "an extension"
+    },
+    "loader": {
+      "title": "assembling",
+      "stageLine": "{stage} · {kb} KB",
+      "stageNoBytes": "{stage} · cached",
+      "measure": "measure q[0..4]",
+      "outcomes": "outcomes {bits}: Born-rule samples of H⊗5|00000⟩",
+      "honest": "Each gate column marks one real loading stage. The final bits are genuine measurement samples from the simulator.",
+      "wordmark": "TECHNICAL AFICIONADO",
+      "tagline": "quantum error correction, without the story",
+      "failed": "A stage failed to load: {stage}.",
+      "retry": "retry",
+      "back": "return to NO PEEKING!",
+      "cmd": "load module: technical_aficionado",
+      "core": "dlc_core",
+      "three": "three.js",
+      "d3": "d3",
+      "assets": "shaders+fonts",
+      "content": "content_pack",
+      "levels": "level_data",
+      "skip": "skip",
+      "skipped": "skipped: webgl unavailable",
+      "cached": "cached"
+    },
+    "map": {
+      "title": "Modules",
+      "and": " and ",
+      "open": "open",
+      "inProgress": "{done} of {total} exercises",
+      "bench": "Bench",
+      "benchSubtitle": "sandbox · Monte Carlo · export",
+      "archive": "Archive",
+      "archiveSubtitle": "every run, with its seed",
+      "teasers": {
+        "M0": "A single qubit, three bases, and the statistics of not knowing.",
+        "M1": "Something that looks like a copy, and is not.",
+        "M2": "A question about two qubits that tells you nothing about either.",
+        "M3": "Three physical qubits, one logical qubit, and a table of four answers.",
+        "M4": "The same defence, rotated into a basis the first one cannot see.",
+        "M5": "An error of any angle, made discrete by asking about it.",
+        "M6": "Nine qubits. Every single-qubit error.",
+        "M7": "What if the answers themselves are sometimes wrong.",
+        "M8": "The smallest register that survives any single error.",
+        "M9": "A lattice. Strings across it. The layout most current hardware experiments use."
+      },
+      "prereq": {
+        "M0": "calibration",
+        "M1": "entanglement",
+        "M2": "parity measurement",
+        "M3": "the bit-flip code",
+        "M4": "basis change",
+        "M5": "error discretisation",
+        "M6": "concatenation",
+        "M7": "repeated syndrome extraction",
+        "M8": "the perfect code",
+        "M9": "the surface code"
+      },
+      "requires": "Sealed. Requires: {list}.",
+      "sub": "A training sequence in quantum error correction. Every number is computed by an exact state-vector simulation.",
+      "locked": "sealed",
+      "done": "complete",
+      "judge": "Judge mode: every module is open.",
+      "fallback": "Curriculum unavailable: showing an equivalent sequence built from the classic levels."
+    },
+    "ui": {
+      "hint": "Hint",
+      "hintOf": "Hint {n} of {total}",
+      "solution": "Show reference solution",
+      "solutionWarning": "The reference solution is one correct circuit among many. Loading it replaces your circuit.",
+      "print": "Print briefing",
+      "status": {
+        "sealed": "sealed",
+        "open": "open",
+        "complete": "complete"
+      },
+      "briefing": {
+        "objective": "Objective",
+        "context": "Physical context",
+        "code": "Code",
+        "noise": "Noise model",
+        "gates": "Gate set",
+        "criterion": "Success criterion",
+        "objectives": "Learning objectives"
+      }
+    },
+    "oracle": {
+      "caption": "simulator oracle: not observable on hardware",
+      "lifting": "lifting the veil",
+      "explain": "Post-run, the simulator shows what no experiment could: the full state at every step. Use it to understand, not to design. Your circuit only ever saw the classical record.",
+      "stateSpace": "Amplitudes",
+      "blochField": "Reduced states",
+      "stabilizerTiling": "Stabilizers",
+      "lattice": "Lattice",
+      "latticeFallback": "Lattice view unavailable: showing stabilizer values.",
+      "truncated": "Showing the 256 largest amplitudes."
+    },
+    "viz": {
+      "oracle": "simulator oracle: not observable on hardware",
+      "metaphor": "visual metaphor",
+      "decoration": "decoration: carries no data",
+      "reducedNote": "Static rendering (reduced motion).",
+      "layers": {
+        "bloch": "Bloch spheres",
+        "filaments": "Entanglement filaments",
+        "stabilizer-tiling": "Stabilizer tiling",
+        "projection-freeze": "Projection",
+        "concatenation": "Concatenated hierarchy",
+        "lattice": "Surface-code lattice",
+        "threshold": "Threshold plot"
+      },
+      "legend": {
+        "pillars": "Pillar height = |amplitude|², the Born probability of that basis state. Hue = phase arg(a).",
+        "bloch": "Reduced single-qubit state ρ = (I + xX + yY + zZ)/2. Length < 1: mixed, i.e. entangled with something else.",
+        "filaments": "Filament weight = mutual information I(A:B) in bits, from 0 to 2. Two bits: a maximally entangled pair.",
+        "tiling": "Each tile is a stabilizer generator. Brightness = ⟨S⟩: +1 calm, −1 lit (syndrome), in between after a coherent error.",
+        "lattice": "Data qubits at the vertices of the 3×3 grid; X- and Z-type plaquettes as tiles; ancillas not drawn.",
+        "logicalString": "A logical operator is a string of single-qubit Paulis from one boundary to the opposite one. Any such string acts identically on the code space.",
+        "threshold": "Logical against physical error rate, with 95% Wilson intervals. Below the diagonal, encoding helps."
+      },
+      "captions": {
+        "braid": "I(q1:q2) = 2 bits. A maximally entangled pair: each qubit alone is maximally mixed.",
+        "tileLit": "Stabilizer {stab} = −1: the syndrome bit is 1.",
+        "freeze": "The extraction gates entangle the 'no error' and 'X error' branches with the ancilla: at this frame the data's off-diagonal terms vanish, and the coherence now lives in the data–ancilla correlation. The readout then selects one branch: no error, or a definite Pauli error.",
+        "hierarchy": "Three blocks of three: the inner level corrects bit flips, the outer level phase flips.",
+        "finale": "Rotated surface code, distance 3. The luminous string is a logical X̄: undetectable by every stabilizer, and it changes the encoded state.",
+        "miCapped": "{n} live qubits: mutual information shown for data qubits only."
+      },
+      "axes": {
+        "basis": "computational basis state",
+        "probability": "|a|²",
+        "phase": "phase",
+        "physical": "physical error rate p",
+        "logical": "logical error rate p_L",
+        "trials": "trials",
+        "fidelity": "fidelity"
+      },
+      "series": {
+        "unencoded": "unencoded qubit (p_L = p)",
+        "measured": "measured",
+        "theory": "theory"
+      },
+      "veiled": "state not observable during execution",
+      "orientation": {
+        "aria": "Orientation sequence: a Bloch sphere, then a lattice of basis states.",
+        "c1": "One qubit, drawn as a point on its Bloch sphere. This geometry is exact for a pure single-qubit state.",
+        "c2": "Visual metaphor: each light stands for one computational-basis state. n qubits span 2ⁿ of them: nine qubits, 512 complex amplitudes; seventeen, 131 072.",
+        "c3": "None of this is observable on hardware. You will work as an experimenter does: you may not look. You may ask parity questions.",
+        "metaphor": "visual metaphor",
+        "decoration": "decoration: carries no data",
+        "skip": "skip",
+        "continue": "continue"
+      },
+      "loading": {
+        "aria": "Loading sequence drawn as a five-wire quantum circuit.",
+        "caption": "Each gate column marks one real loading stage.",
+        "status": "{done} of {total} stages · {stage}",
+        "measuring": "measuring all wires",
+        "measured": "measured {ket}",
+        "sampled": "{ket}: Born-rule samples of H⊗5|00000⟩ from the simulator",
+        "done": "ready",
+        "wordmark": "TECHNICAL AFICIONADO"
+      },
+      "bloch": {
+        "aria": "Bloch spheres of the reduced single-qubit states.",
+        "purity": "purity Tr ρ² = {v}",
+        "entropy": "entropy S = {v} bits",
+        "mi": "I = {v} bits"
+      },
+      "stateSpace": {
+        "aria": "Amplitudes of the state vector on the computational-basis lattice.",
+        "order": "ket order: {order}",
+        "tip": "|a|² = {p}"
+      },
+      "tiling": {
+        "aria": "Stabilizer generators as tiles over the data qubits, lit when the expectation value is −1"
+      },
+      "lattice": {
+        "aria": "Distance-3 rotated surface code: nine data qubits, X and Z plaquettes, logical operators as strings",
+        "logicalX": "X̄ (logical X)",
+        "logicalZ": "Z̄ (logical Z)",
+        "caption": "d = 3 rotated surface code · tiles lit = stabilizer measured −1"
+      },
+      "charts": {
+        "table": "data table",
+        "chart": "chart",
+        "threshold": {
+          "aria": "Logical versus physical error rate with 95% Wilson intervals",
+          "x": "physical error rate p",
+          "y": "logical error rate p_L",
+          "breakeven": "p_L = p (break-even)"
+        },
+        "hist": {
+          "aria": "Histogram of measurement outcomes with Born-rule expectations",
+          "x": "outcome",
+          "y": "counts",
+          "expected": "Born-rule expectation",
+          "shots": "{n} shots"
+        },
+        "mi": {
+          "aria": "Pairwise mutual information heatmap in bits",
+          "unit": "bits"
+        },
+        "raster": {
+          "aria": "Syndrome history: rounds by ancilla, lit cells measured 1",
+          "x": "round",
+          "y": "ancilla"
+        },
+        "col": {
+          "p": "p",
+          "trials": "trials",
+          "failures": "failures",
+          "rate": "rate",
+          "lo": "CI low",
+          "hi": "CI high",
+          "outcome": "outcome",
+          "count": "count",
+          "expected": "expected",
+          "pair": "pair",
+          "value": "value",
+          "round": "round",
+          "series": "series"
+        }
+      },
+      "freeze": {
+        "aria": "Reduced density matrix of the data qubits across one syndrome-extraction step",
+        "caption": "simulator oracle · between gates the display interpolates; the physics happens at discrete gates",
+        "frozen": "frozen at {gate}: the off-diagonal coherences between syndrome sectors are gone, because that entangling gate copied the error's parity into an ancilla. The error is now either there or not. Nothing has been measured yet.",
+        "measured": "The ancilla measurements only select which branch we are in: the data state is the projected branch state, and the decoder can now fix a plain Pauli error.",
+        "offdiag": "off-diagonal weight Σ|ρᵢⱼ|",
+        "replay": "replay"
+      }
+    },
+    "errors": {
+      "woke": "A data qubit was measured directly. The measurement collapsed the encoded superposition; no later operation can restore it.",
+      "wrong-dream": "Final fidelity {fidelity} is below the required {minF}.",
+      "wrong-report": "The ancilla's readout does not match the true parity.",
+      "maxSteps": "More than {max} instructions executed. Check for a jump that loops forever.",
+      "error": "The circuit could not be executed: {message}",
+      "rateLow": "Pass rate {rate} is below the required {minRate}.",
+      "loadFailed": "Could not load {what}.",
+      "noWebgl": "WebGL is unavailable. The same data is drawn in 2D.",
+      "storage": "Progress cannot be saved in this browser (storage unavailable). Everything else works."
+    },
+    "finale": {
+      "title": "Distance three",
+      "l1": "Nine data qubits held one logical qubit through every single-qubit error you could be given.",
+      "l2": "You never looked at them. You asked eight parity questions, and the answers named the error without naming the state.",
+      "l3": "Larger lattices of this kind, with repeated rounds and fast decoders, are how many current hardware experiments are learning to keep a qubit.",
+      "l4": "The Bench is open. The simulator will answer any question you can phrase as a circuit.",
+      "credits": "Technical Aficionado: an extension of NO PEEKING!. Exact state-vector simulation; every number on screen was computed, none was drawn."
+    },
+    "bench": {
+      "title": "Bench",
+      "subtitle": "Build any circuit. Choose a noise model. Measure.",
+      "noise": "Noise model",
+      "noiseType": "Error type",
+      "p": "physical error rate p",
+      "q": "readout flip probability q",
+      "trials": "trials N",
+      "seed": "seed",
+      "sweep": "Sweep p",
+      "run": "Run Monte Carlo",
+      "running": "Running {done} of {total} trials",
+      "result": "{failures} logical failures in {trials} trials: p_L = {rate}, 95% Wilson interval [{lo}, {hi}], seed {seed}.",
+      "reproducible": "Same seed, same circuit, same numbers.",
+      "advancedSealed": "Sealed. Readout noise requires: repeated syndrome extraction.",
+      "export": "Export results",
+      "wilson": "Wilson score interval: the 95% range of true rates consistent with the observed count. Unlike p̂ ± 1.96·√(p̂(1−p̂)/N), it stays meaningful when failures are rare.",
+      "tasks": {
+        "pseudothreshold": {
+          "title": "Pseudo-threshold of the repetition code",
+          "brief": "Sweep p for the three-qubit bit-flip code under independent X noise (the code-capacity model: perfect gates and readout, errors only between encoding and recovery). Find where the logical error rate crosses the physical one.",
+          "criterion": "Report the crossing p* with an interval. The analytic curve p_L = 3p² − 2p³ crosses p_L = p at p* = 1/2.",
+          "analysis": "Below p*, encoding helps; above it, the decoder's majority vote is wrong more often than a bare qubit. This crossing is a pseudo-threshold: a property of one code size. A true threshold is where curves for growing distance cross, and needs several distances."
+        },
+        "readout": {
+          "title": "Readout noise and repetition",
+          "brief": "Fix the readout flip probability q = 0.04 and sweep the data error rate p. Compare a single extraction round with the three-round majority decoder from M7.",
+          "criterion": "Find the p below which three rounds beat one round with non-overlapping 95% intervals.",
+          "analysis": "With one round, a single readout fault causes a wrong correction, so p_L grows linearly in q. With the tie-breaking round it needs two faults: p_L grows as q²."
+        },
+        "surface": {
+          "title": "Surface code d = 3 under depolarising-style noise",
+          "brief": "Apply X, Y or Z (equal probability) to each data qubit with probability p, decode with one round of the lookup-table decoder, and measure p_L.",
+          "criterion": "Estimate the pseudo-threshold of the d = 3 rotated surface code with this decoder.",
+          "analysis": "A distance-3 code corrects every single error, so p_L ∝ p² for small p. The state vector of this simulator stops near seventeen qubits, so larger distances, and therefore the true threshold, are beyond this bench. That limit is an honest one."
+        }
+      },
+      "base": "Base exercise",
+      "locked": "Advanced noise models are sealed until the modules that teach them are complete.",
+      "runSweep": "Run sweep",
+      "sweeping": "Sweeping: p = {p}",
+      "sweepDone": "Sweep complete: {n} points.",
+      "sweepCaption": "Each point: seeded Monte Carlo with a 95% Wilson interval.",
+      "trialsPer": "trials per point"
+    },
+    "modules": {
+      "M0": {
+        "title": "Calibration",
+        "summary": "States, bases and projective measurement on a single qubit. Born statistics with confidence intervals.",
+        "objectives": {
+          "1": "Prepare a specified single-qubit state from |0⟩ with X, Z, H, S and S†.",
+          "2": "Measure in the X or Y basis using a basis rotation followed by a Z-basis measurement.",
+          "3": "Estimate a Born probability from N shots and state its 95% Wilson interval."
+        },
+        "analysis": {
+          "oracle": "The Bloch sphere shows the state before readout. The histogram shows what a laboratory would have: counts. Compare p̂ with the exact |a|² and check that it lies inside the interval about 95% of the time.",
+          "shots": "Shots: {n}. Outcome 1 observed {k} times. p̂ = {phat}, 95% Wilson interval [{lo}, {hi}]. Exact value (simulator oracle): {p}."
+        },
+        "ex": {
+          "M0-1": {
+            "title": "Prepare the minus state",
+            "subtitle": "One qubit. One target.",
+            "briefing": {
+              "objective": "Prepare |−⟩ = (|0⟩ − |1⟩)/√2 from |0⟩.",
+              "context": "|−⟩ lies on the equator of the Bloch sphere. A Z-basis measurement gives 0 or 1 with probability ½ each, just like |+⟩; only an X-basis measurement tells them apart. Phase is real, and invisible to the wrong question.",
+              "code": "No code. One physical qubit.",
+              "noise": "None.",
+              "gates": "X, Z, H, Y, S, S†.",
+              "criterion": "Fidelity F = |⟨−|ψ⟩|² ≥ {minF} on {trials} trial (deterministic: no noise, input |0⟩)."
+            },
+            "hints": {
+              "1": "H maps |0⟩ to |+⟩ and |1⟩ to |−⟩.",
+              "2": "Either reach |1⟩ first, or reach |+⟩ first and then flip its phase."
+            },
+            "traps": {
+              "order": "H then X: X|+⟩ = |+⟩. X permutes |0⟩ and |1⟩ and leaves |+⟩ unchanged.",
+              "phaseOnly": "Z alone: Z|0⟩ = |0⟩. A phase gate cannot change computational-basis populations."
+            },
+            "reveal": "|+⟩ and |−⟩ have identical Z statistics. They differ only in relative phase.",
+            "term": "Hadamard basis: |±⟩ = (|0⟩ ± |1⟩)/√2, the eigenstates of X.",
+            "analysis": "Highlight the Bloch vector at (−1, 0, 0). Then show 1000 Z-basis shots: about 500 of each outcome, indistinguishable from |+⟩. The oracle shows the minus sign; the counts never will."
+          },
+          "M0-2": {
+            "title": "Measure in the X basis",
+            "subtitle": "Detectors measure Z. Rotate the question.",
+            "briefing": {
+              "objective": "Rotate an unknown state so that a Z-basis readout reports its X-basis outcome: |+⟩ → |0⟩ and |−⟩ → |1⟩.",
+              "context": "Most hardware reads out only in the computational (Z) basis. Measuring another observable means applying a unitary U first: measuring Z after U is the same as measuring U†ZU before it. For U = H, that observable is X.",
+              "code": "No code. One physical qubit.",
+              "noise": "None.",
+              "gates": "X, Z, H, Y, S, S†.",
+              "criterion": "Final state equal to H|ψ⟩ with fidelity ≥ {minF} on all {trials} trials ({inputs} input states: |+⟩, |−⟩ and 8 Haar-random states). After your rotation, N shots of outcome 1 estimate P(−) = (1 − ⟨X⟩)/2; the analysis reports it with a 95% Wilson interval."
+            },
+            "hints": {
+              "1": "Which gate exchanges the X and Z axes of the Bloch sphere?",
+              "2": "H is its own inverse. Applying it twice undoes the rotation."
+            },
+            "traps": {
+              "noRotation": "No rotation: a Z-basis readout of |±⟩ is a fair coin. It contains no information about the sign.",
+              "twice": "H twice is the identity. The rotation is undone before readout."
+            },
+            "reveal": "A measurement basis is a choice of unitary before a fixed detector.",
+            "term": "Basis-change measurement: measure U†ZU by applying U, then measuring Z.",
+            "analysis": "For each input, compare the estimated P(1) with (1 − ⟨X⟩)/2 from the oracle's Bloch vector. With N = 1000 shots the Wilson half-width is about 0.03 near p = ½; most intervals should contain the exact value, and about one in twenty should not."
+          },
+          "M0-3": {
+            "title": "Measure in the Y basis",
+            "subtitle": "The third axis needs a phase gate.",
+            "briefing": {
+              "objective": "Rotate an unknown state so that a Z-basis readout reports its Y-basis outcome: |+i⟩ → |0⟩ and |−i⟩ → |1⟩.",
+              "context": "|±i⟩ = (|0⟩ ± i|1⟩)/√2 are the eigenstates of Y. H alone exchanges X and Z but leaves Y on the equator, so a phase gate is needed first. S = diag(1, i) rotates the equator by +90°, S† by −90°.",
+              "code": "No code. One physical qubit.",
+              "noise": "None.",
+              "gates": "X, Z, H, Y, S, S†.",
+              "criterion": "Final state equal to H S†|ψ⟩ with fidelity ≥ {minF} on all {trials} trials ({inputs} input states: |+i⟩, |−i⟩ and 8 Haar-random states)."
+            },
+            "hints": {
+              "1": "First rotate |+i⟩ to |+⟩ around the Z axis. Then use the X-basis measurement from the previous exercise.",
+              "2": "S†|+i⟩ = |+⟩. Gates act right to left in formulas and top to bottom in the circuit."
+            },
+            "traps": {
+              "xBasis": "H alone measures X, not Y. On |±i⟩ the result is a fair coin.",
+              "wrongSign": "S instead of S†: S|+i⟩ = |−⟩, so the outcomes are exchanged. You would be measuring −Y."
+            },
+            "reveal": "Three bases, three rotations: none for Z, H for X, H S† for Y. Together they are a complete single-qubit tomography.",
+            "term": "Pauli measurement bases: the eigenbases of X, Y and Z.",
+            "analysis": "Show the Bloch vector moving to the north pole for |+i⟩. With the three estimates ⟨X⟩, ⟨Y⟩, ⟨Z⟩ from the three bases, the analysis reconstructs the Bloch vector and draws its uncertainty ellipsoid next to the oracle's exact vector."
+          }
+        }
+      },
+      "M1": {
+        "title": "No-cloning and entanglement",
+        "summary": "CNOT on a superposition makes a correlation, not a copy. Reduced states, mutual information, Bell-state tomography.",
+        "objectives": {
+          "1": "Prepare the Bell state |Φ⁺⟩ = (|00⟩ + |11⟩)/√2 and explain why each qubit alone is maximally mixed.",
+          "2": "Distinguish fan-out α|00⟩ + β|11⟩ from the impossible copy (α|0⟩ + β|1⟩)⊗2, and state the no-cloning theorem.",
+          "3": "Measure the correlators ⟨ZZ⟩, ⟨XX⟩, ⟨YY⟩ of a Bell pair by basis rotations."
+        },
+        "analysis": {
+          "oracle": "Filaments appear between qubits with non-zero mutual information. For |Φ⁺⟩ the filament carries 2 bits and both Bloch vectors shrink to the centre: all the information is in the correlation.",
+          "filaments": "I(q1:q2) = {mi} bits. S(q1) = {s1} bits. For a pure two-qubit state I = 2S(q1)."
+        },
+        "ex": {
+          "M1-1": {
+            "title": "Bell pair",
+            "subtitle": "Two qubits, one state.",
+            "briefing": {
+              "objective": "Prepare |Φ⁺⟩ = (|00⟩ + |11⟩)/√2 from |00⟩.",
+              "context": "An entangled state cannot be written as a product |a⟩⊗|b⟩. For |Φ⁺⟩ each qubit alone is in the maximally mixed state I/2: a Z measurement of either one is a fair coin, yet the two outcomes always agree.",
+              "code": "No code. Two physical qubits.",
+              "noise": "None.",
+              "gates": "X, Z, H, CNOT, Y, S, S†, CZ, SWAP.",
+              "criterion": "Fidelity with |Φ⁺⟩ ≥ {minF} on {trials} trial (deterministic)."
+            },
+            "hints": {
+              "1": "CNOT copies a computational-basis value. Give it a superposition to act on.",
+              "2": "H on the control first, then CNOT."
+            },
+            "traps": {
+              "order": "CNOT before H: CNOT acts on |00⟩ and does nothing. The result is the product |+⟩|0⟩.",
+              "product": "H on both: |++⟩ is a product state. The outcomes are random and independent, not correlated."
+            },
+            "reveal": "Perfect correlation with no local information.",
+            "term": "Bell state: one of four maximally entangled two-qubit states.",
+            "analysis": "Highlight the moment after CNOT: both Bloch vectors collapse to the origin and the filament braids at I = 2 bits. First appearance of entanglement filaments."
+          },
+          "M1-2": {
+            "title": "Repetition is not copying",
+            "subtitle": "You may measure anything here. It will not help.",
+            "briefing": {
+              "objective": "Map α|0⟩ + β|1⟩ on q1 (with q2 in |0⟩) to α|00⟩ + β|11⟩, for every input.",
+              "context": "No unitary maps |ψ⟩|0⟩ to |ψ⟩|ψ⟩ for all |ψ⟩ (no-cloning theorem: linearity forbids it). What CNOT does is fan-out: it correlates q2 with q1 in the Z basis. This is the encoding that every repetition code starts from. Here, direct measurement of data qubits is permitted, so you can test the alternative.",
+              "code": "No code yet. Two physical qubits.",
+              "noise": "None.",
+              "gates": "X, Z, H, CNOT, measure (data qubits allowed), classically controlled jump, Y, S, S†, CZ, SWAP.",
+              "criterion": "Fidelity with α|00⟩ + β|11⟩ ≥ {minF} on all {trials} trials ({inputs} inputs: the six Pauli eigenstates except |−i⟩, plus 8 Haar-random states)."
+            },
+            "hints": {
+              "1": "The target is not |ψ⟩|ψ⟩. Expand both and compare.",
+              "2": "One CNOT, q1 as control."
+            },
+            "traps": {
+              "measureCopy": "Measure, then prepare: this produces the mixture |α|²|00⟩⟨00| + |β|²|11⟩⟨11|. The populations are right, the coherence is gone: fidelity ½ for |+⟩.",
+              "reversed": "CNOT from q2 to q1: the control is |0⟩, so nothing happens."
+            },
+            "reveal": "Fan-out copies a basis label, never a state.",
+            "term": "No-cloning theorem (Wootters, Zurek, Dieks, 1982).",
+            "analysis": "Compare the two density matrices for input |+⟩: the fan-out keeps the off-diagonal terms |00⟩⟨11|, the measure-and-prepare circuit does not. The fidelity difference is exactly those terms."
+          },
+          "M1-3": {
+            "title": "Bell-state tomography",
+            "subtitle": "Three correlators. The third needs a phase.",
+            "briefing": {
+              "objective": "A Bell pair |Φ⁺⟩ is prepared for you. Rotate both qubits so that a Z-basis readout of each measures Y⊗Y.",
+              "context": "A two-qubit state is characterised by its Pauli correlators. Without rotation, the readout measures ⟨ZZ⟩; H on both measures ⟨XX⟩; H S† on both measures ⟨YY⟩. For |Φ⁺⟩: ⟨ZZ⟩ = +1, ⟨XX⟩ = +1, ⟨YY⟩ = −1. The parity of the two output bits estimates each correlator.",
+              "code": "No code. Two physical qubits.",
+              "noise": "None.",
+              "gates": "X, Z, H, CNOT, Y, S, S†, CZ, SWAP.",
+              "criterion": "Final state equal to (H S† ⊗ H S†)|Φ⁺⟩ with fidelity ≥ {minF} on {trials} trial (deterministic). The analysis then runs N shots in each of the three bases and reports each correlator with a 95% Wilson interval on the parity."
+            },
+            "hints": {
+              "1": "Apply the single-qubit Y-basis rotation from M0 to each qubit.",
+              "2": "S† then H on q1, and the same on q2."
+            },
+            "traps": {
+              "xx": "H on both measures ⟨XX⟩ = +1, not ⟨YY⟩. |Φ⁺⟩ is unchanged by H⊗H.",
+              "oneSided": "Rotating only one qubit measures Y⊗Z, whose expectation on |Φ⁺⟩ is 0."
+            },
+            "reveal": "⟨XX⟩ = +1 and ⟨ZZ⟩ = +1 force ⟨YY⟩ = −1, since XX·ZZ = −YY. The three correlators are not independent.",
+            "term": "Quantum state tomography: reconstructing ρ from measurements in several bases.",
+            "analysis": "After the rotation the output is (|01⟩ + |10⟩)/√2: every shot has odd parity, so the estimate of ⟨YY⟩ is −1. Show the three correlator bars with intervals, then the reconstructed 4×4 density matrix next to the oracle's."
+          }
+        }
+      },
+      "M2": {
+        "title": "Parity measurement",
+        "summary": "Measure Z₁Z₂ or X₁X₂ with an ancilla, without learning either qubit's value. Only superpositions of different parities are disturbed.",
+        "objectives": {
+          "1": "Measure the two-qubit observable Z₁Z₂ through an ancilla and two CNOTs.",
+          "2": "Explain why a parity measurement does not disturb states that are eigenstates of the parity.",
+          "3": "Measure X₁X₂ by phase kickback and correct a phase flip with it."
+        },
+        "analysis": {
+          "oracle": "Before readout the ancilla is entangled with the data only through the parity. Show that the data's reduced state is the same before and after the ancilla readout when no error occurred.",
+          "kickback": "With the ancilla in |+⟩ as control, each CNOT multiplies the ancilla's |1⟩ branch by the eigenvalue of X on its target. The ancilla ends in |+⟩ or |−⟩: the parity, written into a phase."
+        },
+        "ex": {
+          "M2-1": {
+            "title": "Measure Z one Z two",
+            "subtitle": "One answer about two qubits.",
+            "briefing": {
+              "objective": "Read the parity of q1 and q2 into ancilla a without measuring either data qubit and without changing their joint state.",
+              "context": "The register holds α|00⟩ + β|11⟩, possibly with one X error. Measuring q2 directly would destroy the superposition. Measuring Z₁Z₂ asks only whether the qubits agree, and both branches give the same answer, so nothing collapses.",
+              "code": "Two-qubit repetition: α|00⟩ + β|11⟩. Stabilizer Z₁Z₂.",
+              "noise": "Either nothing, or one X on q1 or q2 (each enumerated).",
+              "gates": "X, Z, H, CNOT, measure, reset, classically controlled jump, Y, S, S†, CZ, SWAP.",
+              "criterion": "On all {trials} trials ({inputs} inputs × {cases} error cases): the data state, including any error, is preserved with fidelity ≥ {minF}, and ancilla a's last readout equals the true parity."
+            },
+            "hints": {
+              "1": "CNOT from a data qubit to the ancilla adds that qubit's value to the ancilla, mod 2.",
+              "2": "CNOT q1 → a, CNOT q2 → a, measure a."
+            },
+            "traps": {
+              "peekData": "Measuring the data qubits directly gives the parity and collapses α|00⟩ + β|11⟩ to one branch.",
+              "singleQubit": "Coupling the ancilla to q2 alone measures Z₂, not Z₁Z₂. It collapses the superposition just as a direct measurement would."
+            },
+            "reveal": "The ancilla learned whether the qubits agree, and nothing about which value they share.",
+            "term": "Ancilla-mediated parity measurement (a Z₁Z₂ stabilizer measurement).",
+            "analysis": "Show the two amplitudes |00⟩ and |11⟩ (or |10⟩ and |01⟩ after an error) moving together with the ancilla: both branches give the same readout, so the readout carries no information about α and β."
+          },
+          "M2-2": {
+            "title": "Measure X one X two",
+            "subtitle": "The same question, asked in phase.",
+            "briefing": {
+              "objective": "The register holds α|++⟩ + β|−−⟩. A Z error may strike q2. Detect it by measuring X₁X₂, then correct it.",
+              "context": "A Z error leaves Z-parities unchanged and flips X-parities. To measure X₁X₂, prepare the ancilla in |+⟩, use it as the control of CNOTs onto both data qubits, rotate it back with H and measure. Measuring Z₁Z₂ instead would collapse this state: it is not a Z₁Z₂ eigenstate.",
+              "code": "Two-qubit phase repetition: α|++⟩ + β|−−⟩. Stabilizer X₁X₂.",
+              "noise": "Either nothing or one Z on q2.",
+              "gates": "X, Z, H, CNOT, measure, reset, classically controlled jump, Y, S, S†, CZ, SWAP.",
+              "criterion": "Final data state equal to the error-free encoded state with fidelity ≥ {minF} on all {trials} trials ({inputs} inputs × {cases} error cases)."
+            },
+            "hints": {
+              "1": "H on a, CNOT a → q1, CNOT a → q2, H on a, measure a.",
+              "2": "If the readout is 1, which single-qubit gate undoes a Z on q2?"
+            },
+            "traps": {
+              "zCheck": "A Z₁Z₂ check measures the wrong observable here: it projects α|++⟩ + β|−−⟩ onto a Z-parity sector and destroys the encoding.",
+              "wrongFix": "X on q2 does not undo a Z error. X and Z anticommute; the phase remains."
+            },
+            "reveal": "Bit flips are seen by Z-parities, phase flips by X-parities.",
+            "term": "Phase kickback; X-type stabilizer measurement.",
+            "analysis": "Show the ancilla's Bloch vector: |+⟩ after the first H, then either unchanged or flipped to |−⟩ by kickback. The data qubits are never the target of a measurement."
+          }
+        }
+      },
+      "M3": {
+        "title": "The bit-flip code",
+        "summary": "Encode one logical qubit in three. Measure two stabilizers, read the syndrome table, correct. Measure the logical error rate.",
+        "objectives": {
+          "1": "Encode α|0⟩ + β|1⟩ as α|000⟩ + β|111⟩.",
+          "2": "Measure the stabilizers Z₁Z₂ and Z₂Z₃ and decode the four syndromes.",
+          "3": "Explain why two X errors cause a logical error, and derive p_L = 3p² − 2p³.",
+          "4": "State a Monte Carlo result as a rate with a 95% Wilson interval and a seed."
+        },
+        "analysis": {
+          "oracle": "The stabilizer tiling shows Z₁Z₂ and Z₂Z₃ as two tiles. An X error lights the tiles adjacent to it; the correction extinguishes them. The amplitudes move between |000⟩/|111⟩ and the error subspace and back.",
+          "distance": "Against X errors this code has distance 3; against Z errors, distance 1: a single Z on any qubit is a logical error. Hence [[3,1,1]] as a quantum code."
+        },
+        "ex": {
+          "M3-1": {
+            "title": "Encoder",
+            "subtitle": "Three physical qubits. One logical qubit.",
+            "briefing": {
+              "objective": "Encode the input on q1 as α|000⟩ + β|111⟩.",
+              "context": "The register will hold one logical qubit across three physical ones. The code space is spanned by |000⟩ and |111⟩; it is the +1 eigenspace of Z₁Z₂ and Z₂Z₃.",
+              "code": "[[3,1,1]] bit-flip repetition code. Stabilizers Z₁Z₂, Z₂Z₃. Logical X̄ = X₁X₂X₃, Z̄ = Z₁.",
+              "noise": "None.",
+              "gates": "X, Z, H, CNOT, measure, classically controlled jump, Y, S, S†, CZ, SWAP.",
+              "criterion": "Fidelity with α|000⟩ + β|111⟩ ≥ {minF} on all {trials} input states."
+            },
+            "hints": {
+              "1": "Fan out from q1 twice.",
+              "2": "CNOT q1 → q2, CNOT q1 → q3."
+            },
+            "traps": {
+              "partial": "One CNOT leaves q3 out of the code: α|000⟩ + β|110⟩.",
+              "measureCopy": "Measuring q1 to decide the encoding destroys the superposition. Direct measurement of data is not permitted."
+            },
+            "reveal": "Encoding spreads the basis label, not the state.",
+            "term": "Encoding circuit: the unitary that maps |ψ⟩|00⟩ into the code space.",
+            "analysis": "Show the two pillars |000⟩ and |111⟩ with heights |α|² and |β|², and the two stabilizer tiles at +1."
+          },
+          "M3-2": {
+            "title": "Syndrome decoding",
+            "subtitle": "You may not look. You may ask parity questions.",
+            "briefing": {
+              "objective": "Measure Z₁Z₂ and Z₂Z₃ with ancillas a and b, decode the syndrome, and return the register to the code space without measuring a data qubit.",
+              "context": "Each single X error produces a distinct pair of syndrome bits: (1,0) for q1, (1,1) for q2, (0,1) for q3, and (0,0) for no error. The syndrome identifies the error and says nothing about α and β.",
+              "code": "[[3,1,1]] bit-flip repetition code. Stabilizers Z₁Z₂, Z₂Z₃.",
+              "noise": "Code-capacity X noise: either nothing, or one X on q1, q2 or q3 (all four cases enumerated). Gates and readout are perfect.",
+              "gates": "X, Z, H, CNOT, measure, reset, classically controlled jump, Y, S, S†, CZ, SWAP.",
+              "criterion": "Fidelity ≥ {minF} with the error-free encoded state on all {trials} enumerated trials ({inputs} inputs × {cases} error cases)."
+            },
+            "hints": {
+              "1": "a = q1 ⊕ q2, b = q2 ⊕ q3. Which qubit flips both?",
+              "2": "End each correction branch, or the branches fall through into each other."
+            },
+            "traps": {
+              "peekData": "Measuring the data qubits directly reveals the error and collapses the logical state.",
+              "wrongQubit": "Decoding the wrong qubit: syndrome (1,0) points at q1, not q3. A wrong correction turns one error into two."
+            },
+            "reveal": "The syndrome names the damage, never the data.",
+            "term": "Error syndrome and lookup-table decoder.",
+            "analysis": "Show the syndrome lighting the tiles, the correction extinguishing them, and the amplitudes returning to |000⟩ and |111⟩. For a wrong correction, show the residual: X on two qubits, the register outside the code space."
+          },
+          "M3-3": {
+            "title": "Logical error rate",
+            "subtitle": "Two thousand trials. One number with an interval.",
+            "briefing": {
+              "objective": "Run your decoder against independent X noise and show that the encoded qubit fails less often than a bare one.",
+              "context": "Each qubit independently suffers X with probability p. The decoder corrects any single error; two or three errors lead it to the wrong codeword. Exactly: p_L = 3p²(1 − p) + p³ = 3p² − 2p³ = 0.028 at p = 0.1.",
+              "code": "[[3,1,1]] bit-flip repetition code.",
+              "noise": "Independent X on each data qubit with probability p = {p} (Monte Carlo, seeded).",
+              "gates": "X, Z, H, CNOT, measure, reset, classically controlled jump, Y, S, S†, CZ, SWAP.",
+              "criterion": "Over N = {nights} Monte Carlo trials, at least {minRate} end with fidelity ≥ {minF}. Equivalently: the logical error rate is below p = {p} with 95% confidence (at an observed failure fraction of {maxFail}, the 95% Wilson upper bound at this N lies below p)."
+            },
+            "hints": {
+              "1": "Your decoder from the previous exercise already does this.",
+              "2": "Open a failed trial. How many errors occurred?"
+            },
+            "traps": {
+              "noDecoder": "No recovery: every error is a failure, p_L ≈ 1 − (1 − p)³ ≈ 0.27.",
+              "oneCheck": "One stabilizer cannot locate an error: X on q2 is miscorrected and X on q3 goes unseen."
+            },
+            "reveal": "Correction does not abolish failure. It moves it from order p to order p².",
+            "term": "Logical error rate p_L, measured by Monte Carlo with a Wilson score interval.",
+            "analysis": "Report p_L with its 95% interval and the seed. Overlay the theory 3p² − 2p³. Opens the threshold plot on the Bench: the curves cross at p = ½."
+          }
+        }
+      },
+      "M4": {
+        "title": "Phase flips and basis change",
+        "summary": "Conjugate the bit-flip code by Hadamards: X-type stabilizers that see the errors the first code cannot.",
+        "objectives": {
+          "1": "Encode into α|+++⟩ + β|−−−⟩ by adding H on every qubit.",
+          "2": "Measure X₁X₂ and X₂X₃ by conjugating the bit-flip extraction with H.",
+          "3": "Explain HZH = X and why a code's stabilizers determine which errors it detects."
+        },
+        "analysis": {
+          "oracle": "The tiles are now X-type. A Z error lights them; in the computational basis the amplitudes do not move at all, only their signs change. The phase hue of the pillars shows the error.",
+          "conjugation": "H⊗3 maps the bit-flip code to the phase-flip code: stabilizers Z₁Z₂ → X₁X₂, errors X → Z."
+        },
+        "ex": {
+          "M4-1": {
+            "title": "Phase encoder",
+            "subtitle": "The same code, rotated.",
+            "briefing": {
+              "objective": "Encode the input as α|+++⟩ + β|−−−⟩.",
+              "context": "The bit-flip code is blind to Z errors. Rotating every qubit with H exchanges the roles of X and Z, giving a code whose stabilizers X₁X₂ and X₂X₃ detect phase flips.",
+              "code": "[[3,1,1]] phase-flip repetition code. Stabilizers X₁X₂, X₂X₃. Logical X̄ = Z₁Z₂Z₃, Z̄ = X₁.",
+              "noise": "None.",
+              "gates": "X, Z, H, CNOT, measure, classically controlled jump, Y, S, S†, CZ, SWAP.",
+              "criterion": "Fidelity with α|+++⟩ + β|−−−⟩ ≥ {minF} on all {trials} input states."
+            },
+            "hints": {
+              "1": "Encode as before, then change basis.",
+              "2": "CNOT q1 → q2, CNOT q1 → q3, then H on all three."
+            },
+            "traps": {
+              "bitflipOnly": "Without the Hadamards this is the bit-flip code α|000⟩ + β|111⟩.",
+              "hFirst": "H before the fan-out encodes H|ψ⟩ into the bit-flip code, a different state."
+            },
+            "reveal": "A change of basis turns one code into another.",
+            "term": "Hadamard conjugation (a local Clifford equivalence of codes).",
+            "analysis": "Show eight pillars of equal height: every computational-basis state appears. The information is entirely in the signs."
+          },
+          "M4-2": {
+            "title": "Phase-flip correction",
+            "subtitle": "Rotate, ask, correct, rotate back.",
+            "briefing": {
+              "objective": "Detect and correct a single Z error on α|+++⟩ + β|−−−⟩.",
+              "context": "H on each data qubit turns a Z error into an X error. The bit-flip extraction then finds it; X in the rotated frame is Z in the original one. The frame must be restored afterwards.",
+              "code": "[[3,1,1]] phase-flip repetition code. Stabilizers X₁X₂, X₂X₃.",
+              "noise": "Either nothing or one Z on q1, q2 or q3 (enumerated).",
+              "gates": "X, Z, H, CNOT, measure, reset, classically controlled jump, Y, S, S†, CZ, SWAP.",
+              "criterion": "Fidelity ≥ {minF} with the error-free encoded state on all {trials} enumerated trials ({inputs} inputs × {cases} error cases)."
+            },
+            "hints": {
+              "1": "H⊗3, the bit-flip extraction and correction, then H⊗3 again.",
+              "2": "Make sure every branch reaches the final Hadamards."
+            },
+            "traps": {
+              "ignorePhase": "The bit-flip extraction measures Z₁Z₂ on a state that is not its eigenstate: it collapses the encoding and never sees the Z error.",
+              "frameNotRestored": "Rotating into the bit-flip frame and never rotating back leaves the register in α|000⟩ + β|111⟩, not the phase code."
+            },
+            "reveal": "Phase errors are as correctable as bit flips, in the right basis.",
+            "term": "X-type stabilizer measurement by basis change.",
+            "analysis": "Highlight the sign pattern before and after the Z error and after correction. Both Z-type and X-type tiles are shown: here only the X-type tiles ever light."
+          }
+        }
+      },
+      "M5": {
+        "title": "Error discretisation",
+        "summary": "A coherent rotation by any angle becomes, under syndrome extraction, either no error or a Pauli error. Fidelity returns to 1.",
+        "objectives": {
+          "1": "Write exp(−iθX/2) = cos(θ/2) I − i sin(θ/2) X and identify the two syndrome outcomes and their probabilities.",
+          "2": "Explain why correcting a discrete set of Pauli errors suffices for a continuum of errors.",
+          "3": "Recognise that syndrome extraction performs the discretisation: the entangling gates remove the coherence between branches from the data, and the readout selects one."
+        },
+        "analysis": {
+          "oracle": "The projection is slowed here. Before extraction the state is a superposition of 'no error' and 'X on qᵢ'; the stabilizer expectation sits between −1 and +1. The frame freezes at the entangling gates, where the off-diagonal terms vanish from the data's reduced state; the readout then chooses a branch.",
+          "probabilities": "Rotation angle θ = {theta}: syndrome 'no error' with probability cos²(θ/2) = {p0}, syndrome 'X on {q}' with probability sin²(θ/2) = {p1}. Fidelity after correction: 1 in both cases."
+        },
+        "ex": {
+          "M5-1": {
+            "title": "Coherent X rotations",
+            "subtitle": "Not a flip. A fraction of one.",
+            "briefing": {
+              "objective": "Correct a coherent rotation exp(−iθX/2) on any one qubit of the bit-flip code, for several angles θ.",
+              "context": "Real noise is rarely a clean Pauli. A small over-rotation leaves the register in cos(θ/2)|ψ_L⟩ − i sin(θ/2) Xᵢ|ψ_L⟩. The extraction gates correlate the two terms with different ancilla states, which removes their coherence from the data; the readout then selects one term. Each is either correct or correctable.",
+              "code": "[[3,1,1]] bit-flip repetition code.",
+              "noise": "Either nothing or one rotation exp(−iθX/2) on q1, q2 or q3, with θ ∈ {0.3, 0.9, 1.6, 2.5} rad (enumerated).",
+              "gates": "X, Z, H, CNOT, measure, reset, classically controlled jump, Y, S, S†, CZ, SWAP.",
+              "criterion": "Fidelity ≥ {minF} on all {trials} enumerated trials ({inputs} inputs × {cases} error cases), for every measurement outcome the simulator samples."
+            },
+            "hints": {
+              "1": "You do not need to know θ.",
+              "2": "Your bit-flip decoder from M3 is already the answer."
+            },
+            "traps": {
+              "noDecoder": "Without recovery the over-rotation remains: fidelity cos²(θ/2), below the criterion for every θ tested.",
+              "oneCheck": "A single stabilizer cannot locate the rotated qubit; rotations on q2 and q3 are not corrected."
+            },
+            "reveal": "Extracting the syndrome makes the error discrete.",
+            "term": "Error discretisation: correcting Paulis corrects all errors in their linear span.",
+            "analysis": "Projection-freeze layer: slow the extraction and freeze on the last entangling gate, after which the off-diagonal terms between code space and error space have vanished from the data's reduced state. Then the readout picks a branch, with probabilities cos²(θ/2) and sin²(θ/2)."
+          },
+          "M5-2": {
+            "title": "Coherent Z rotations",
+            "subtitle": "The same argument, in phase.",
+            "briefing": {
+              "objective": "Correct a coherent rotation exp(−iθZ/2) on any one qubit of the phase-flip code.",
+              "context": "exp(−iθZ/2) = cos(θ/2) I − i sin(θ/2) Z. The phase-flip code's X-type extraction entangles the two terms with the ancilla, and the readout selects 'no error' or 'Z on qᵢ'.",
+              "code": "[[3,1,1]] phase-flip repetition code.",
+              "noise": "Either nothing or one rotation exp(−iθZ/2) on q1, q2 or q3, with θ ∈ {0.3, 0.9, 1.6, 2.5} rad (enumerated).",
+              "gates": "X, Z, H, CNOT, measure, reset, classically controlled jump, Y, S, S†, CZ, SWAP.",
+              "criterion": "Fidelity ≥ {minF} on all {trials} enumerated trials ({inputs} inputs × {cases} error cases)."
+            },
+            "hints": {
+              "1": "Use the phase-flip decoder from M4.",
+              "2": "Hadamards, bit-flip extraction, Hadamards."
+            },
+            "traps": {
+              "ignorePhase": "Z-type checks on the phase code collapse the encoding and never see a Z rotation.",
+              "noDecoder": "Without recovery the rotation remains."
+            },
+            "reveal": "Discretisation does not care which axis the error turns about.",
+            "term": "Coherent error; stabilizer projection.",
+            "analysis": "As in M5-1, frozen at the last entangling gate of the extraction, before the readout chooses. Note that the computational-basis populations never change here; only phases do."
+          }
+        }
+      },
+      "M6": {
+        "title": "The Shor code",
+        "summary": "Concatenate the phase-flip code with the bit-flip code. Nine qubits, eight generators, any single-qubit error.",
+        "objectives": {
+          "1": "Construct the Shor encoder by concatenation: outer phase-flip code, inner bit-flip blocks.",
+          "2": "Measure the six Z-type and two X-type generators with two reused ancillas.",
+          "3": "Correct any single X, Y or Z, using Y = iXZ."
+        },
+        "analysis": {
+          "oracle": "The hierarchy view unfolds three blocks of three. Inner tiles (Z-type, within a block) catch bit flips; the two outer tiles (X-type, across blocks) catch phase flips. A Y error lights one of each.",
+          "degeneracy": "Z on q1, q2 or q3 gives the same syndrome and is corrected by Z on any one of them: Z₁Z₂ is a stabilizer. The Shor code is degenerate."
+        },
+        "ex": {
+          "M6-1": {
+            "title": "Concatenated encoder",
+            "subtitle": "A code made of codes.",
+            "briefing": {
+              "objective": "Encode the input on q1 into the Shor code: |0̄⟩ ∝ (|000⟩ + |111⟩)⊗3, |1̄⟩ ∝ (|000⟩ − |111⟩)⊗3.",
+              "context": "Outer level: the phase-flip code across q1, q4, q7. Inner level: each of those qubits is fanned out into a bit-flip block (q1 q2 q3), (q4 q5 q6), (q7 q8 q9).",
+              "code": "[[9,1,3]] Shor code. Logical X̄ = Z⊗9, Z̄ = X⊗9 (minimum-weight representatives have weight 3).",
+              "noise": "None.",
+              "gates": "X, Z, H, CNOT, measure, classically controlled jump, Y, S, S†, CZ, SWAP.",
+              "criterion": "Fidelity with the encoded state ≥ {minF} on all {trials} input states."
+            },
+            "hints": {
+              "1": "First the outer code: CNOT q1 → q4, q1 → q7, then H on q1, q4, q7.",
+              "2": "Then the inner code: fan each of q1, q4, q7 out to its two neighbours."
+            },
+            "traps": {
+              "noOuterH": "Without the outer Hadamards this is a nine-qubit repetition code: it detects bit flips only.",
+              "innerOnly": "The inner fan-outs alone leave q4 and q7 at |0⟩: the outer code is missing."
+            },
+            "reveal": "Concatenation multiplies protections: bit flips inside, phase flips outside.",
+            "term": "Code concatenation.",
+            "analysis": "Hierarchy view: three blocks, each a GHZ-like pair of pillars, and the sign pattern across blocks carrying the logical information."
+          },
+          "M6-2": {
+            "title": "Any single error",
+            "subtitle": "Nine qubits. Every Pauli.",
+            "briefing": {
+              "objective": "Measure all eight generators and correct any single X, Y or Z on any of the nine data qubits.",
+              "context": "Six Z-type generators (two per block) locate bit flips within a block. Two X-type generators X₁…X₆ and X₄…X₉ compare the signs of neighbouring blocks and locate a phase flip to a block. A Y error is both, and both layers fix their halves.",
+              "code": "[[9,1,3]] Shor code. Generators Z₁Z₂, Z₂Z₃, Z₄Z₅, Z₅Z₆, Z₇Z₈, Z₈Z₉, X₁X₂X₃X₄X₅X₆, X₄X₅X₆X₇X₈X₉.",
+              "noise": "Either nothing or one X, Y or Z on any one of q1…q9: 27 errors plus the error-free case, enumerated.",
+              "gates": "X, Z, H, CNOT, measure, reset, classically controlled jump, Y, S, S†, CZ, SWAP. Two ancillas, reusable after reset.",
+              "criterion": "Fidelity ≥ {minF} on all {trials} enumerated trials ({inputs} inputs × {cases} error cases)."
+            },
+            "hints": {
+              "1": "Bit-flip layer: run the M3 decoder on each block, resetting the ancillas between blocks.",
+              "2": "Phase layer: an X-type check with the ancilla as control onto six qubits. Correct a phase flip in block k with Z on any one qubit of that block."
+            },
+            "traps": {
+              "ignorePhase": "The bit-flip layer alone: every Z and the Z half of every Y survive.",
+              "phaseOnly": "The phase layer alone: X errors are invisible to X-type checks."
+            },
+            "reveal": "Correcting X and Z separately corrects every single-qubit error.",
+            "term": "Shor code (1995): the first quantum error-correcting code.",
+            "analysis": "For a Y error, light one inner tile pair and one outer tile simultaneously. Show the two corrections as two separate events, X then Z."
+          }
+        }
+      },
+      "M7": {
+        "title": "Repeated syndrome extraction",
+        "summary": "Readout itself is noisy. One round of extraction can lie; repetition and a majority restore confidence.",
+        "objectives": {
+          "1": "Model a readout error as a classical flip of the recorded bit, with the state collapsing to the true outcome.",
+          "2": "Explain why a single extraction round turns one readout fault into a wrong correction.",
+          "3": "Design a repeated-extraction decoder that tolerates any single fault, and quantify its advantage by Monte Carlo."
+        },
+        "analysis": {
+          "oracle": "The syndrome history shows each round as a column. A readout fault appears as a single bit that disagrees with its neighbours in time; a data error appears as a change that persists.",
+          "honesty": "In this model only readout is noisy during extraction: gates are perfect and data errors strike before the first round. Full fault tolerance also requires data errors between rounds and faulty gates; the WAIT instruction and the Bench open that study."
+        },
+        "ex": {
+          "M7-1": {
+            "title": "One fault, any place",
+            "subtitle": "A wrong answer looks like a real one.",
+            "briefing": {
+              "objective": "Protect the bit-flip code against one fault that is either an X error on a data qubit or a single wrong readout of an ancilla.",
+              "context": "A readout error reports the wrong bit while the ancilla itself collapses to the true value. Acting on one round, a single readout fault looks exactly like an error on q1 or q3 and causes a wrong correction. Two rounds that agree can be trusted against one fault; if they disagree, a third round decides.",
+              "code": "[[3,1,1]] bit-flip repetition code. Stabilizers Z₁Z₂, Z₂Z₃. Six ancillas available.",
+              "noise": "Either nothing, one X on q1, q2 or q3, or exactly one readout fault on any single ancilla measurement your circuit performs (all enumerated).",
+              "gates": "X, Z, H, CNOT, measure, reset, classically controlled jump, Y, S, S†, CZ, SWAP.",
+              "criterion": "Fidelity ≥ {minF} on all {trials} enumerated trials ({inputs} inputs × ({cases} data-error cases + {readout} readout-fault cases, one per ancilla measurement in the circuit))."
+            },
+            "hints": {
+              "1": "Measure the two stabilizers twice, into four different ancillas. Compare.",
+              "2": "If both rounds agree, act on them. If not, the fault is in one of them; a third round is then fault-free."
+            },
+            "traps": {
+              "singleRound": "One round: a readout fault on a or b triggers a correction for an error that never happened.",
+              "trustLast": "Two rounds, acting on the second: a fault in the second round still decides the correction."
+            },
+            "reveal": "Repetition protects the classical record as much as the quantum state.",
+            "term": "Repeated syndrome extraction; measurement errors.",
+            "analysis": "Show the syndrome history as a 2×3 grid of bits, the faulty bit marked red after the run, and the decision rule's path. The record shows what the circuit knew; the oracle confirms which bit was the liar."
+          },
+          "M7-2": {
+            "title": "Readout noise, measured",
+            "subtitle": "One thousand trials, two error sources.",
+            "briefing": {
+              "objective": "Show by Monte Carlo that your repeated-extraction decoder beats an unencoded qubit when both data and readout are noisy.",
+              "context": "An unencoded qubit stored with flip probability p and read once with flip probability q fails with probability p + q − 2pq = {bare}. That baseline includes its own readout; the encoded criterion is the final-state fidelity after recovery: a fair comparison, but not the same metric. A single extraction round inherits a failure term linear in q; a fault-tolerant round needs two faults to fail.",
+              "code": "[[3,1,1]] bit-flip repetition code with repeated extraction.",
+              "noise": "Independent X on each data qubit with p = {p}; every ancilla readout flipped independently with q = {q} (Monte Carlo, seeded).",
+              "gates": "X, Z, H, CNOT, measure, reset, classically controlled jump, Y, S, S†, CZ, SWAP.",
+              "criterion": "Over N = {nights} trials at least {minRate} end with fidelity ≥ {minF}: the logical error rate is below p + q − 2pq = {bare} with 95% confidence."
+            },
+            "hints": {
+              "1": "Your circuit from M7-1 is a good start.",
+              "2": "Compare with a single round on the Bench at the same seed."
+            },
+            "traps": {
+              "singleRound": "A single round fails whenever one of its two readouts is wrong: about 1 − (1 − q)² ≈ 2q from readout alone, above the criterion."
+            },
+            "reveal": "Fault tolerance turns a first-order failure into a second-order one.",
+            "term": "Measurement error; fault-tolerant syndrome extraction.",
+            "analysis": "Plot p_L with its interval for one round and for repeated rounds at the same seed. The difference is the price of trusting a single answer."
+          }
+        }
+      },
+      "M8": {
+        "title": "The perfect code",
+        "summary": "Five qubits, four generators, every single-qubit error. The smallest code that can.",
+        "objectives": {
+          "1": "Build the [[5,1,3]] encoder as a graph state on a five-cycle.",
+          "2": "Measure non-CSS stabilizers such as XZZXI with CNOT and CZ from one ancilla.",
+          "3": "Explain why five qubits is optimal: 1 + 3·5 = 16 = 2⁴ syndromes (the quantum Hamming bound is saturated)."
+        },
+        "analysis": {
+          "oracle": "Four tiles, each a mixture of X and Z. Every one of the fifteen single-qubit errors lights a different pattern. The tiling is complete: no syndrome is unused.",
+          "hamming": "n − k = 4 generators give 16 syndromes; there are exactly 1 + 3n = 16 cases to distinguish (no error, or X, Y, Z on one of five qubits)."
+        },
+        "ex": {
+          "M8-1": {
+            "title": "Five-cycle encoder",
+            "subtitle": "A ring of controlled phases.",
+            "briefing": {
+              "objective": "Encode the input on q1 into the five-qubit code: |0⟩ ↦ |C₅⟩ and |1⟩ ↦ Z⊗5|C₅⟩, where |C₅⟩ is the graph state of a five-cycle.",
+              "context": "A graph state is prepared by H on every qubit and CZ along every edge; it is stabilized by Kᵢ = Zᵢ₋₁XᵢZᵢ₊₁. The products KᵢKᵢ₊₂ are exactly the cyclic shifts of XZZXI, the perfect-code stabilizers. Fan-out first, so that Hadamards send the input's two branches to |+⟩⊗5 and |−⟩⊗5.",
+              "code": "[[5,1,3]] perfect code. Stabilizers XZZXI, IXZZX, XIXZZ, ZXIXZ. With this encoder, the input's Z becomes X⊗5 and its X becomes Z⊗5 (up to sign).",
+              "noise": "None.",
+              "gates": "X, Z, H, CNOT, CZ, measure, classically controlled jump, Y, S, S†, SWAP.",
+              "criterion": "Fidelity with the encoded state ≥ {minF} on all {trials} input states."
+            },
+            "hints": {
+              "1": "CNOT q1 to each of q2…q5, then H on all five.",
+              "2": "CZ on the five edges of the ring: (1,2), (2,3), (3,4), (4,5), (5,1)."
+            },
+            "traps": {
+              "openChain": "Four edges make a line, not a ring: the stabilizers do not close up and the state is not in the code space.",
+              "noFanout": "Without the fan-out the input is not spread: the other four qubits carry no logical information."
+            },
+            "reveal": "A code can be drawn as a graph.",
+            "term": "Graph state; graph code.",
+            "analysis": "Show the five-cycle drawn as filaments with mutual information weights, then the four tiles all at +1."
+          },
+          "M8-2": {
+            "title": "Every single error",
+            "subtitle": "Sixteen syndromes, all used.",
+            "briefing": {
+              "objective": "Measure the four generators and correct any single X, Y or Z on any of the five data qubits.",
+              "context": "XZZXI is not CSS: it mixes X and Z. Measure it with one ancilla in |+⟩: CNOT ancilla → q for each X, CZ ancilla — q for each Z, then H and readout. Each of the fifteen single-qubit errors gives its own syndrome; the decoder is a table with fifteen entries.",
+              "code": "[[5,1,3]] perfect code. Stabilizers XZZXI, IXZZX, XIXZZ, ZXIXZ.",
+              "noise": "Either nothing or one X, Y or Z on any one of q1…q5: 15 errors plus the error-free case, enumerated.",
+              "gates": "X, Z, H, CNOT, CZ, measure, reset, classically controlled jump, Y, S, S†, SWAP. Four ancillas.",
+              "criterion": "Fidelity ≥ {minF} on all {trials} enumerated trials ({inputs} inputs × {cases} error cases)."
+            },
+            "hints": {
+              "1": "For error E, syndrome bit i is 1 when E anticommutes with generator i: compare letters, count positions where they differ and neither is I.",
+              "2": "Correct Y with X and Z on the same qubit; the global phase is unobservable."
+            },
+            "traps": {
+              "ignorePhase": "A table built for X errors only leaves every Z and Y uncorrected: their syndromes are not in it.",
+              "threeGenerators": "Three generators give eight syndromes for sixteen cases: different errors collide and some are miscorrected."
+            },
+            "reveal": "Every possible syndrome means exactly one error.",
+            "term": "Perfect code (Laflamme, Miquel, Paz, Zurek; Bennett, DiVincenzo, Smolin, Wootters, 1996).",
+            "analysis": "Show the 16-cell syndrome table with the observed cell highlighted, and the four mixed tiles lighting in the error's pattern."
+          }
+        }
+      },
+      "M9": {
+        "title": "The surface code",
+        "summary": "Distance three on a 3×3 lattice. Local checks, logical operators as strings, a full extraction round. The finale.",
+        "objectives": {
+          "1": "Identify the four X-type and four Z-type generators of the d = 3 rotated surface code and their locality.",
+          "2": "Apply a logical operator as a string of single-qubit Paulis from boundary to boundary, and recognise equivalent strings.",
+          "3": "Perform a full syndrome-extraction round with reused ancillas and decode X and Z errors independently.",
+          "4": "Explain why distance grows with lattice size, and why the threshold requires more than one size."
+        },
+        "analysis": {
+          "oracle": "The lattice materialises: data qubits at the vertices, plaquettes as tiles. An error lights the tiles touching it; a logical operator is a string from one boundary to the opposite one, invisible to every tile.",
+          "css": "The code is CSS: Z-type checks see X errors, X-type checks see Z errors, and the two halves decode independently."
+        },
+        "ex": {
+          "M9-1": {
+            "title": "Logical operators",
+            "subtitle": "A string from edge to edge.",
+            "briefing": {
+              "objective": "The register holds a logical qubit in the d = 3 rotated surface code. Apply the logical X̄, without decoding.",
+              "context": "A logical operator commutes with every stabilizer and is not itself a stabilizer. Here X̄ is any chain of X operators connecting the top boundary to the bottom one, such as a column. Any two such chains differ by a product of stabilizers, so they act identically on the encoded qubit.",
+              "code": "[[9,1,3]] rotated surface code. X-type: X₁X₂X₄X₅, X₅X₆X₈X₉, X₂X₃, X₇X₈. Z-type: Z₂Z₃Z₅Z₆, Z₄Z₅Z₇Z₈, Z₁Z₄, Z₆Z₉. X̄ = X₁X₄X₇, Z̄ = Z₁Z₂Z₃.",
+              "noise": "None.",
+              "gates": "X, Z, H, CNOT, CZ, measure, reset, classically controlled jump, Y, S, S†, SWAP.",
+              "criterion": "Final state equal to X̄ applied to the encoded input, fidelity ≥ {minF}, on all {trials} input states."
+            },
+            "hints": {
+              "1": "Data qubits are laid out q1 q2 q3 / q4 q5 q6 / q7 q8 q9.",
+              "2": "A column of X operators. Any column works."
+            },
+            "traps": {
+              "singleX": "X on one qubit anticommutes with a Z-type check: it is a detectable error, not a logical operation.",
+              "wrongDirection": "X along a row anticommutes with the boundary check Z₁Z₄: it leaves the code space."
+            },
+            "reveal": "Distance is the length of the shortest invisible string.",
+            "term": "Logical operator; code distance d = minimum weight of a logical operator.",
+            "analysis": "Draw the applied string as a luminous chain from top to bottom. Show that X₂X₅X₈ gives the same final state (fidelity 1) and that no tile lights."
+          },
+          "M9-2": {
+            "title": "Distance three",
+            "subtitle": "Eight questions. Nine qubits. One answer.",
+            "briefing": {
+              "objective": "Perform one complete syndrome-extraction round on the d = 3 rotated surface code and correct any single X, Y or Z on any data qubit.",
+              "context": "Each check involves only neighbouring qubits, which is why this code suits a planar chip. Four ancillas are enough: measure the Z-type checks, correct bit flips, reset, measure the X-type checks, correct phase flips. Several single errors share a syndrome; their difference is a stabilizer, so either correction is right.",
+              "code": "[[9,1,3]] rotated surface code. X-type: X₁X₂X₄X₅, X₅X₆X₈X₉, X₂X₃, X₇X₈. Z-type: Z₂Z₃Z₅Z₆, Z₄Z₅Z₇Z₈, Z₁Z₄, Z₆Z₉.",
+              "noise": "Either nothing or one X, Y or Z on any one of q1…q9: 27 errors plus the error-free case, enumerated.",
+              "gates": "X, Z, H, CNOT, CZ, measure, reset, classically controlled jump, Y, S, S†, SWAP. Four ancillas, reusable after reset.",
+              "criterion": "Fidelity ≥ {minF} on all {trials} enumerated trials ({inputs} inputs × {cases} error cases)."
+            },
+            "hints": {
+              "1": "Z-type check: CNOT from each data qubit into the ancilla. X-type check: ancilla in |+⟩, CNOT from ancilla into each data qubit, H, readout.",
+              "2": "Decode the Z-type syndrome into X corrections and the X-type syndrome into Z corrections. Reset the ancillas between the halves."
+            },
+            "traps": {
+              "peekData": "Measuring the data qubits reads out the code in the Z basis and destroys the logical superposition.",
+              "ignorePhase": "Only the Z-type half: every phase flip, and the Z part of every Y, survives."
+            },
+            "reveal": "Local questions, global protection.",
+            "term": "Rotated surface code; syndrome-extraction round.",
+            "analysis": "Finale reveal: the full lattice as a glowing tessellation; the error's tiles light and extinguish. Then show a two-error trial from the Bench: the decoder completes a string across the lattice, and the luminous logical error spans boundary to boundary."
+          }
+        }
+      }
+    },
+    "wordmark": "TECHNICAL AFICIONADO",
+    "shell": {
+      "nav": {
+        "orientation": "Orientation",
+        "map": "Modules",
+        "briefing": "Briefing",
+        "lab": "Lab",
+        "analysis": "Analysis",
+        "bench": "Bench",
+        "archive": "Archive",
+        "settings": "Settings"
+      },
+      "navLabel": "Sections",
+      "exit": "Exit",
+      "exitHelp": "Return to NO PEEKING!. Progress is kept."
+    },
+    "orient": {
+      "line1": "One qubit: a point on its Bloch sphere. Exact for a pure state.",
+      "line2": "n qubits span 2ⁿ basis states. The lattice is a picture of that size, not of any state.",
+      "metaphor": "visual metaphor",
+      "skip": "skip",
+      "enter": "enter"
+    },
+    "brief": {
+      "objective": "Objective",
+      "code": "Code",
+      "noise": "Noise model",
+      "gates": "Gate set",
+      "success": "Success criterion",
+      "stats": "Statistical meaning",
+      "input": "Input states",
+      "registers": "Registers",
+      "data": "data",
+      "ancilla": "ancilla",
+      "stabilizers": "Stabilizers",
+      "logicals": "Logical operators",
+      "stages": "You write",
+      "openLab": "Enter the lab"
+    },
+    "stage": {
+      "bedtime": "preparation",
+      "night": "noise channel",
+      "morning": "extraction and recovery"
+    },
+    "goal": {
+      "state": "Final state of {data} matches the ideal encoded state with fidelity ≥ {f}.",
+      "report": "Ancilla {bot} must report the parity of {of}.",
+      "rate": "At least {rate} of {n} Monte Carlo trials end with fidelity ≥ {f}. At exactly that pass rate, the 95% Wilson interval of the logical error rate is [{lo}, {hi}].",
+      "classical": "Final computational-basis values must match the target.",
+      "statExhaustive": "Exhaustive: every listed input × every error case is simulated. Passing means all of them succeed; nothing is sampled except measurement outcomes.",
+      "statRandom": "Sampled: errors are drawn at random for each trial (seeded and reproducible).",
+      "statRate": "Monte Carlo: a rate with a 95% Wilson interval. Passing is a statistical claim at the stated confidence, reproducible from the seed."
+    },
+    "noise": {
+      "none": "None.",
+      "allData": "all data qubits",
+      "enumerate": "Enumerated: up to {max} error(s) of type {kinds} on {targets}.",
+      "fixed": "Fixed: {list}.",
+      "random": "Independent per qubit with probability p = {p}; type {kinds}.",
+      "kind": {
+        "flip": "X",
+        "phase": "Z",
+        "both": "Y",
+        "wobble": "coherent rotation",
+        "readout": "readout flip"
+      }
+    },
+    "op": {
+      "BOOP": "X",
+      "SHUSH": "Z",
+      "SPIN": "H",
+      "HIGHFIVE": "CNOT",
+      "RESET": "reset",
+      "Y": "Y",
+      "S": "S",
+      "SDG": "S†",
+      "CZ": "CZ",
+      "SWAP": "SWAP"
+    },
+    "gate": {
+      "X": "Pauli X",
+      "Z": "Pauli Z",
+      "H": "Hadamard",
+      "Y": "Pauli Y",
+      "S": "phase S",
+      "SDG": "phase S†",
+      "CNOT": "CNOT",
+      "CZ": "controlled-Z",
+      "SWAP": "swap",
+      "MEASURE": "measure",
+      "RESET": "reset",
+      "IF": "condition",
+      "END": "end",
+      "WAIT": "noise round"
+    },
+    "gateHelp": {
+      "X": "Bit flip: |0⟩ ↔ |1⟩.",
+      "Z": "Phase flip: |1⟩ → −|1⟩.",
+      "H": "Hadamard: exchanges the X and Z bases.",
+      "Y": "Y = iXZ: bit and phase flip.",
+      "S": "S = diag(1, i): quarter turn about Z.",
+      "SDG": "S† = diag(1, −i): quarter turn back.",
+      "CNOT": "Flips the target when the control is 1.",
+      "CZ": "Phase −1 on |11⟩. Symmetric in its two qubits.",
+      "SWAP": "Exchanges two qubits.",
+      "MEASURE": "Projective Z-basis measurement of an ancilla. The outcome enters the classical record.",
+      "RESET": "Returns an ancilla to |0⟩.",
+      "IF": "Apply the gate only when the listed classical bits have the given values.",
+      "END": "Stop this stage.",
+      "WAIT": "One noise round: errors scheduled for this round strike here."
+    },
+    "input": {
+      "zero": "|0⟩",
+      "one": "|1⟩",
+      "plus": "|+⟩",
+      "minus": "|−⟩",
+      "plusI": "|+i⟩",
+      "minusI": "|−i⟩",
+      "random": "Haar-random |ψ⟩"
+    },
+    "record": {
+      "phase": {
+        "bedtime": "preparation",
+        "night": "noise channel (hidden during execution)",
+        "morning": "extraction and recovery"
+      },
+      "end": {
+        "done": "end of circuit",
+        "END": "stage ended",
+        "maxSteps": "instruction limit reached",
+        "error": "execution error"
+      },
+      "measure": "{q} → {b}",
+      "branch": "classical branch taken",
+      "syndrome": "syndrome",
+      "none": "No measurements yet."
+    },
+    "trace": {
+      "gate": "{g} {q}",
+      "noise": "error {e} on {q}"
+    },
+    "lab": {
+      "run": "Run once",
+      "runN": "Run N trials",
+      "verify": "Verify",
+      "verifying": "Verifying…",
+      "verified": "Criterion met on the full test suite.",
+      "notVerified": "Criterion not met.",
+      "stop": "Stop",
+      "running": "Running…",
+      "seed": "seed",
+      "newSeed": "New seed",
+      "reference": "Reference solution",
+      "analysis": "Post-run analysis",
+      "textPane": "Text view",
+      "controls": "Run controls",
+      "record": "Classical record",
+      "observable": "observable",
+      "veilCaption": "state not observable during execution",
+      "judgedByOracle": "Pass or fail is judged by the simulator against the ideal state: a check an experiment would perform by tomography over many runs.",
+      "pass": "pass",
+      "fail": "fail",
+      "score": "Score",
+      "trials": "trials",
+      "stepOf": "step {k} of {n}",
+      "mcProgress": "{d} of {n} trials · {f} failures",
+      "mcResult": "p_L = {rate}, 95% Wilson interval [{lo}, {hi}], {f} failures in {n} trials.",
+      "mcCaption": "Seeded Monte Carlo: seed {seed}. Same seed, same numbers.",
+      "completed": "Exercise {id} complete.",
+      "next": "Next: {id}",
+      "pb": {
+        "first": "First step",
+        "prev": "Previous step",
+        "play": "Play",
+        "next": "Next step",
+        "last": "Last step"
+      },
+      "failReason": {
+        "woke": "a data qubit was measured directly",
+        "wrong-dream": "fidelity below the criterion",
+        "wrong-report": "reported parity is wrong",
+        "maxSteps": "instruction limit reached",
+        "error": "execution error"
+      }
+    },
+    "score": {
+      "gates": "gates",
+      "depth": "depth",
+      "ancillas": "ancillas",
+      "measurements": "measurements",
+      "ler": "logical error rate",
+      "trials": "trials",
+      "seed": "suite seed",
+      "nightSeed": "trial seed",
+      "noise": "noise"
+    },
+    "analysis": {
+      "title": "Post-run analysis",
+      "back": "Back",
+      "trace": "Execution trace",
+      "noiseRevealed": "noise revealed",
+      "input": "input",
+      "errors": "errors",
+      "noErrors": "no errors",
+      "scrub": "Step through the run"
+    },
+    "export": {
+      "qiskit": "Download Qiskit",
+      "qasm3": "Download OpenQASM 3",
+      "copyQiskit": "Copy Qiskit",
+      "copyQasm3": "Copy OpenQASM 3",
+      "json": "JSON",
+      "csv": "CSV",
+      "copyCsv": "Copy CSV"
+    },
+    "archive": {
+      "title": "Archive",
+      "sub": "Every run you made, with its seed. Any run can be replayed exactly.",
+      "empty": "No runs yet.",
+      "clear": "Clear archive",
+      "clearConfirm": "Delete every archived run?",
+      "sweepPts": "{n} points",
+      "col": {
+        "time": "time",
+        "level": "exercise",
+        "kind": "kind",
+        "seed": "seed",
+        "result": "result",
+        "gates": "gates",
+        "depth": "depth",
+        "ancillas": "ancillas",
+        "export": "export"
+      },
+      "kind": {
+        "single": "single run",
+        "mc": "Monte Carlo",
+        "sweep": "sweep"
+      }
+    },
+    "chart": {
+      "p": "physical error rate p",
+      "ler": "logical error rate p_L",
+      "trials": "trials"
+    },
+    "common": {
+      "back": "Back",
+      "cancel": "Cancel",
+      "copied": "Copied.",
+      "copyFailed": "Copy failed."
+    },
+    "editor": {
+      "palette": "Gate palette",
+      "gridLabel": "Circuit: wires by time steps",
+      "textLabel": "Circuit as text",
+      "fixed": "fixed",
+      "noise": "noise",
+      "cursor": "{stage}, column {col}, wire {q}",
+      "placed": "{gate} placed on {q}",
+      "deleted": "{n} deleted",
+      "selected": "{n} selected",
+      "toolArmed": "{gate} ready: choose a wire",
+      "pickTarget": "Choose the target wire",
+      "targetSet": "Target set",
+      "occupied": "That cell is occupied",
+      "cantMove": "Cannot move there",
+      "delete": "Delete",
+      "undo": "Undo",
+      "redo": "Redo",
+      "undone": "Undone",
+      "redone": "Redone",
+      "condition": "Condition",
+      "condTitle": "Apply only when",
+      "condAny": "any",
+      "condApply": "Apply",
+      "ifNeedsGate": "Select a gate first, then add a condition",
+      "line": "line {n}",
+      "err": {
+        "notInToolbox": "{gate} is not available in this exercise.",
+        "resetData": "Reset is for ancillas; {q} is a data qubit.",
+        "noWire": "{gate} refers to a wire that does not exist.",
+        "unknownWire": "Unknown wire: {w}",
+        "syntax": "Cannot read: {s}",
+        "twoArgs": "{g} needs two qubits.",
+        "sameWire": "Control and target must be different qubits.",
+        "bitName": "Measurement of {q} must be stored in c_{q}, not {b}.",
+        "unknownGate": "Unknown gate: {g}",
+        "cond": "Cannot read the condition: {s}",
+        "stageLocked": "Stage {s} is fixed in this exercise.",
+        "noLabel": "No label called {l}."
+      }
+    },
+    "settings": {
+      "title": "Settings",
+      "lecture": "Lecture mode",
+      "lectureHelp": "Large type for projectors.",
+      "motion": "Motion",
+      "motionAuto": "follow system",
+      "motionFull": "full",
+      "motionReduced": "reduced",
+      "webgl": "WebGL scenes",
+      "webglHelp": "When off or unavailable, the same data is drawn in 2D.",
+      "locale": "Language",
+      "theme": "Theme",
+      "themeDefault": "default",
+      "skipLoader": "Short loading sequence",
+      "skipLoaderHelp": "Skip the ceremony; the real stages still load.",
+      "replayOrientation": "Replay orientation",
+      "reloadNote": "Takes effect on next entry.",
+      "reset": "Reset module progress",
+      "resetConfirm": "Reset all Technical Aficionado progress? The classic game is not affected."
+    }
+  }
+}

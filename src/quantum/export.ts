@@ -29,7 +29,7 @@ type Lit = { bit: Bit; val: 0 | 1 };
 type CondX = { terms: Lit[][] };
 type Item =
   | { k: 'c'; text: string }
-  | { k: 'g'; g: 'x' | 'y' | 'z' | 'h' | 'cx' | 'rx' | 'rz' | 'ry' | 'p'; q: number[]; param?: number }
+  | { k: 'g'; g: 'x' | 'y' | 'z' | 'h' | 'cx' | 'rx' | 'rz' | 'ry' | 'p' | 's' | 'sdg' | 'cz' | 'swap'; q: number[]; param?: number }
   | { k: 'm'; q: number; bit: Bit }
   | { k: 'reset'; q: number }
   | { k: 'if'; cond: CondX; body: Item[] };
@@ -101,11 +101,16 @@ function executedCircuit(level: LevelDef, night: NightResult, o: ExportOptions, 
         else items.push({ k: 'g', g: ev.op === 'BOOP' ? 'x' : ev.op === 'SHUSH' ? 'z' : 'h', q: [qi(ev.t)] });
         break;
       }
+      case 'xgate': {
+        const g = ({ Y: 'y', S: 's', SDG: 'sdg', CZ: 'cz', SWAP: 'swap' } as const)[ev.op];
+        items.push({ k: 'g', g, q: ev.from ? [qi(ev.from), qi(ev.t)] : [qi(ev.t)] });
+        break;
+      }
       case 'measure': {
         const n = counts.get(ev.t) ?? 0; counts.set(ev.t, n + 1);
         lights.set(ev.t, ev.result);
         const verb = isBot(ev.t) ? 'LISTEN' : 'PEEK';
-        items.push({ k: 'c', text: `${verb} ${ev.t} -> ${ev.result ? 'BEEP' : 'QUIET'} (${ev.result}) this night${ev.woke ? ' - WOKE a Qubble!' : ''}` });
+        items.push({ k: 'c', text: `${verb} ${ev.t} -> ${ev.result ? 'BEEP' : 'QUIET'} (${ev.result}) this night${ev.woke ? ' - WOKE a Qubble!' : ''}${ev.flipped ? ` - readout error (true outcome ${ev.result ^ 1})` : ''}` });
         items.push({ k: 'm', q: qi(ev.t), bit: { reg: regName(ev.t), idx: n } });
         break;
       }
@@ -176,6 +181,7 @@ function dynamicCircuit(level: LevelDef, night: NightResult, o: ExportOptions): 
   const G = new Guards();
   const counts = new Map<string, number>();
   const lastMeas = new Map<string, Bit>();
+  let waits = 0;
   // flat list of (guard, item) — grouped into if-blocks at the end
   const flat: { g: Uint8Array | null; it: Item }[] = inp.items.map(it => ({ g: null, it }));
 
@@ -201,6 +207,18 @@ function dynamicCircuit(level: LevelDef, night: NightResult, o: ExportOptions): 
           case 'BOOP': case 'SHUSH': case 'SPIN':
             push({ k: 'g', g: op.op === 'BOOP' ? 'x' : op.op === 'SHUSH' ? 'z' : 'h', q: [qi(op.t)] }); break;
           case 'HIGHFIVE': push({ k: 'g', g: 'cx', q: [qi(op.from), qi(op.to)] }); break;
+          case 'Y': push({ k: 'g', g: 'y', q: [qi(op.t)] }); break;
+          case 'S': push({ k: 'g', g: 's', q: [qi(op.t)] }); break;
+          case 'SDG': push({ k: 'g', g: 'sdg', q: [qi(op.t)] }); break;
+          case 'CZ': push({ k: 'g', g: 'cz', q: [qi(op.from), qi(op.to)] }); break;
+          case 'SWAP': push({ k: 'g', g: 'swap', q: [qi(op.from), qi(op.to)] }); break;
+          case 'WAIT': {
+            if (isZero(g)) break;
+            if (!isOne(g)) return `${where}: WAIT runs only on some paths`;
+            waits++;
+            for (const e of night.errors) if (e.round === waits) for (const it of errorItems(e, qi, include)) flat.push({ g: null, it });
+            break;
+          }
           case 'RESET': push({ k: 'reset', q: qi(op.t) }); break;
           case 'LISTEN': case 'PEEK': {
             if (isZero(g)) break;
@@ -243,9 +261,11 @@ function dynamicCircuit(level: LevelDef, night: NightResult, o: ExportOptions): 
     }
     if (phase === 'bedtime') {
       flat.push({ g: null, it: { k: 'c', text: '---- night ----' } });
-      for (const e of night.errors) for (const it of errorItems(e, qi, include)) flat.push({ g: null, it });
+      for (const e of night.errors) if (!e.round) for (const it of errorItems(e, qi, include)) flat.push({ g: null, it });
     }
   }
+  const late = night.errors.filter(e => (e.round ?? 0) > waits);
+  for (const e of late) for (const it of errorItems(e, qi, include)) flat.push({ g: null, it });
   // expand stale guards (created before later vars were added) and group equal consecutive guards
   const full = (a: Uint8Array) => { if (a.length === G.size) return a; const n = new Uint8Array(G.size); for (let i = 0; i < G.size; i++) n[i] = a[i % a.length]; return n; };
   const items: Item[] = [];
@@ -261,6 +281,7 @@ function dynamicCircuit(level: LevelDef, night: NightResult, o: ExportOptions): 
       ...baseHeader(level, night, inp.desc, include),
       'DYNAMIC CIRCUIT: the program itself, with its IF blocks as classically-controlled gates',
       '(mid-circuit measurement + feed-forward). Each m_<bot>[k] is the k-th LISTEN of that bot.',
+      ...((night as { readoutFlips?: unknown[] }).readoutFlips?.length ? ['Readout errors of this night (classical bit flips) are not representable here.'] : []),
     ],
     qubits, regs: [...counts].map(([w, n]) => ({ name: regName(w), size: n })), items,
   };

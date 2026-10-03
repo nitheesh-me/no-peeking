@@ -27,6 +27,7 @@ const DUR = (ev: TraceEvent): number => {
     case 'line': return 0.14;
     case 'phase': return ev.phase === 'night' ? 1.0 : 0.7;
     case 'gate': return ev.op === 'HIGHFIVE' ? 1.15 : 1.0;
+    case 'xgate': return 1.0; // DLC gates (never in classic levels)
     case 'measure': return 1.05;
     case 'noise': return 1.7;
     case 'jump': return ev.taken ? 0.4 : 0.22;

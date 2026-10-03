@@ -15,6 +15,9 @@ export const isQubble = (id: string): id is QubbleId => /^q\d+$/.test(id);
 export type OpName =
   | 'BOOP' | 'SHUSH' | 'SPIN' | 'HIGHFIVE' | 'LISTEN' | 'RESET' | 'PEEK'
   | 'IF' | 'JUMP' | 'LABEL' | 'END' | 'NOTE';
+/** Technical Aficionado DLC ops (never in classic toolboxes): Y, S, S†, CZ, SWAP gates and a noise-round marker. */
+export type DlcOpName = 'Y' | 'S' | 'SDG' | 'CZ' | 'SWAP' | 'WAIT';
+export type AnyOpName = OpName | DlcOpName;
 
 export type Cond = { who: QubitId; is: 'BEEP' | 'QUIET' }; // BEEP = last measured 1, QUIET = 0 (unmeasured counts as QUIET)
 
@@ -30,7 +33,11 @@ export type Op =
   | { op: 'JUMP'; label: string }
   | { op: 'LABEL'; name: string }
   | { op: 'END' }
-  | { op: 'NOTE'; text: string; drawing?: string }; // drawing = SVG path data in a 0..100 × 0..40 box (doodle comment)
+  | { op: 'NOTE'; text: string; drawing?: string } // drawing = SVG path data in a 0..100 × 0..40 box (doodle comment)
+  // ── DLC additions (additive; see docs/QUANTUM_NOTES.md) ──
+  | { op: 'Y' | 'S' | 'SDG'; t: QubitId }        // Y = [[0,−i],[i,0]] · S = diag(1, i) · S† = diag(1, −i)
+  | { op: 'CZ' | 'SWAP'; from: QubitId; to: QubitId } // controlled-Z (symmetric) · SWAP
+  | { op: 'WAIT' };                               // one noise round: errors with round = k strike at the k-th WAIT
 
 export type Program = Op[];
 export type Phase = 'bedtime' | 'night' | 'morning';
@@ -43,18 +50,26 @@ export type InputState =
   | 'random';                        // Haar-random each night (seeded)
 
 export type GremlinKind = 'flip' | 'phase' | 'wobble' | 'both';
-/** One concrete error event applied during the NIGHT phase. */
+/** One concrete error event applied during the NIGHT phase (round 0/absent) or at the k-th WAIT (round k ≥ 1, DLC). */
 export type ErrorEvent =
-  | { kind: 'flip'; t: QubbleId }                 // X
-  | { kind: 'phase'; t: QubbleId }                // Z
-  | { kind: 'both'; t: QubbleId }                 // Y (up to phase)
-  | { kind: 'wobble'; t: QubbleId; axis: 'x' | 'z'; angle: number }; // exp(-i angle/2 σ)
+  | { kind: 'flip'; t: QubbleId; round?: number }                 // X
+  | { kind: 'phase'; t: QubbleId; round?: number }                // Z
+  | { kind: 'both'; t: QubbleId; round?: number }                 // Y (up to phase)
+  | { kind: 'wobble'; t: QubbleId; axis: 'x' | 'z'; angle: number; round?: number }; // exp(-i angle/2 σ)
 
 export type NoiseSpec =
   | { mode: 'none' }
   | { mode: 'fixed'; errors: ErrorEvent[] }                         // same every night
-  | { mode: 'enumerate'; kinds: GremlinKind[]; maxErrors: 0 | 1 | 2; targets?: QubbleId[]; wobbleAngles?: number[]; wobbleAxis?: 'x' | 'z' } // every combination as separate test nights
-  | { mode: 'random'; p: number; kinds: GremlinKind[] };            // iid per qubble per night
+  | { mode: 'enumerate'; kinds: GremlinKind[]; maxErrors: 0 | 1 | 2; targets?: QubbleId[]; wobbleAngles?: number[]; wobbleAxis?: 'x' | 'z';
+      /** DLC: noise rounds (default 1). Single errors are enumerated in every round 0..rounds-1 (round k ≥ 1 strikes at the k-th WAIT). */
+      rounds?: number;
+      /** DLC: also test every single LISTEN readout flip (no data error) as its own night. */
+      readout?: boolean } // every combination as separate test nights
+  | { mode: 'random'; p: number; kinds: GremlinKind[];
+      /** DLC: probability that each LISTEN reports the wrong bit (the state still collapses to the true outcome). Default 0. */
+      readoutFlip?: number;
+      /** DLC: independent noise rounds per night (default 1); round k ≥ 1 strikes at the k-th WAIT. */
+      rounds?: number };            // iid per qubble per night
 
 // ───────────────────────── Levels ─────────────────────────
 export interface Placement { id: QubitId; x: number; y: number } // iso grid coords (tiles), origin top
@@ -80,7 +95,7 @@ export interface LevelDef {
   signs?: WallSign[];
   classical?: boolean;        // Ch0 bit-balls: peeking allowed and expected
   allowPeekData?: boolean;    // default false unless classical
-  toolbox: OpName[];
+  toolbox: AnyOpName[];      // classic levels only use OpName; DLC levels may add DlcOpName
   /** Panels the player edits. Phases not listed run the level's fixed program (or nothing). */
   editable: ('bedtime' | 'morning')[];
   fixedBedtime?: Program;     // if bedtime not editable (e.g. pre-encoding)
@@ -106,6 +121,11 @@ export interface LevelDef {
   /** Intentionally-wrong programs that MUST fail (verifies the lesson bites). */
   traps?: { name: string; bedtime?: Program; morning?: Program }[];
   lightsOut?: boolean;        // 4-2
+  /** DLC: LISTEN readout-flip probability for every night of this level (overrides noise.readoutFlip). Default 0. */
+  readoutFlip?: number;
+  /** DLC: the code's stabilizer generators as I/X/Z strings over the data qubits in placement order (e.g. 'XZZXI');
+   *  NerdInfo.stabilizers then reports exactly these (ahead of the classic ZZ/XX/Shor auto-detection). */
+  stabilizers?: string[];
 }
 export type Speaker = 'schrodi' | 'flipper' | 'phasey' | 'wobbles' | 'qubble' | 'eye' | 'system';
 export interface DialogueLine { who: Speaker; text: string; mood?: 'deadpan' | 'smug' | 'shock' | 'happy' | 'sleepy' }
@@ -150,7 +170,10 @@ export type TraceEvent =
   | { k: 'phase'; phase: Phase }
   | { k: 'line'; phase: Phase; pc: number; part?: 'fixed' | 'mine' } // pc indexes into that part's program
   | { k: 'gate'; op: 'BOOP' | 'SHUSH' | 'SPIN' | 'HIGHFIVE' | 'RESET'; t: QubitId; from?: QubitId }
-  | { k: 'measure'; t: QubitId; result: 0 | 1; woke: boolean } // woke = data qubble measured in no-peek level
+  /** DLC gates (separate kind so classic playback tables stay exhaustive). CZ/SWAP: from + t. */
+  | { k: 'xgate'; op: 'Y' | 'S' | 'SDG' | 'CZ' | 'SWAP'; t: QubitId; from?: QubitId }
+  /** result = the REPORTED bit (what the light/IF sees). flipped = a readout error made it differ from the collapsed state (DLC). */
+  | { k: 'measure'; t: QubitId; result: 0 | 1; woke: boolean; flipped?: boolean } // woke = data qubble measured in no-peek level
   | { k: 'jump'; to: number; taken: boolean }
   | { k: 'noise'; e: ErrorEvent }
   | { k: 'end'; reason: 'done' | 'END' | 'maxSteps' | 'error'; message?: string };

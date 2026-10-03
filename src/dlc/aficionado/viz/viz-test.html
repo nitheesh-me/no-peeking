@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Aficionado viz test</title>
+<style>
+  html, body { margin: 0; background: #070a16; }
+  .afi-root { padding: 16px; }
+  h2 { font: 12px/1 ui-monospace, monospace; letter-spacing: .1em; color: #5b6694; margin: 22px 0 8px; text-transform: uppercase; }
+  .host { position: relative; height: 440px; }
+  .host.tall { height: 560px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .bar { position: sticky; top: 0; z-index: 9; display: flex; gap: 8px; padding: 8px 0; background: #070a16; flex-wrap: wrap; }
+  body.solo .afi-root { padding: 0; } body.solo h2, body.solo .bar { display: none; } body.solo .host { height: 100vh; }
+</style>
+</head>
+<body>
+<div class="afi-root" id="root"></div>
+<script type="module">
+  import { registerPack } from '/src/i18n/index.ts';
+  import strings from './test/strings.en.json';
+  import { quantum } from '/src/quantum/index.ts';
+  import { getLevel } from '/src/levels/index.ts';
+  registerPack('en', strings);
+  const qs = new URLSearchParams(location.search);
+  const only = qs.get('only');
+  const rmode = qs.has('rm');
+  const nogl = qs.has('nogl');
+  const root = document.getElementById('root');
+  if (qs.has('lecture')) root.classList.add('afi-lecture');
+  if (only) document.body.classList.add('solo');
+  const bar = document.createElement('div'); bar.className = 'bar'; root.appendChild(bar);
+  const btn = (label, fn) => { const b = document.createElement('button'); b.className = 'afi-viz-btn'; b.textContent = label; b.onclick = fn; bar.appendChild(b); return b; };
+  const section = (id, title, cls = '') => {
+    if (only && only !== id) return null;
+    const h = document.createElement('h2'); h.textContent = title; root.appendChild(h);
+    const d = document.createElement('div'); d.className = 'host ' + cls; d.id = 'h-' + id; root.appendChild(d); return d;
+  };
+  const base = { reducedMotion: rmode, webgl: !nogl };
+  window.__viz = {};
+  const night = (id, prog, input, errors, seed = 7) => quantum.runNight(getLevel(id), prog ?? getLevel(id).solution, input, errors, seed, { nerd: true });
+  window.__night = night;
+  const go = async (id, fn) => { try { await fn(); } catch (e) { console.error(id, e); const h = document.getElementById('h-' + id); if (h) h.textContent = 'ERROR ' + e.message; } };
+
+  // 1 loading circuit
+  let h = section('loading', '1 · loading circuit');
+  if (h) await go('loading', async () => {
+    const { createLoadingCircuit, sampleLoadingOutcomes } = await import('./loadingCircuit.ts');
+    const stages = [{ label: 'dlc core' }, { label: 'three.js' }, { label: 'd3' }, { label: 'shaders · fonts' }, { label: 'content pack' }, { label: 'level data' }];
+    const run = async () => {
+      h.innerHTML = '';
+      const lc = createLoadingCircuit(h, stages, base);
+      window.__viz.loading = lc;
+      const sizes = [48211, 612400, 281300, 18800, 9100, 22400];
+      const stopAt = qs.has('partial') ? 3 : 6;
+      for (let i = 0; i < stopAt; i++) { lc.stageStart(i); await new Promise((r) => setTimeout(r, qs.has('fast') ? 60 : 500)); lc.stageDone(i, sizes[i]); }
+      if (stopAt < 6) { lc.stageStart(stopAt); return; }
+      await lc.finish(sampleLoadingOutcomes(stages.length));
+    };
+    btn('replay loading', run);
+    run();
+  });
+
+  // 2 orientation
+  h = section('orientation', '2 · orientation', 'tall');
+  if (h) await go('orientation', async () => {
+    const { playOrientation } = await import('./orientation.ts');
+    const run = () => { window.__viz.orientation?.destroy(); h.innerHTML = ''; const o = playOrientation(h, { ...base, durationMs: +(qs.get('dur') ?? 18000) }); window.__viz.orientation = o; o.done.then(() => console.log('orientation done')); };
+    btn('replay orientation', run);
+    run();
+  });
+
+  // realistic data: 2-3 (bit-flip code, flip on q2), input |+⟩
+  const n23 = night('2-3', undefined, 'plus', [{ kind: 'flip', t: 'q2' }]);
+  const steps23 = n23.steps.map((s) => s.snap.nerd).filter(Boolean);
+  window.__n23 = n23;
+
+  h = section('statespace', '3 · state space (2-3, flip on q2)', 'tall');
+  if (h) await go('statespace', async () => {
+    const { createStateSpace } = await import('./stateSpace.ts');
+    const v = createStateSpace(h, { ...base, veiled: qs.has('veiled') });
+    window.__viz.statespace = v;
+    let i = qs.has('step') ? +qs.get('step') : steps23.length - 1;
+    v.update(steps23[i]);
+    btn('ss: prev', () => v.update(steps23[i = Math.max(0, i - 1)]));
+    btn('ss: next', () => v.update(steps23[i = Math.min(steps23.length - 1, i + 1)]));
+    btn('ss: veil', () => v.setVeiled(true));
+    btn('ss: lift veil', () => v.setVeiled(false));
+  });
+
+  h = section('bloch', '4 · Bloch field');
+  if (h) await go('bloch', async () => {
+    const { createBlochField } = await import('./blochField.ts');
+    const v = createBlochField(h, { ...base, braid: true });
+    window.__viz.bloch = v;
+    // 1-3: CNOT on |+>|0> gives I = 2 bits (braid)
+    let bs = [];
+    for (const id of ['1-3', '1-4', '2-1', '1-2']) { const lv = getLevel(id); if (!lv) continue; const st = night(id, undefined, 'plus', []).steps.map((s) => s.snap.nerd).filter(Boolean); const k = st.findIndex((n) => n.mi.some((r, i) => r.some((v, j) => i !== j && v > 1.99))); if (k >= 0) { bs = st.slice(0, k + 1); console.log('bell from', id, k); break; } }
+    if (!bs.length) bs = steps23;
+    const which = qs.get('data') ?? 'bell';
+    v.update(which === 'bell' ? bs[bs.length - 1] : steps23[+(qs.get('step') ?? 6)]);
+    btn('bloch: bell', () => v.update(bs[bs.length - 1]));
+    btn('bloch: 2-3 mid', () => v.update(steps23[6]));
+  });
+
+  h = section('tiling', '5 · stabilizer tiling');
+  if (h) await go('tiling', async () => {
+    const { createStabilizerTiling } = await import('./stabilizerTiling.ts');
+    h.style.display = 'grid'; h.style.gridTemplateColumns = '1fr 1fr 1fr'; h.style.gap = '12px';
+    const mk = () => { const d = document.createElement('div'); d.style.position = 'relative'; h.appendChild(d); return d; };
+    const a = createStabilizerTiling(mk(), { ...base });
+    const mid = steps23.find((s) => s.stabilizers.some((x) => x.value < -0.5)) ?? steps23[steps23.length - 1];
+    a.update({ stabilizers: mid.stabilizers, generators: ['ZZI', 'IZZ'] });
+    const shor = night('4-1', undefined, 'plus', [{ kind: 'phase', t: 'q5' }]);
+    const ss = shor.steps.map((s) => s.snap.nerd).filter(Boolean);
+    const smid = ss.find((s) => s.stabilizers.some((x) => x.value < -0.5)) ?? ss[ss.length - 1];
+    const b = createStabilizerTiling(mk(), { ...base });
+    b.update({ stabilizers: smid.stabilizers, generators: ['ZZIIIIIII', 'IZZIIIIII', 'IIIZZIIII', 'IIIIZZIII', 'IIIIIIZZI', 'IIIIIIIZZ', 'XXXXXXIII', 'IIIXXXXXX'] });
+    const { SURFACE_D3 } = await import('./codes.ts');
+    const c = createStabilizerTiling(mk(), { ...base, layout: 'surface' });
+    c.update({ generators: SURFACE_D3.stabilizers.map((s) => s.pauli), values: (await import('./codes.ts')).syndromeOf(SURFACE_D3.stabilizers.map((s) => s.pauli), [{ q: 5, kind: 'X' }, { q: 3, kind: 'Z' }]) });
+    window.__viz.tiling = { a, b, c, smid, mid };
+  });
+
+  h = section('lattice', '6 · surface-code lattice (finale)', 'tall');
+  if (h) await go('lattice', async () => {
+    const { createSurfaceLattice } = await import('./lattice.ts');
+    const v = createSurfaceLattice(h, { ...base });
+    window.__viz.lattice = v;
+    v.update({ errors: [{ q: 5, kind: 'X' }], showLogicals: true });
+    btn('lattice: X on q5', () => v.update({ errors: [{ q: 5, kind: 'X' }], showLogicals: true }));
+    btn('lattice: Z on q1', () => v.update({ errors: [{ q: 1, kind: 'Z' }], showLogicals: true }));
+    btn('lattice: logical X', () => v.update({ errors: [{ q: 1, kind: 'X' }, { q: 4, kind: 'X' }, { q: 7, kind: 'X' }], logical: 'X', showLogicals: true }));
+  });
+
+  h = section('charts', '7 · charts', 'tall');
+  if (h) await go('charts', async () => {
+    const ch = await import('./charts.ts');
+    h.style.display = 'grid'; h.style.gridTemplateColumns = '1fr 1fr'; h.style.gridTemplateRows = '1fr 1fr'; h.style.gap = '12px';
+    const mk = () => { const d = document.createElement('div'); d.style.position = 'relative'; d.style.minHeight = '0'; h.appendChild(d); return d; };
+    // threshold: Monte Carlo over 2-5-like random flips is the Quantum Expert's; here an exact repetition-code curve sampled with binomial noise (test fixture)
+    let s = 12345; const rnd = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+    const ps = [0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5];
+    const sim = (pl, n) => { let f = 0; for (let i = 0; i < n; i++) if (rnd() < pl) f++; return f; };
+    const series = [
+      { name: 'unencoded', points: ps.map((p) => ({ p, trials: 2000, failures: sim(p, 2000) })) },
+      { name: '[[3,1,1]] bit-flip', points: ps.map((p) => ({ p, trials: 2000, failures: sim(3 * p * p - 2 * p ** 3, 2000) })) },
+    ];
+    const t1 = ch.createThresholdChart(mk(), base); t1.update({ series });
+    // histogram: 2-3 final data measurement in Z basis: Born from final amplitudes; counts sampled
+    const fin = steps23[steps23.length - 1];
+    const probs = {}; for (const a of fin.amps) { const k = a.ket.slice(0, 3); probs[k] = (probs[k] ?? 0) + a.re * a.re + a.im * a.im; }
+    const counts = {}; const keys = Object.keys(probs); for (let i = 0; i < 1000; i++) { let r = rnd(); for (const k of keys) { r -= probs[k]; if (r < 0) { counts[k] = (counts[k] ?? 0) + 1; break; } } }
+    const t2 = ch.createHistogram(mk(), base); t2.update({ counts, expected: probs, shots: 1000, label: 'q₁q₂q₃' });
+    const bell = night('1-3', undefined, 'plus', []); const bn = bell.steps.map((x) => x.snap.nerd).filter(Boolean);
+    const t3 = ch.createMIHeatmap(mk(), base); t3.update(steps23[6]);
+    const rounds = Array.from({ length: 12 }, (_, r) => [r >= 4 && r < 7 ? 1 : 0, r >= 4 && r < 9 ? 1 : (rnd() < 0.08 ? 1 : 0)]);
+    const t4 = ch.createSyndromeRaster(mk(), base); t4.update({ ancillas: ['a (Z₁Z₂)', 'b (Z₂Z₃)'], rounds });
+    window.__viz.charts = { t1, t2, t3, t4 };
+  });
+
+  h = section('freeze', '8 · projection freeze (3-3, coherent X rotation on q2)', 'tall');
+  if (h) await go('freeze', async () => {
+    const { createProjectionFreeze } = await import('./projectionFreeze.ts');
+    const n33 = night('3-3', undefined, 'zero', [{ kind: 'wobble', t: 'q2', axis: 'x', angle: 1.0 }], 3);
+    const steps = n33.steps.filter((s) => s.snap.nerd).map((s) => ({ nerd: s.snap.nerd, ev: s.ev }));
+    const v = createProjectionFreeze(h, { ...base });
+    v.update({ steps, subsystem: ['q1', 'q2', 'q3'] });
+    window.__viz.freeze = v;
+  });
+  window.__ready = true;
+</script>
+</body>
+</html>

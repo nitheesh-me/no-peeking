@@ -44,6 +44,12 @@ export interface RunOptions {
   noSnapCache?: boolean;
   /** Fill Snapshot.nerd (NerdInfo) on every snapshot (requires snapshots). Default false. */
   nerd?: boolean;
+  /** DLC: LISTEN readout-flip probability (overrides level.readoutFlip / noise.readoutFlip). */
+  readoutFlip?: number;
+  /** DLC: deterministic readout faults: the nth (1-based) LISTEN of bot t reports the wrong bit. */
+  readoutFlips?: { t: BotId; nth: number }[];
+  /** DLC: NerdInfo.stabilizers = these generators (I/X/Z strings in Qubble order; no Y) instead of the classic ZZ/XX/Shor set */
+  stabilizers?: string[];
 }
 
 export const EMPTY_SNAPSHOT: Snapshot = Object.freeze({ bloch: {} as Record<QubitId, Bloch>, links: [], amps: [], lights: {} }) as Snapshot;
@@ -115,7 +121,8 @@ export function enumerateErrors(level: LevelDef): ErrorEvent[][] {
   const axes = wobbleAxes(noise);
   const per = targets.map(t => eventsFor(t, noise.kinds, angles, axes));
   const cases: ErrorEvent[][] = [[]];
-  if (noise.maxErrors >= 1) for (const evs of per) for (const e of evs) cases.push([e]);
+  // DLC rounds: single errors in every round 0..rounds-1 (pairs stay in round 0)
+  if (noise.maxErrors >= 1) for (let r = 0; r < (noise.rounds ?? 1); r++) for (const evs of per) for (const e of evs) cases.push([r ? { ...e, round: r } : e]);
   if (noise.maxErrors >= 2)
     for (let i = 0; i < per.length; i++) for (let j = i + 1; j < per.length; j++)
       for (const e1 of per[i]) for (const e2 of per[j]) cases.push([e1, e2]);
@@ -129,11 +136,12 @@ export function randomErrors(level: LevelDef, rng: Rng): ErrorEvent[] {
   const targets = ((noise as { targets?: QubbleId[] }).targets) ?? level.qubbles.map(p => p.id as QubbleId).filter(isQubble);
   const axes = wobbleAxes(noise);
   const out: ErrorEvent[] = [];
-  for (const t of targets) {
+  for (let r = 0; r < (noise.rounds ?? 1); r++) for (const t of targets) {
     if (rng() >= noise.p) continue;
     const k = noise.kinds[Math.floor(rng() * noise.kinds.length)];
-    if (k === 'wobble') out.push({ kind: 'wobble', t, axis: axes[Math.floor(rng() * axes.length)], angle: Math.PI * rng() });
-    else out.push({ kind: k, t });
+    const e: ErrorEvent = k === 'wobble' ? { kind: 'wobble', t, axis: axes[Math.floor(rng() * axes.length)], angle: Math.PI * rng() } : { kind: k, t };
+    if (r > 0) e.round = r;
+    out.push(e);
   }
   return out;
 }
@@ -144,13 +152,18 @@ export type Target =
   | { kind: 'pure'; ids: string[]; re: Float64Array; im: Float64Array }
   | { kind: 'mixed1'; ids: string[]; bloch: Bloch };
 
+/** DLC gates Y, S, S†, CZ, SWAP. */
+const dlcGate = (s: QState, o: Extract<Op, { op: 'Y' | 'S' | 'SDG' | 'CZ' | 'SWAP' }>) =>
+  'from' in o ? (o.op === 'CZ' ? s.cz(o.from, o.to) : s.swap(o.from, o.to)) : o.op === 'Y' ? s.y(o.t) : s.s(o.t, o.op === 'SDG');
+
 function applyUnitaryOp(s: QState, o: Op, where: string): void {
   switch (o.op) {
     case 'BOOP': s.x(o.t); break;
     case 'SHUSH': s.z(o.t); break;
     case 'SPIN': s.h(o.t); break;
     case 'HIGHFIVE': s.cnot(o.from, o.to); break;
-    case 'NOTE': case 'LABEL': break;
+    case 'Y': case 'S': case 'SDG': case 'CZ': case 'SWAP': dlcGate(s, o); break;
+    case 'NOTE': case 'LABEL': case 'WAIT': break;
     default: throw new Error(`${where}: only BOOP/SHUSH/SPIN/HIGHFIVE allowed, got ${o.op}`);
   }
 }
@@ -286,6 +299,8 @@ export interface NightResultX extends NightResult {
   message?: string;
   /** largest number of live qubits in the state vector during this night (perf diagnostic) */
   maxLiveQubits: number;
+  /** DLC: LISTENs whose reported bit was flipped by readout noise this night */
+  readoutFlips?: { t: BotId; nth: number }[];
 }
 
 export function runNight(
@@ -308,6 +323,13 @@ export function runNight(
   for (const q of ids) lights[q] = null;
   const woke: QubbleId[] = [];
   let stepCount = 0;
+  // DLC readout noise: probability (no RNG draw at all when 0 ⇒ classic nights unchanged) + deterministic faults
+  const pRead = opts.readoutFlip ?? level.readoutFlip ?? (level.noise as { readoutFlip?: number }).readoutFlip ?? 0;
+  const listenCount = new Map<string, number>();
+  const readoutFlipped: { t: BotId; nth: number }[] = [];
+  // DLC noise rounds: round 0 strikes at night, round k ≥ 1 at the k-th WAIT, leftovers after the morning program
+  let waitCount = 0;
+  const strike = (pred: (r: number) => boolean) => { for (const e of errors) if (pred(e.round ?? 0)) { if (!known.has(e.t)) return e.t; applyError(s, e); emit({ k: 'noise', e }); } };
   let message: string | undefined;
 
   let idealTarget: Target | null = null;
@@ -319,7 +341,7 @@ export function runNight(
   let lastSnap: Snapshot = EMPTY_SNAPSHOT;
   const cache = new SnapCache();
   const record: { who: QubitId; bit: 0 | 1 }[] = [];
-  const nerdStabs = wantSnaps && opts.nerd ? stabilizerSet(level) : null;
+  const nerdStabs = wantSnaps && opts.nerd ? stabilizerSet(level, opts.stabilizers ?? level.stabilizers) : null;
   const withNerd = (snap: Snapshot, useCache: boolean): Snapshot => {
     if (!nerdStabs) return snap;
     const ctx: NerdCtx = { ids, stabs: nerdStabs, record, fidelity: snap.logicalFidelity };
@@ -330,6 +352,7 @@ export function runNight(
   const emit = (ev: TraceEvent, fresh = true) => {
     if (wantSnaps && fresh) {
       if (ev.k === 'gate') cache.touch(ev.op === 'HIGHFIVE' ? { pair: [ev.from!, ev.t] } : ev.op === 'RESET' ? 'all' : { local: [ev.t] });
+      else if (ev.k === 'xgate') cache.touch(ev.from ? { pair: [ev.from, ev.t] } : { local: [ev.t] });
       else if (ev.k === 'noise') cache.touch({ local: [ev.e.t] });
       else cache.touch('all');
       lastSnap = withNerd(snapshot(s, ids, lights, idealTarget, opts.topAmps, opts.noSnapCache ? undefined : cache), !opts.noSnapCache);
@@ -367,6 +390,14 @@ export function runNight(
             emit({ k: 'gate', op: 'HIGHFIVE', t: o.to, from: o.from });
             break;
           }
+          case 'Y': case 'S': case 'SDG': case 'CZ': case 'SWAP': {
+            const two = 'from' in o, e = two ? chk(o.from) ?? chk(o.to) : chk(o.t); if (e) return fail(e);
+            if (two && o.from === o.to) return fail(`${o.op} needs two different qubits`);
+            dlcGate(s, o);
+            emit(two ? { k: 'xgate', op: o.op, t: o.to, from: o.from } : { k: 'xgate', op: o.op, t: o.t });
+            break;
+          }
+          case 'WAIT': { const w = ++waitCount, bad = strike(r => r === w); if (bad) return fail(`noise targets unknown qubble ${bad}`); break; }
           case 'RESET': {
             const e = chk(o.t); if (e) return fail(e);
             if (!isBot(o.t)) return fail(`RESET only works on bots, not ${o.t}`);
@@ -377,12 +408,18 @@ export function runNight(
           case 'LISTEN': case 'PEEK': {
             const e = chk(o.t); if (e) return fail(e);
             if (o.op === 'LISTEN' && !isBot(o.t)) return fail(`LISTEN only works on bots; use PEEK for ${o.t}`);
-            const r = s.measure(o.t, rng);
+            const truth = s.measure(o.t, rng);
+            let r = truth, flipped = false;
+            if (o.op === 'LISTEN') {
+              const nth = (listenCount.get(o.t) ?? 0) + 1; listenCount.set(o.t, nth);
+              flipped = (pRead > 0 && rng() < pRead) !== !!opts.readoutFlips?.some(f => f.t === o.t && f.nth === nth);
+              if (flipped) { r = (truth ^ 1) as 0 | 1; readoutFlipped.push({ t: o.t, nth }); }
+            }
             lights[o.t] = r;
             record.push({ who: o.t, bit: r });
             const isWoke = isQubble(o.t) && !peekOk;
             if (isWoke && !woke.includes(o.t as QubbleId)) woke.push(o.t as QubbleId);
-            emit({ k: 'measure', t: o.t, result: r, woke: isWoke });
+            emit(flipped ? { k: 'measure', t: o.t, result: r, woke: isWoke, flipped } : { k: 'measure', t: o.t, result: r, woke: isWoke });
             break;
           }
           case 'IF': case 'JUMP': {
@@ -415,16 +452,14 @@ export function runNight(
     if (reason === 'END') reason = 'done';
     if (reason === 'done') {
       emit({ k: 'phase', phase: 'night' }, false);
-      for (const e of errors) {
-        if (!known.has(e.t)) { reason = 'error'; message = `noise targets unknown qubble ${e.t}`; break; }
-        applyError(s, e);
-        emit({ k: 'noise', e });
-      }
+      const bad = strike(r => r === 0); if (bad) { reason = 'error'; message = `noise targets unknown qubble ${bad}`; }
     }
     if (reason === 'done' && goal.kind === 'state+report') postNoiseParity = s.parityProb1(goal.report.of);
     if (reason === 'done') {
       emit({ k: 'phase', phase: 'morning' }, false);
       reason = exec(phaseProgram(level, prog, 'morning'), 'morning');
+      // rounds with no matching WAIT still happen (after the program): skipping WAITs never dodges noise
+      if (reason !== 'error' && reason !== 'maxSteps') strike(r => r > waitCount);
     }
   }
   emit({ k: 'end', reason, message }, false);
@@ -475,6 +510,7 @@ export function runNight(
   return {
     input: concreteInput, errors, steps, fidelity, woke, reportOk, pass: !failReason, stepCount, failReason,
     seed, angles, expectedReport, message, maxLiveQubits: s.maxN,
+    ...(readoutFlipped.length ? { readoutFlips: readoutFlipped } : {}),
   };
 }
 
@@ -494,6 +530,14 @@ export function botsReferenced(p: Program): BotId[] {
     if (o.op === 'IF') o.conds.forEach(c => add(c.who));
   }
   return [...s].sort();
+}
+
+/** Every (bot, nth LISTEN) slot, counted statically over both phases' programs (for readout-fault enumeration). */
+export function listenSlots(level: LevelDef, prog: { bedtime?: Program; morning?: Program }): { t: BotId; nth: number }[] {
+  const n = new Map<BotId, number>();
+  for (const ph of ['bedtime', 'morning'] as const) for (const { ops } of phaseProgram(level, prog, ph))
+    for (const o of ops) if (o.op === 'LISTEN') n.set(o.t, (n.get(o.t) ?? 0) + 1);
+  return [...n].flatMap(([t, c]) => Array.from({ length: c }, (_, i) => ({ t, nth: i + 1 })));
 }
 
 export interface TestOptions { snapshots?: boolean }
@@ -527,6 +571,9 @@ export function testLevel(level: LevelDef, prog: { bedtime?: Program; morning?: 
         ? Array.from({ length: RANDOM_NOISE_NIGHTS_PER_INPUT }, () => randomErrors(level, noiseRng))
         : enumerateErrors(level);
       for (const errs of cases) nights.push(runNight(level, prog, input, errs, nextSeed(), ropts));
+      // DLC: every single readout fault (one LISTEN reports the wrong bit), no data error
+      if (level.noise.mode === 'enumerate' && level.noise.readout)
+        for (const f of listenSlots(level, prog)) nights.push(runNight(level, prog, input, [], nextSeed(), { ...ropts, readoutFlips: [f] }));
     }
   }
 

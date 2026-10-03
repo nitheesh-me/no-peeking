@@ -38,9 +38,42 @@ export function pauliExpectation(s: QState, xs: string[], zs: string[]): number 
   return sign * acc;
 }
 
-/** Stabilizer list for a level: ZZ then XX on neighbouring Qubbles (placement order), plus Shor-9 generators for 9-Qubble levels. */
-export function stabilizerSet(level: LevelDef): { label: string; x: string[]; z: string[] }[] {
+/**
+ * ⟨ψ|P|ψ⟩ for a Pauli string over `ids` (char i ↔ ids[i], 'I'/'X'/'Y'/'Z'; Y = iXZ). Exact, real.
+ * Classical (detached) qubits: X/Y give 0, Z gives (−1)^bit.
+ */
+export function expectPauliString(s: QState, str: string, ids: string[]): number {
+  let xm = 0, zm = 0, ny = 0, sign = 1;
+  for (let k = 0; k < str.length; k++) {
+    const c = str[k], q = ids[k];
+    if (c === 'I') continue;
+    const cl = s.classical(q);
+    if (cl !== null) { if (c !== 'Z') return 0; if (cl) sign = -sign; continue; }
+    const m = 1 << s.pos.get(q)!;
+    if (c === 'X' || c === 'Y') xm |= m;
+    if (c === 'Z' || c === 'Y') zm |= m;
+    if (c === 'Y') ny++;
+  }
+  // P|i⟩ = i^ny (−1)^{|i∧zm|} |i⊕xm⟩  ⇒  ⟨P⟩ = i^ny Σ_i (−1)^{|i∧zm|} conj(ψ_{i⊕xm}) ψ_i
+  const re = s.re, im = s.im, N = re.length;
+  let ar = 0, ai = 0;
+  for (let i = 0; i < N; i++) {
+    const j = i ^ xm, sg = popcount(i & zm) & 1 ? -1 : 1;
+    ar += sg * (re[j] * re[i] + im[j] * im[i]);
+    ai += sg * (re[j] * im[i] - im[j] * re[i]);
+  }
+  const ph = ny & 3; // i^ny · (ar + i·ai), real part
+  return sign * (ph === 0 ? ar : ph === 1 ? -ai : ph === 2 ? -ar : ai);
+}
+
+/**
+ * Stabilizer list for a level: ZZ then XX on neighbouring Qubbles (placement order), plus Shor-9 generators for 9-Qubble
+ * levels. `custom` (DLC: the code's generators as I/X/Z strings in Qubble order, e.g. 'XZZXI') replaces all of that.
+ */
+export function stabilizerSet(level: LevelDef, custom?: string[]): { label: string; x: string[]; z: string[] }[] {
   const qs = level.qubbles.map(p => p.id as string).filter(isQubble);
+  const at = (str: string, c: string) => qs.filter((_, i) => str[i] === c);
+  if (custom) return custom.map(str => ({ label: [...str].map((c, i) => c === 'I' ? '' : c + sub(qs[i])).join(''), x: at(str, 'X'), z: at(str, 'Z') }));
   const out: { label: string; x: string[]; z: string[] }[] = [];
   const add = (P: 'X' | 'Z', ids: string[]) => {
     const label = pauliLabel(P, ids);

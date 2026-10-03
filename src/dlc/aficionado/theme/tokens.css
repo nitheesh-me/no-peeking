@@ -1,0 +1,71 @@
+/* Technical Aficionado: design tokens (Visual Director). Scoped to .afi-root so the classic game is untouched.
+   theme.ts holds the same values for canvas/WebGL and applyTheme() can override every variable at runtime. */
+@font-face { font-family: 'Quantum'; src: url('/fonts/Quantum.woff2') format('woff2'); font-display: swap; }
+@font-face { font-family: 'Quicksand'; src: url('/fonts/Quicksand.woff2') format('woff2'); font-weight: 300 700; font-display: swap; }
+
+.afi-root {
+  /* palette */
+  --afi-bg: #070a16; --afi-bg1: #0a0f22; --afi-bg2: #0e1430;
+  --afi-panel: rgba(14, 20, 48, 0.72); --afi-panel2: rgba(22, 30, 66, 0.86); --afi-line: rgba(110, 242, 255, 0.18);
+  --afi-ink: #e6ecff; --afi-ink2: #9aa6cf; --afi-ink3: #5b6694;
+  --afi-accent: #6ef2ff; --afi-accent2: #ffcf6e; --afi-err: #ff5a5f; --afi-ok: #8ef5b4;
+  --afi-paper: #f2f0eb; --afi-paper-ink: #0e0e0e; --afi-paper-ink2: #55524b;
+  --afi-fog: #0b1128; --afi-horizon: #2a3a7a; --afi-sea: #04060f;
+  --afi-tile-z: #6ef2ff; --afi-tile-x: #ffcf6e;
+  --afi-glow: 0 0 18px rgba(110, 242, 255, 0.35);
+  --afi-night: linear-gradient(180deg, var(--afi-bg) 0%, var(--afi-bg1) 55%, var(--afi-bg2) 100%);
+  /* type */
+  --afi-font-title: 'Quantum', 'Quicksand', sans-serif;
+  --afi-font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --afi-font-prose: 'Quicksand', system-ui, sans-serif;
+  --afi-lecture-scale: 1.35;
+  --afi-scale: 1;
+  --afi-fs-xs: calc(11px * var(--afi-scale));
+  --afi-fs-s: calc(12.5px * var(--afi-scale));
+  --afi-fs-m: calc(14px * var(--afi-scale));
+  --afi-fs-l: calc(18px * var(--afi-scale));
+  --afi-fs-xl: calc(26px * var(--afi-scale));
+  --afi-fs-hero: calc(44px * var(--afi-scale));
+  /* motion: slow and deliberate */
+  --afi-ease: cubic-bezier(0.65, 0, 0.35, 1);
+  --afi-dur-fast: 600ms; --afi-dur: 900ms; --afi-dur-slow: 1200ms;
+  /* space */
+  --afi-gap: 12px; --afi-radius: 10px;
+
+  color: var(--afi-ink);
+  font-family: var(--afi-font-prose);
+  font-size: var(--afi-fs-m);
+}
+.afi-root.afi-lecture { --afi-scale: var(--afi-lecture-scale); }
+.afi-root.afi-reduced, .afi-root.afi-reduced * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+@media (prefers-reduced-motion: reduce) {
+  .afi-root *, .afi-root { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+}
+
+/* ── typographic roles ── */
+.afi-title { font-family: var(--afi-font-title); letter-spacing: 0.06em; font-weight: normal; }
+.afi-mono { font-family: var(--afi-font-mono); font-variant-numeric: tabular-nums; }
+.afi-prose { font-family: var(--afi-font-prose); line-height: 1.55; }
+.afi-caption { font-family: var(--afi-font-mono); font-size: var(--afi-fs-xs); letter-spacing: 0.04em; color: var(--afi-ink2); }
+.afi-caption.afi-oracle::before { content: '◇ '; color: var(--afi-accent2); }
+
+/* ── math typesetting (theme/math.ts) ── */
+.afi-m { font-family: var(--afi-font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.afi-m .k { color: var(--afi-accent); }                 /* ket body */
+.afi-m .kb { color: var(--afi-ink3); padding: 0 0.04em; } /* | ⟩ brackets */
+.afi-m sub, .afi-m sup { font-size: 0.72em; line-height: 0; }
+.afi-m .op { color: var(--afi-accent2); }
+.afi-m .ph { color: var(--afi-ink2); }
+
+/* ── shared viz chrome ── */
+.afi-viz { position: relative; width: 100%; height: 100%; min-height: 160px; overflow: hidden; background: var(--afi-night); border-radius: var(--afi-radius); }
+.afi-viz > canvas, .afi-viz > svg.afi-viz-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.afi-viz-labels { position: absolute; inset: 0; pointer-events: none; }
+.afi-viz-label { position: absolute; transform: translate(-50%, -50%); font-family: var(--afi-font-mono); font-size: var(--afi-fs-xs); color: var(--afi-ink2); white-space: nowrap; text-shadow: 0 0 6px var(--afi-bg); }
+.afi-viz-label.strong { color: var(--afi-ink); font-size: var(--afi-fs-s); }
+.afi-viz-cap { position: absolute; left: 14px; bottom: 10px; right: 14px; pointer-events: none; font-family: var(--afi-font-mono); font-size: var(--afi-fs-xs); color: var(--afi-ink2); letter-spacing: 0.04em; transition: opacity var(--afi-dur-slow) var(--afi-ease); }
+.afi-viz-cap::before { content: '◇ '; color: var(--afi-accent2); }
+.afi-viz-tip { position: absolute; pointer-events: none; padding: 6px 9px; background: var(--afi-panel2); border: 1px solid var(--afi-line); border-radius: 6px; font-size: var(--afi-fs-s); color: var(--afi-ink); opacity: 0; transition: opacity 160ms; white-space: nowrap; z-index: 2; box-shadow: var(--afi-glow); }
+.afi-viz-tip.on { opacity: 1; }
+.afi-viz-btn { font-family: var(--afi-font-mono); font-size: var(--afi-fs-xs); color: var(--afi-ink2); background: var(--afi-panel); border: 1px solid var(--afi-line); border-radius: 999px; padding: 5px 12px; cursor: pointer; letter-spacing: 0.06em; }
+.afi-viz-btn:hover, .afi-viz-btn:focus-visible { color: var(--afi-accent); border-color: var(--afi-accent); outline: none; }

@@ -5,6 +5,8 @@
  * Forgiving: case-insensitive keywords and ids, `->` / `→` / `=>`, extra spaces, `,`/`&&`/`&`
  * between IF conditions, optional `IS` ("IF a IS BEEP"), `IF a -> x` means `IF a BEEP -> x`,
  * `HIGHFIVE q1 a` / `HIGHFIVE q1, a` without arrow, trailing `# comment` after a command.
+ * DLC (Technical Aficionado) additions: Y · S · SDG (S†) · CZ q1, q2 · SWAP q1, q2 · WAIT (noise round), and the
+ * circuit aliases X = BOOP, Z = SHUSH, H = SPIN, CX = HIGHFIVE (classic text never used these words).
  */
 import { isBot, isQubble, type Cond, type Op, type Program, type QubitId } from '../core/contracts';
 
@@ -39,7 +41,8 @@ export function parseProgram(text: string): { prog: Program; errors: ParseError[
     const err = (msg: string) => errors.push({ line: ln, msg });
     const m = /^(\w+)\s*(.*)$/.exec(line);
     if (!m) { err(`can't read "${raw.trim()}"`); return; }
-    const cmd = m[1].toUpperCase();
+    const ALIAS: Record<string, string> = { X: 'BOOP', Z: 'SHUSH', H: 'SPIN', CX: 'HIGHFIVE', SDAG: 'SDG', SDAGGER: 'SDG', IDLE: 'WAIT', TICK: 'WAIT' };
+    const cmd = ALIAS[m[1].toUpperCase()] ?? m[1].toUpperCase();
     const rest = m[2].trim();
     const qubit = (s: string, what = 'a Qubble or bot'): QubitId | null => {
       const id = normId(s);
@@ -53,7 +56,7 @@ export function parseProgram(text: string): { prog: Program; errors: ParseError[
     };
     let op: Op | null = null;
     switch (cmd) {
-      case 'BOOP': case 'SHUSH': case 'SPIN': case 'PEEK': {
+      case 'BOOP': case 'SHUSH': case 'SPIN': case 'PEEK': case 'Y': case 'S': case 'SDG': {
         const a = one(); if (a === null) break;
         const t = qubit(a); if (t) op = { op: cmd, t } as Op;
         break;
@@ -65,16 +68,18 @@ export function parseProgram(text: string): { prog: Program; errors: ParseError[
         op = { op: cmd, t: id };
         break;
       }
-      case 'HIGHFIVE': case 'CNOT': {
+      case 'HIGHFIVE': case 'CNOT': case 'CZ': case 'SWAP': {
+        const name = cmd === 'CNOT' ? 'HIGHFIVE' : cmd;
         const parts = rest.split(ARROW).length === 2 ? rest.split(ARROW) : rest.split(/[\s,]+/).filter(Boolean);
-        if (parts.length !== 2) { err('HIGHFIVE needs two names: HIGHFIVE q1 -> a'); break; }
+        if (parts.length !== 2) { err(name === 'HIGHFIVE' ? 'HIGHFIVE needs two names: HIGHFIVE q1 -> a' : `${name} needs two qubits: ${name} q1, q2`); break; }
         const from = qubit(parts[0]), to = qubit(parts[1]);
         if (from && to) {
-          if (from === to) err('HIGHFIVE needs two different creatures');
-          else op = { op: 'HIGHFIVE', from, to };
+          if (from === to) err(name === 'HIGHFIVE' ? 'HIGHFIVE needs two different creatures' : `${name} needs two different qubits`);
+          else op = { op: name as 'HIGHFIVE' | 'CZ' | 'SWAP', from, to };
         }
         break;
       }
+      case 'WAIT': if (rest) err('WAIT takes nothing after it'); else op = { op: 'WAIT' }; break;
       case 'JUMP': case 'GOTO': {
         const a = one(); if (a !== null) op = { op: 'JUMP', label: a };
         break;
@@ -128,6 +133,9 @@ export function printOp(o: Op): string {
     case 'LABEL': return `${o.name}:`;
     case 'END': return 'END';
     case 'NOTE': return `# ${o.text}${o.drawing ? ` {draw:${o.drawing}}` : ''}`;
+    case 'Y': case 'S': case 'SDG': return `${o.op} ${o.t}`;
+    case 'CZ': case 'SWAP': return `${o.op} ${o.from}, ${o.to}`;
+    case 'WAIT': return 'WAIT';
   }
 }
 

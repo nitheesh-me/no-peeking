@@ -1,0 +1,96 @@
+{
+  "afi": {
+    "viz": {
+      "oracle": "simulator oracle: not observable on hardware",
+      "veiled": "state not observable during execution",
+      "loading": {
+        "aria": "Loading the extension: each loaded stage adds one gate column to a five-qubit circuit",
+        "caption": "each column is one real loading stage · outcomes are Born-rule samples of this circuit",
+        "status": "{done} / {total} stages loaded",
+        "done": "done",
+        "measuring": "measuring all five wires",
+        "measured": "measured {ket}",
+        "sampled": "{ket} · one Born-rule sample of the circuit above",
+        "wordmark": "TECHNICAL AFICIONADO"
+      },
+      "orientation": {
+        "aria": "Orientation: a Bloch sphere revealed as one point in a lattice representing a growing state space",
+        "c1": "One qubit: a point on (or inside) the Bloch sphere.",
+        "c2": "n qubits need 2ⁿ complex amplitudes: the state space doubles with every qubit added.",
+        "c3": "Each point here stands for one basis state. The lattice is a metaphor, not data.",
+        "metaphor": "decoration · the lattice is a metaphor for 2ⁿ growth, not a simulation",
+        "skip": "skip ›",
+        "continue": "continue ›"
+      },
+      "stateSpace": {
+        "aria": "Amplitudes of the computational-basis states as pillars: height is probability, colour is phase",
+        "tip": "p = {p}",
+        "order": "ket order: {order}"
+      },
+      "bloch": {
+        "aria": "Reduced single-qubit Bloch vectors with mutual-information filaments between qubits",
+        "purity": "Tr ρ² = {v}",
+        "entropy": "S = {v} bit",
+        "mi": "I = {v} bit"
+      },
+      "tiling": {
+        "aria": "Stabilizer generators as tiles over the data qubits, lit when the expectation value is −1"
+      },
+      "lattice": {
+        "aria": "Distance-3 rotated surface code: nine data qubits, X and Z plaquettes, logical operators as strings",
+        "logicalX": "X̄ (logical X)",
+        "logicalZ": "Z̄ (logical Z)",
+        "caption": "d = 3 rotated surface code · tiles lit = stabilizer measured −1"
+      },
+      "charts": {
+        "table": "data table",
+        "chart": "chart",
+        "threshold": {
+          "aria": "Logical versus physical error rate with 95% Wilson intervals",
+          "x": "physical error rate p",
+          "y": "logical error rate p_L",
+          "breakeven": "p_L = p (break-even)"
+        },
+        "hist": {
+          "aria": "Histogram of measurement outcomes with Born-rule expectations",
+          "x": "outcome",
+          "y": "counts",
+          "expected": "Born-rule expectation",
+          "shots": "{n} shots"
+        },
+        "mi": {
+          "aria": "Pairwise mutual information heatmap in bits",
+          "unit": "bits"
+        },
+        "raster": {
+          "aria": "Syndrome history: rounds by ancilla, lit cells measured 1",
+          "x": "round",
+          "y": "ancilla"
+        },
+        "col": {
+          "p": "p",
+          "trials": "trials",
+          "failures": "failures",
+          "rate": "rate",
+          "lo": "CI low",
+          "hi": "CI high",
+          "outcome": "outcome",
+          "count": "count",
+          "expected": "expected",
+          "pair": "pair",
+          "value": "value",
+          "round": "round",
+          "series": "series"
+        }
+      },
+      "freeze": {
+        "aria": "Reduced density matrix of the data qubits across one syndrome-extraction step",
+        "caption": "simulator oracle · between gates the display interpolates; the physics happens at discrete gates",
+        "frozen": "frozen at {gate}: the off-diagonal coherences between syndrome sectors are gone, because that entangling gate copied the error's parity into an ancilla. The error is now either there or not. Nothing has been measured yet.",
+        "measured": "The ancilla measurements only select which branch we are in: the data state is the projected branch state, and the decoder can now fix a plain Pauli error.",
+        "offdiag": "off-diagonal weight Σ|ρᵢⱼ|",
+        "replay": "replay"
+      }
+    }
+  }
+}

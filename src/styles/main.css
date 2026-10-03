@@ -747,3 +747,9 @@ button { font-family: inherit; color: inherit; }
 @keyframes glow-once { 50% { box-shadow: 0 0 0 4px var(--ink), 0 0 18px 8px rgba(255,183,43,0.85); transform: translateY(-2px) scale(1.06); } }
 .toggle.locked { opacity: 0.6; }
 .insp-nb { margin-top: 2px; }
+/* optional extension entry glyph (title screen, appears only once unlocked) */
+.afi-glyph { position: absolute; left: 18px; bottom: 14px; z-index: 5; border: 0; background: none; padding: 6px 8px; cursor: pointer;
+  font: 18px/1 ui-monospace, 'JetBrains Mono', monospace; color: var(--ink3); opacity: 0.32; animation: afi-breathe 5.5s ease-in-out infinite; }
+.afi-glyph:hover, .afi-glyph:focus-visible { opacity: 0.85; animation: none; }
+@keyframes afi-breathe { 0%, 100% { opacity: 0.16; } 50% { opacity: 0.42; } }
+.reduced .afi-glyph { animation: none; }

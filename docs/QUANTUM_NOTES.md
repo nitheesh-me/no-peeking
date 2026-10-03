@@ -9,7 +9,7 @@ Code: `src/quantum/` (`sim.ts` simulator, `vm.ts` interpreter + goals + test sui
 > (complex amplitudes, double precision, up to 17 qubits). Every card is a real operation: BOOP = X,
 > SHUSH = Z, SPIN = Hadamard, HIGHFIVE = CNOT, LISTEN/PEEK = projective measurement in the computational
 > basis with Born-rule random outcomes and true collapse, RESET = reset to |0⟩. Gremlins apply real
-> errors: X (Flipper), Z (Phasey), Y (both) and *partial* rotations exp(−iθX/2) (Wobbles). Nothing is
+> errors: X (Flipper), Z (Phasey), Y (both) and *partial* rotations exp(−iθX/2) or exp(−iθZ/2) (Wobbles). Nothing is
 > faked: a level is won only if the final state of the Qubbles has fidelity ≥ 99.9% with the ideal
 > encoded state, checked on many test nights (random input states × every error the code should fix).
 > The bit-flip, phase-flip and Shor 9-qubit codes in the game are the textbook ones, and our test suite
@@ -17,6 +17,7 @@ Code: `src/quantum/` (`sim.ts` simulator, `vm.ts` interpreter + goals + test sui
 > partial "wobble" errors are corrected perfectly (error discretization), and that the logical error rate
 > of the 3-qubit code matches the textbook 3p² − 2p³. Simplifications: gates themselves are perfect,
 > errors only strike during the "night" between encoding and correction, and measurement is perfect.
+> (The Technical Aficionado DLC adds optional readout errors and several noise rounds; see "DLC additions".)
 
 ## Conventions
 
@@ -248,3 +249,45 @@ when `includeErrors: false`). Header: game, level, seed, input, errors, result.
   back to the executed path and says why in the header (e.g. 2-4's one-bot RESET loop: conditional LISTEN).
 - Angles are printed with 15 significant digits. Verified: all outputs (executed + dynamic, bit-flip / Shor-9 / loop)
   build in Qiskit 1.4 and load with `qiskit.qasm3.loads` (opt-in test: `QISKIT_PYTHON=/path/python npx vitest run`).
+
+## DLC additions (Technical Aficionado; all optional, classic defaults unchanged)
+
+All additive: classic levels never use them, and with them absent every classic night is bit-for-bit identical
+(no extra RNG draws; tested).
+
+- **Gates** (`Op`, text, sim, both exporters): `Y q` = [[0,−i],[i,0]], `S q` = diag(1,i), `SDG q` = S† = diag(1,−i),
+  `CZ q1, q2` (symmetric), `SWAP q1, q2` (an exact relabelling in the simulator: no amplitude moves). Text aliases
+  `X/Z/H/CX` = BOOP/SHUSH/SPIN/HIGHFIVE, `SDAG` = SDG, `IDLE`/`TICK` = WAIT. Trace: a separate event kind
+  `{ k: 'xgate', op, t, from? }` (so classic playback tables stay exhaustive). Names: `DlcOpName`, `AnyOpName`;
+  `LevelDef.toolbox` is `AnyOpName[]`.
+- **Readout errors** (LISTEN only; PEEK is never flipped): probability from `RunOptions.readoutFlip` ??
+  `LevelDef.readoutFlip` ?? `noise.readoutFlip` (random mode) ?? 0. The qubit collapses to the TRUE Born outcome and
+  is detached with it; only the recorded bit (light, IF, NerdInfo.record, the trace's `result`) is flipped, and the
+  measure event carries `flipped: true`. Deterministic faults: `RunOptions.readoutFlips: [{ t, nth }]` (nth = 1-based
+  LISTEN count of that bot). `NightResultX.readoutFlips` lists what happened. `noise: { mode: 'enumerate', readout: true }`
+  makes `testLevel` add one night per (bot, nth) slot, counted statically over the programs (`listenSlots`).
+- **Noise rounds**: `ErrorEvent.round?` (0/absent = the night). Round k ≥ 1 strikes at the k-th executed `WAIT`; rounds
+  with no matching WAIT strike after the morning program (skipping WAIT never dodges noise). `noise.rounds` (random:
+  independent rounds; enumerate: single errors in every round, pairs stay in round 0).
+- **LevelDef.stabilizers** (I/X/Z strings in placement order): NerdInfo.stabilizers reports exactly these, ahead of the
+  classic ZZ/XX/Shor auto-detection (also `RunOptions.stabilizers`). Y in these strings is not supported (use
+  `expectPauliString` for Y-containing Paulis).
+- **`src/quantum/qec.ts`** (not in the classic bundle): `CODES` (rep3, five, steane, surface3: n, k, d, stabilizers,
+  logicals, layout, encoder), `measureStabilizer`, `lookupTable`, `lookupDecoder`, `correction(code)`, `codeLevel(code)`,
+  `REPEATED_EXTRACTION`, `SINGLE_ROUND_EXTRACTION`, `repeatedExtractionLevel()`. Encoders were synthesised in Qiskit 1.4
+  (Clifford tableau for [[5,1,3]], CSS pivot construction for Steane/surface) and are re-verified in our simulator:
+  every generator +1, ⟨X̄⟩ = ⟨X⟩ψ, ⟨Z̄⟩ = ⟨Z⟩ψ. The surface-code layout and generator order match the Curriculum Author's
+  `src/dlc/aficionado/levels/codes.ts` (Z plaquettes {2,3,5,6} {4,5,7,8}, Z pairs {1,4} {6,9}; X plaquettes {1,2,4,5}
+  {5,6,8,9}, X pairs {2,3} {7,8}; X̄ = X₁X₄X₇, Z̄ = Z₁Z₂Z₃). CSS corrections reuse the same ancillas (Z-checks → fix X → RESET →
+  X-checks → fix Z): Steane 3 bots (≤ 10 live qubits), surface 4 bots (≤ 13 live).
+- **Repeated extraction** (`REPEATED_EXTRACTION`): three rounds onto fresh bots (a,b | c,d | e,f) with WAIT between, then the
+  per-bit majority (as IF implicants). Survives any single readout fault, or one data X before round 1 or between rounds
+  1 and 2. An X between rounds 2 and 3 is seen once and is NOT corrected in that cycle (a real memory would catch it next
+  cycle); a test documents this.
+- **`src/quantum/montecarlo.ts`** (not in the classic bundle): `wilson(k, n)` (95% Wilson score interval; exact 0 / 1 at
+  k = 0 / n), `monteCarlo(level, prog, { trials, seed, noise?, readoutFlip?, inputs? })` → `McResult & { meanFidelity }`
+  (trial i uses seed mixSeed(seed, i); a trial fails iff its night does not pass), `sweep(level, prog, ps, trials, seed,
+  { kinds?, readout?, rounds? })` (same seed for every p ⇒ common random numbers). Note: a logical X is harmless on |±⟩,
+  so compare with 3p² − 2p³ using inputs |0⟩/|1⟩ only.
+- **NerdInfo / exporter**: `expectPauliString(s, 'XYZ…', ids)` (exact, Y = iXZ). Exporters emit `y s sdg cz swap`; noise
+  rounds appear at their WAIT; readout errors are comments (a circuit cannot express a classical bit flip).
