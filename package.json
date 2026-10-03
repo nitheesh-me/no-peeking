@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "verify-levels": "vitest run tests/quantum/levels.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "deploy": "bash scripts/deploy.sh"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
