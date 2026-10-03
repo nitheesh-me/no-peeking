@@ -619,8 +619,9 @@ export function drawWallSign(ctx: Ctx, x: number, y: number, s: number, text: st
   // soft drop shadow on the wall (down + away from the light)
   ctx.fillStyle = 'rgba(40,24,40,0.09)';
   for (const g of [3.5, 2, 0.8]) { roundRect(ctx, -w / 2 + 2 * s - g * s, -h / 2 + 4 * s - g * s, w + 2 * g * s, h + 2 * g * s, (5 + g) * s); ctx.fill(); }
-  // frame thickness (edge toward the viewer)
-  const e = off(3.2 * s);
+  // frame thickness: the face sticks OUT of the wall along its normal, so the back plate sits behind it,
+  // offset against the normal (its top edge and far end peek out, the sides you can see from the room)
+  const e = off(-3.2 * s);
   roundRect(ctx, -w / 2 + e.x, -h / 2 + e.y, w, h, 5 * s);
   ctx.fillStyle = st.frame[1]; ctx.fill();
   ctx.lineWidth = 2 * s; ctx.strokeStyle = INK; ctx.lineJoin = 'round'; ctx.stroke();
