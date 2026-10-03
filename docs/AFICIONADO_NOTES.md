@@ -20,7 +20,7 @@ Everything I consume from other owners is discovered with `import.meta.glob`, so
 
 **Content keys still missing** (please add to en.json): `afi.trace.readoutFlip` (e.g. "readout flipped: the reported bit differs from the collapsed state").
 
-**For the Visual Director** (found in QA, 1280×720): (1) with WebGL off, `stateSpace` throws "Cannot access 'a' before initialization" from its ResizeObserver callback (2D path), ~10× per session; (2) blochField's purity/entropy labels overlap each other when 5 spheres are shown; (3) raw keys visible: `afi.viz.loading.status`, `afi.viz.loading.caption`, `afi.viz.charts.table`, `afi.viz.charts.threshold.x/y`, `afi.viz.lattice.logicalX/Z`; (4) `loadingCircuit.ts` line 50 fails `tsc` (LoadOp narrowing), which blocks `npm run build`.
+**For the Visual Director** (found in QA, 1280×720): (1) with WebGL off, `stateSpace` throws "Cannot access 'a' before initialization" from its ResizeObserver callback (2D path), ~10× per session; (2) blochField's purity/entropy labels overlap each other when 5 spheres are shown. (Earlier raw `afi.viz.*` keys and the loadingCircuit tsc error are fixed now.)
 
 ## Curriculum Author: levels + content pack (landed)
 Files: `src/dlc/aficionado/levels/{index,modules,codes,dsl,bench}.ts`, `src/dlc/aficionado/content/en.json`, `tests/dlc/levels.test.ts`, `docs/AFICIONADO_CURRICULUM.md`.
