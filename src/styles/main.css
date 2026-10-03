@@ -531,15 +531,6 @@ button { font-family: inherit; color: inherit; }
 /* ───────── Credits ───────── */
 .credits-screen { background: var(--night); color: var(--paper); }
 .credits-screen canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-.credits-roll {
-  position: absolute; left: 50%; transform: translateX(-50%); width: min(620px, 92vw); text-align: center; z-index: 2;
-  animation: roll 38s linear both; top: 100%;
-}
-.credits-roll h1 { font-family: var(--display); font-weight: 400; font-size: 56px; margin: 0 0 30px; }
-.credits-roll h3 { font-family: var(--display); font-weight: 400; color: var(--sunny); margin: 34px 0 6px; font-size: 22px; }
-.credits-roll p { margin: 4px 0; font-size: 17px; line-height: 1.5; }
-@keyframes roll { to { transform: translate(-50%, calc(-100% - 100vh)); } }
-.reduced .credits-roll { animation-duration: 90s; }
 
 /* ───────── Lab / endless extras ───────── */
 .lab-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -566,7 +557,6 @@ button { font-family: inherit; color: inherit; }
   .tile.next { animation: none; }
 }
 .reduced * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-.reduced .credits-roll { animation-duration: 90s !important; }
 
 /* compact controls + collapsed read-only phase */
 .controls { gap: 6px; padding: 8px 10px; flex-wrap: nowrap; }

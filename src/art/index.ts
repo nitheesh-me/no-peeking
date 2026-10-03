@@ -56,6 +56,10 @@ export const art: ArtAPI = {
 /** Extras outside the contract (optional to use). */
 export type { QubbleArm } from './qubble';
 export { dataBoxPortrait };
+export { drawSilhouette, drawProp, drawGlyph, drawCodexCard, codexCardSVG, SHOWCASE, showcasePhase } from './codex';
+export type { PropKind, GlyphKind } from './codex';
+export { drawQuilt } from './qubble';
+export { drawCatBox } from './schrodi';
 export { drawDataBox } from './qubble';
 export { drawBed, clearParticles, particleCount, wallSignSlots, SIGN_BAND };
 export type { WallSlot } from './room';

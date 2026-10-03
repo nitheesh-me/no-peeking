@@ -210,6 +210,12 @@ function boxPart(ctx: Ctx, s: number, part: 'back' | 'front') {
   ctx.fillStyle = BOX_D; ctx.fill(); inkStroke(ctx, s, 2);
 }
 
+/** Schrödi's empty cardboard box. Anchor = ground centre under the box (~70×46 at s=1). */
+export function drawCatBox(ctx: Ctx, x: number, y: number, s: number) {
+  groundShadow(ctx, x + 4 * s, y, 34 * s, 10 * s, 0.28);
+  ctx.save(); ctx.translate(x, y); boxPart(ctx, s, 'back'); boxPart(ctx, s, 'front'); ctx.restore();
+}
+
 export function drawSchrodiActor(ctx: Ctx, x: number, y: number, s: number, v: SchrodiActorVisual, t: number) {
   const f = v.facing === -1 ? -1 : 1;
   const a = v.action, p = clamp(v.phase ?? 0), e = bellA(p);

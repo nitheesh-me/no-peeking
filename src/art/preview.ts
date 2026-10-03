@@ -1,6 +1,6 @@
 // Art preview harness: open /src/art/preview.html under `npx vite`.
 // Query params: ?night=0..1  ?t=<seconds> (freeze time)  ?only=scene|qubbles|cast  ?scale=1
-import { art, wallSignSlots, dataBoxPortrait } from './index';
+import { art, wallSignSlots, dataBoxPortrait, drawSilhouette, drawProp, drawGlyph, drawCodexCard, SHOWCASE } from './index';
 import type { Bloch, BotVisual, IsoFn, QubbleVisual, Speaker, DialogueLine, CaretakerVisual, SchrodiActorVisual } from '../core/contracts';
 
 const qs = new URLSearchParams(location.search);
@@ -25,7 +25,7 @@ if (only) { (document.getElementById('logo') as HTMLElement).style.display = 'no
 const cv = document.getElementById('c') as HTMLCanvasElement;
 const ctx = cv.getContext('2d')!;
 const W = 1400;
-const H = only === 'actors' ? 1270 : only === 'closeup' ? 1000 : only === 'room' ? 1180 : only === 'map' ? 900 : only === 'scene' ? 760 : only === 'qubbles' ? 1060 : only === 'cast' ? 900 : 2700;
+const H = only === 'codex' ? 760 : only === 'actors' ? 1270 : only === 'closeup' ? 1000 : only === 'room' ? 1180 : only === 'map' ? 900 : only === 'scene' ? 760 : only === 'qubbles' ? 1060 : only === 'cast' ? 900 : 2700;
 const dpr = window.devicePixelRatio || 1;
 cv.width = W * dpr; cv.height = H * dpr;
 cv.style.width = W + 'px'; cv.style.height = H + 'px';
@@ -267,6 +267,24 @@ function actorsSheet(t: number) {
     art.drawWallSign!(ctx, 760 + i * 200, 1205, 1, tx, 'right', t, i === 1 ? 1 : 0);
   });
 }
+function codexSheet(t: number) {
+  ctx.fillStyle = '#f2f0eb'; ctx.fillRect(0, 0, W, H);
+  heading('Codex kit: props', 36);
+  SHOWCASE.props.forEach((k, i) => { const x = 80 + i * 150; drawProp(ctx, x, 230, 0.9, k, t); label(k, x, 255, 12); });
+  heading('Glyphs', 300);
+  SHOWCASE.glyphs.forEach((k, i) => { const x = 80 + i * 110; drawGlyph(ctx, x, 360, 1.3, k, t); label(k, x, 410, 12); });
+  heading('Cards + silhouettes', 460);
+  drawCodexCard(ctx, 40, 480, 170, 220, '#6c63ff', { title: 'Qubble', ribbon: 'cast' });
+  art.drawQubble(ctx, 125, 640, 1.3, { bloch: { x: 1, y: 0, z: 0 }, blanket: 0, state: 'happy' }, t);
+  drawCodexCard(ctx, 240, 480, 170, 220, '#fe443d', { title: 'Flipper', ribbon: 'gremlin', locked: true });
+  drawSilhouette(ctx, (c) => art.drawGremlin(c, 325, 640, 1.4, 'flipper', 'taunt', t), { glow: true });
+  drawCodexCard(ctx, 440, 480, 170, 220, '#3ddc97', { title: 'Schrodi', ribbon: 'cast', locked: true });
+  drawSilhouette(ctx, (c) => art.drawSchrodiActor!(c, 525, 650, 1.4, { action: 'point', phase: 0.6, facing: 1 }, t));
+  drawCodexCard(ctx, 640, 480, 170, 220, '#ffb72b', { title: 'Data box', ribbon: 'item' });
+  art.drawQubble(ctx, 725, 640, 1.4, { bloch: { x: 0, y: 0, z: -1 }, blanket: 0, state: 'happy', classical: true }, t);
+  drawProp(ctx, 1000, 660, 1.2, 'window', t, 1); label('window (night)', 1000, 690, 12);
+  drawProp(ctx, 1200, 660, 1.2, 'door', t, 1); label('door (night)', 1200, 690, 12);
+}
 function mapSheet(t: number) {
   art.drawMapBackdrop!(ctx, W, H, t);
   const cols = ['#ffb72b', '#6c63ff', '#3ddc97', '#b04dff', '#fe443d'];
@@ -303,6 +321,7 @@ function frame(now: number) {
   if (only === 'room') roomSheet(t);
   if (only === 'map') mapSheet(t);
   if (only === 'actors') actorsSheet(t);
+  if (only === 'codex') codexSheet(t);
   (window as any).__frameDone = true;
   requestAnimationFrame(frame);
 }

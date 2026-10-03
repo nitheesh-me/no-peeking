@@ -1,0 +1,65 @@
+/* ───────── Credits: curtain call (owned by the Art Designer) ───────── */
+.credits-screen { background: #14142a; color: var(--ink); overflow: hidden; user-select: none; }
+.credits-screen .cr-stage { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; display: block; }
+
+/* roll column: right side on wide screens, bottom sheet on narrow */
+.cr-roll {
+  position: absolute; z-index: 2; top: 0; bottom: 0; right: clamp(16px, 3vw, 56px);
+  width: clamp(320px, 32vw, 520px); overflow: visible; pointer-events: none;
+}
+.cr-track { position: absolute; left: 0; right: 0; top: 0; will-change: transform; padding: 0 6px; }
+.cr-card {
+  pointer-events: auto; position: relative;
+  background: linear-gradient(#fbfaf6, #ece8de); border: 3px solid var(--ink); border-radius: 18px;
+  box-shadow: 0 6px 0 var(--ink), 0 18px 40px rgba(0, 0, 0, 0.35);
+  padding: 20px 22px 18px; margin: 0 0 clamp(90px, 18vh, 200px);
+  font-family: var(--body); font-size: clamp(14px, 1.05vw, 17px); line-height: 1.5;
+  transform: rotate(var(--tilt, 0deg));
+}
+.cr-card::after { /* corner ribbon */
+  content: ''; position: absolute; top: -3px; right: -3px; width: 58px; height: 58px; border-radius: 0 18px 0 0;
+  background: linear-gradient(225deg, var(--rib, var(--sunny)) 0 34%, transparent 34.5%);
+  border-top: 3px solid var(--ink); border-right: 3px solid var(--ink); pointer-events: none;
+}
+.cr-card h2 { font-family: var(--display); font-weight: 400; font-size: clamp(20px, 1.7vw, 28px); margin: 0 0 10px; letter-spacing: 0.02em; }
+.cr-card h1 { font-family: var(--display); font-weight: 400; font-size: clamp(34px, 3.4vw, 56px); margin: 4px 0 10px; line-height: 1; }
+.cr-card p { margin: 6px 0; }
+.cr-card .cr-sub { color: var(--ink2); font-weight: 600; }
+.cr-card a.learn-link { color: var(--moony); font-weight: 700; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 2px; }
+
+.cr-ch { display: grid; grid-template-columns: 14px 1fr; gap: 10px; margin: 10px 0; align-items: start; }
+.cr-ch i { width: 14px; height: 14px; border-radius: 50%; border: 2.5px solid var(--ink); margin-top: 4px; background: var(--c); }
+.cr-ch b { font-family: var(--display); font-weight: 400; display: block; font-size: 1.02em; }
+
+.cr-cast { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 8px; margin-top: 6px; }
+.cr-cast figure { margin: 0; text-align: center; font-size: 0.82em; font-weight: 700; line-height: 1.25; }
+.cr-cast img { width: 100%; max-width: 84px; aspect-ratio: 1; display: block; margin: 0 auto 4px; filter: drop-shadow(0 3px 0 rgba(14, 14, 14, 0.85)); }
+.cr-cast small { display: block; font-weight: 500; color: var(--ink2); }
+
+.cr-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.cr-tags span { border: 2px solid var(--ink); border-radius: 999px; padding: 2px 10px; font-weight: 700; font-size: 0.86em; background: #fff; box-shadow: 0 2px 0 var(--ink); }
+
+.cr-thanks { text-align: center; padding: 34px 22px 30px; }
+.cr-thanks h1 { font-size: clamp(30px, 3vw, 50px); }
+
+/* controls */
+.cr-ctl { position: absolute; z-index: 4; left: 16px; bottom: 16px; display: flex; gap: 8px; align-items: center; }
+.cr-ctl .btn { min-width: 0; }
+.cr-ctl .cr-hint { color: rgba(242, 240, 235, 0.65); font-family: var(--body); font-size: 13px; margin-left: 6px; }
+.cr-top { position: absolute; z-index: 4; right: 16px; top: 16px; }
+.cr-fast.on { background: var(--sunny); transform: translateY(2px); box-shadow: var(--shadow-sm); }
+
+/* post-credits */
+.cr-end { position: absolute; inset: 0; z-index: 5; display: flex; align-items: flex-start; justify-content: center; padding-top: 14vh; gap: 12px; pointer-events: none; opacity: 0; transition: opacity 0.6s; }
+.cr-end.show { opacity: 1; pointer-events: auto; }
+.cr-paused { position: absolute; z-index: 3; left: 50%; top: 18px; transform: translateX(-50%); font-family: var(--display); color: var(--paper); font-size: 20px; letter-spacing: 0.08em; opacity: 0; transition: opacity 0.2s; pointer-events: none; text-shadow: 0 2px 0 var(--ink); }
+.cr-paused.show { opacity: 1; }
+
+/* reduced motion: cards cross-fade in place instead of scrolling */
+.cr-reduced .cr-track { transform: none !important; height: 100%; }
+.cr-reduced .cr-card { position: absolute; left: 6px; right: 6px; top: 50%; transform: translateY(-50%); margin: 0; opacity: 0; transition: opacity 0.6s; }
+.cr-reduced .cr-card.on { opacity: 1; }
+
+@media (max-width: 899px), (max-aspect-ratio: 1/1) {
+  .cr-roll { left: 12px; right: 12px; width: auto; top: 52%; }
+}

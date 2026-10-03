@@ -70,14 +70,7 @@ function live(ctx: Ctx, iso: IsoFn, g: G, t: number, n: number) {
   // clock hands (right wall)
   ctx.save();
   onWall(ctx, iso, g, 'R');
-  const c = clockPos(g);
-  const hr = t * 0.02, mn = t * 0.25;
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = n > 0.5 ? '#e8e4ff' : INK;
-  ctx.lineWidth = LW(2.4);
-  ctx.beginPath(); ctx.moveTo(c.u, c.v); ctx.lineTo(c.u + Math.sin(hr) * 0.16, c.v + Math.cos(hr) * 0.16); ctx.stroke();
-  ctx.lineWidth = LW(1.6);
-  ctx.beginPath(); ctx.moveTo(c.u, c.v); ctx.lineTo(c.u + Math.sin(mn) * 0.24, c.v + Math.cos(mn) * 0.24); ctx.stroke();
+  clockHands(ctx, clockPos(g), t, n);
   // window twinkles at night
   if (n > 0.05) {
     const wd = windowRect(g);
@@ -109,6 +102,16 @@ function live(ctx: Ctx, iso: IsoFn, g: G, t: number, n: number) {
 
 // ── wall layout (u = tiles along the wall from the back corner, v = tile-heights up) ──
 // Kept deliberately sparse so each wall has a clear SIGN span (see wallSignSlots + docs/ART_NOTES.md).
+/** Live clock hands, wall-local units. */
+export function clockHands(ctx: Ctx, c: { u: number; v: number }, t: number, n: number) {
+  const hr = t * 0.02, mn = t * 0.25;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = n > 0.5 ? '#e8e4ff' : INK;
+  ctx.lineWidth = LW(2.4);
+  ctx.beginPath(); ctx.moveTo(c.u, c.v); ctx.lineTo(c.u + Math.sin(hr) * 0.16, c.v + Math.cos(hr) * 0.16); ctx.stroke();
+  ctx.lineWidth = LW(1.6);
+  ctx.beginPath(); ctx.moveTo(c.u, c.v); ctx.lineTo(c.u + Math.sin(mn) * 0.24, c.v + Math.cos(mn) * 0.24); ctx.stroke();
+}
 function clockPos(_g: G) { return { u: 0.72, v: 1.72 }; }
 function windowRect(g: G) { const w = 1.6; return { u0: g.Lr - 2.5, v0: 0.85, w, h: 1.3 }; }
 function nightlightPos(_g: G) { return { u: 1.0, v: 0.42 }; }
@@ -382,8 +385,11 @@ function groundShadowIso(ctx: Ctx, x: number, y: number, r: number, N: number) {
 }
 
 function rightWallProps(ctx: Ctx, g: G, N: number, ink: string) {
-  // window
-  const w = windowRect(g);
+  wallWindow(ctx, windowRect(g), N, ink);
+  wallClock(ctx, clockPos(g), N, ink);
+}
+/** Arched window with sky, curtains, sill (wall-local units: u right, v UP, 1 = one tile). */
+export function wallWindow(ctx: Ctx, w: { u0: number; v0: number; w: number; h: number }, N: number, ink: string) {
   const { u0, v0 } = w;
   const top = v0 + w.h;
   const arch = (inset: number) => {
@@ -453,8 +459,9 @@ function rightWallProps(ctx: Ctx, g: G, N: number, ink: string) {
   ctx.lineWidth = LW(3); ctx.strokeStyle = ink;
   ctx.beginPath(); ctx.moveTo(u0 - 0.6, top + 0.14); ctx.lineTo(u0 + w.w + 0.6, top + 0.14); ctx.stroke();
 
-  // clock
-  const c = clockPos(g);
+}
+/** Red alarm clock face (no hands; hands are live), wall-local units. */
+export function wallClock(ctx: Ctx, c: { u: number; v: number }, N: number, ink: string) {
   circle(ctx, c.u, c.v, 0.34); ctx.fillStyle = N ? '#e98a5a' : PALETTE.red; ctx.fill(); ctx.lineWidth = LW(2.5); ctx.stroke();
   circle(ctx, c.u, c.v, 0.27); ctx.fillStyle = N ? '#3a3d6a' : '#fffdf8'; ctx.fill(); ctx.lineWidth = LW(1.5); ctx.stroke();
   for (let i = 0; i < 12; i++) {
@@ -469,9 +476,13 @@ function rightWallProps(ctx: Ctx, g: G, N: number, ink: string) {
 }
 
 function leftWallProps(ctx: Ctx, g: G, N: number, ink: string) {
-  // door
   const d = doorRect(g);
-  if (d.u0 > 0.3) {
+  if (d.u0 > 0.3) wallDoor(ctx, d, N, ink);
+  shelvesEtc(ctx, g, N, ink, d);
+}
+/** Arched door with knob and moon tag, wall-local units (u0 = left edge, sits on v = 0). */
+export function wallDoor(ctx: Ctx, d: { u0: number; w: number; h: number }, N: number, ink: string) {
+  {
     const u0 = d.u0;
     ctx.beginPath();
     ctx.moveTo(u0 - 0.08, 0); ctx.lineTo(u0 - 0.08, d.h - 0.3);
@@ -497,6 +508,9 @@ function leftWallProps(ctx: Ctx, g: G, N: number, ink: string) {
     // light leaking under the door at night
     if (N) { ctx.fillStyle = 'rgba(255,214,120,0.6)'; ctx.fillRect(u0 + 0.05, 0, d.w - 0.1, 0.04); }
   }
+}
+function shelvesEtc(ctx: Ctx, g: G, N: number, ink: string, d: { u0: number }) {
+  void d;
   // shelves with toys
   const s0 = SHELF.u0, s1 = SHELF.u1;
   for (const v of [1.15, 1.75]) {

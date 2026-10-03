@@ -99,6 +99,22 @@ function blanketPath(ctx: Ctx, w: number, h: number, t: number) {
   ctx.closePath();
 }
 
+/** Standalone quilt bump (no qubble under it). Anchor = ground centre, ~60×46 at s=1. */
+export function drawQuilt(ctx: Ctx, x: number, y: number, s: number, t: number) {
+  const w = QW * s, h = QH * s;
+  groundShadow(ctx, x, y, 30 * s, 12 * s, 0.25);
+  ctx.save(); ctx.translate(x, y);
+  blanketPath(ctx, w, h, t);
+  const pat = quiltPattern(ctx);
+  if (pat) { pat.setTransform(new DOMMatrix().translate(x, y).scale(s * 0.5, s * 0.5).rotate(0, 0, 45)); ctx.fillStyle = pat; } else ctx.fillStyle = '#f5a3b5';
+  ctx.fill();
+  const fg = ctx.createLinearGradient(-w, -h, w, 0);
+  fg.addColorStop(0, 'rgba(255,255,255,0.35)'); fg.addColorStop(0.6, 'rgba(255,255,255,0)'); fg.addColorStop(1, 'rgba(60,30,60,0.25)');
+  ctx.fillStyle = fg; ctx.fill();
+  ctx.lineWidth = LINE * s; ctx.strokeStyle = INK; ctx.lineJoin = 'round'; ctx.stroke();
+  ctx.restore();
+}
+
 // ── faces ────────────────────────────────────────────────────────────────────
 type FaceState = QubbleVisual['state'];
 export function drawFace(ctx: Ctx, state: FaceState, s: number, t: number, cx: number, cy: number, gap: number, ink = INK) {
