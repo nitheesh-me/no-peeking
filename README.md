@@ -14,6 +14,24 @@ So you program squeaky **Ancillabots** to high-five the sleeping Qubbles and bee
 
 That is quantum error correction. You just did it by accident.
 
+## For judges: a 3-minute tour
+
+1. **Open the game** (no install): https://nitheesh-me.github.io/no-peeking/
+2. **Unlock everything:** ⚙ Settings → **"Unlock all content!"** (judge mode: every level, the Codex, Nerd mode).
+3. **The core idea in two levels:**
+   - **1-1 "Don't Wake Them"**: PEEK a Qubble and watch its superposition collapse (measurement).
+   - **2-3 "Who Got Flipped?"**: two bots ask parity questions, and you fix a bit flip you never saw (the 3-qubit bit-flip code). Press **Test all**, then open a failed or passed night in **X-ray** to see what really happened.
+4. **For the physics-minded:** turn on **Nerd** in a level to open *Schrödi's Lab Notebook*, with the state vector, Bloch spheres, entanglement, the live quantum circuit, stabilizers, and **Export to Qiskit / OpenQASM 3**.
+5. **The Codex** (📖 on the title or map): every character, object and card, with an interactive 3D Bloch sphere and an honest "In real life" note.
+
+## What's inside
+
+- **16 levels in 5 chapters**, from classical majority vote to the **Shor 9-qubit code**, each verified against every correctable error. Plus a **Night Shift** endless mode and a **Gremlin Lab** sandbox.
+- **Every card is a real gate** (X, Z, H, CNOT, measurement, reset, classical feed-forward), and every program is tested like real code against random nights.
+- **Hiding is the mechanic.** Qubbles stay under blankets (you can't look); **X-ray** is labelled as a simulator-only view.
+- **Learning aids:** a ❓ Card Guide with annotated card anatomy and step-through demos, escalating hints, a threshold chart, and "Pros call this…" lines linked to Qiskit and IBM Quantum Learning.
+- **Feel:** a 2.5D daycare diorama, a caretaker who walks to and performs every card, adaptive procedural music and "Qubblese" voices, and meta beats (the title letters collapse when you hover; a final level is played by ear).
+
 ## How to play
 
 1. Drag command cards into your bots' program (like *7 Billion Humans*).
@@ -86,5 +104,5 @@ npm run build    # static build in dist/ (host anywhere)
 
 ## Credits
 
-Built during the quriosity 16-hour sprint. Fonts: *Quantum* (from the quriosity site) and *Quicksand*. All art and audio are procedural, made in code.
+Built during the quriosity 16-hour sprint by Nitheesh Chandra, with a crew of AI agents (Claude): director, quantum expert, programmer, art designer, audio designer and level designer. Fonts: *Quantum* (from the quriosity site) and *Quicksand*. All art and audio are procedural, made in code.
 Inspirations: *7 Billion Humans*, *Baba Is You*, GMTK.
