@@ -11,6 +11,8 @@ import { h, modal, toast, inputLabel, gremlinIcon, portraitSrc } from '../../eng
 import type { OpName, TraceEvent } from '../../core/contracts';
 import { isBot } from '../../core/contracts';
 import { createBloch3D, type Bloch3D } from '../bloch3d';
+import { NERD_PAGES, NOTEBOOK_UNLOCK, type NerdPageDef, type NerdPageId } from '../nerd/pages';
+import { findCreateNotebook, type NerdNotebook } from '../nerd/loader';
 import { Editor, type Progs } from '../editor/editor';
 import { Dialogue } from '../dialogue';
 import { cloneGlitch, floodColor } from '../meta';
@@ -50,7 +52,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   const fidMeter = h('div', { class: 'fid-meter hidden', title: 'How close the dream is to what it should be (logical fidelity)' }, 'dream', h('div', { class: 'bar' }, fidFill), fidText);
   const stripHost = h('div', { style: 'flex:1;display:flex;justify-content:flex-end;min-width:0' });
   const hud = h('div', { class: 'stage-hud' }, phasePill, xrayPill, fidMeter, stripHost);
-  const nerdPanel = h('div', { class: 'nerd-panel panel hidden' });
+  const nerdHost = h('div', { class: 'nerd-host' }); // Schrödi's Lab Notebook drawer mounts here (left edge) while nerd mode is on
   const hintsPanel = h('div', { class: 'hints-panel panel hidden', role: 'complementary', 'aria-label': 'Hints' });
   const sceneTip = h('div', { class: 'scene-tip hidden' });
   const stage = h('div', { class: 'stage' });
@@ -65,11 +67,11 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   const tlTip = h('div', { class: 'tl-tip hidden' });
   const timeline = h('div', { class: 'timeline', role: 'slider', 'aria-label': 'Night timeline: click to jump' }, h('div', { class: 'segs' }), h('div', { class: 'fill' }), tlTip);
   const bXray = h('button', { class: 'btn small', title: 'X-ray: see the true dreams (X)', onclick: () => setXray(!xray) }, 'X-ray');
-  const bNerd = h('button', { class: 'btn small', title: 'Nerd mode: amplitudes and numbers', onclick: () => { save.settings.nerd = !save.settings.nerd; persist(); syncNerd(); } }, 'Nerd');
+  const bNerd = h('button', { class: 'btn small hidden', title: 'Nerd mode: Schrödi\'s lab notebook', onclick: () => { save.settings.nerd = !save.settings.nerd; persist(); syncNerd(); } }, '📓 Nerd');
   const bRun = h('button', { class: 'btn primary', onclick: () => startRun() }, 'Run night');
   const bTest = h('button', { class: 'btn go', onclick: () => testAll() }, 'Test all');
   const controls = h('div', { class: 'controls' }, bStepMode, bRewind, bBack, bPlay, bStep, bFast, h('div', { class: 'spacer' }), bXray, bNerd, h('div', { class: 'sep' }), bRun, bTest);
-  const sceneArea = h('div', { style: 'position:relative;flex:1;min-height:0;display:flex' }, wrap, hud, nerdPanel, hintsPanel, sceneTip);
+  const sceneArea = h('div', { style: 'position:relative;flex:1;min-height:0;display:flex' }, wrap, hud, nerdHost, hintsPanel, sceneTip);
   const tlRow = h('div', { class: 'tl-row' }, timeline);
   stage.append(sceneArea, tlRow, controls);
 
@@ -97,6 +99,10 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   let fails = save.progress[level.id]?.fails ?? 0;
   let hintIdx = 0;
   let stepMode = false;
+  /** Schrödi's Lab Notebook (nerd mode) */
+  let notebook: NerdNotebook | null = null;
+  let nbKey = '';
+  const snapIds = new WeakMap<object, number>(); let snapSeq = 0;
   /** X-ray Qubble inspector (see openInspector) */
   let insp: { id: QubitId; el: HTMLElement; sphere: Bloch3D; cap: HTMLElement; nums: HTMLElement; last: string } | null = null;
   let runToken = 0;
@@ -147,38 +153,87 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     syncNerd();
   }
   function syncNerd() {
-    const on = save.settings.nerd;
+    const was = scene.nerd;
+    const on = nerdOn();
     scene.nerd = on;
+    bNerd.classList.toggle('hidden', !nerdUnlocked());
     bNerd.classList.toggle('on', on);
-    nerdPanel.classList.toggle('hidden', !(on && xray));
+    if (on) mountNotebook(); else unmountNotebook();
+    if (on && !was && pb && !pb.night.steps[0]?.snap.nerd) refreshNerdNight();
   }
   setXray(xray); scene.xray = scene.xrayTarget;
 
   function currentSnap(): Snapshot | null {
     const a = scene.anim; return a ? (a.p >= 0.5 ? a.to : a.from) : scene.base;
   }
-  let lastNerd = '';
   function updateHud() {
     const s = currentSnap();
     const f = s?.logicalFidelity;
     if (f != null) { fidFill.style.width = `${Math.round(f * 100)}%`; fidText.textContent = `${Math.round(f * 100)}%`; fidFill.style.background = f > 0.98 ? 'var(--mint)' : f > 0.6 ? 'var(--sunny)' : 'var(--red)'; }
-    if (scene.nerd && xray && s) {
-      const key = JSON.stringify(s.amps);
-      if (key !== lastNerd) {
-        lastNerd = key;
-        const ids = [...level.qubbles.map((q) => q.id), ...level.bots.map((b) => b.id)];
-        nerdPanel.innerHTML = '';
-        nerdPanel.append(h('h4', null, 'Amplitudes'), h('div', { class: 'muted', style: 'font-size:10px;margin-bottom:4px' }, `|${ids.join(' ')}⟩`));
-        for (const a of s.amps.slice(0, 12)) {
-          const ph = Math.atan2(a.im, a.re);
-          const hue = ((ph / (2 * Math.PI)) * 360 + 360) % 360;
-          nerdPanel.appendChild(h('div', { class: 'amp-row', title: `${a.re.toFixed(3)} ${a.im >= 0 ? '+' : '−'} ${Math.abs(a.im).toFixed(3)}i` },
-            h('span', { class: 'k' }, `|${a.ket}⟩ ${a.p.toFixed(2)}`),
-            h('span', { class: 'b' }, h('i', { style: `width:${Math.round(a.p * 100)}%;background:hsl(${hue},80%,60%)` }))));
-        }
-        if (f != null) nerdPanel.appendChild(h('div', { style: 'margin-top:6px' }, `F = ${f.toFixed(4)}`));
-      }
+  }
+
+  // ───────── nerd mode: Schrödi's Lab Notebook (docs/NERD_MODE.md) ─────────
+  function nerdUnlocked(): boolean { return levelDone(NOTEBOOK_UNLOCK); }
+  function nerdOn(): boolean { return !!save.settings.nerd && nerdUnlocked(); }
+  /** runNight for anything we DISPLAY: with NerdInfo when nerd mode is on (never used for testLevel) */
+  function runShown(prog: Progs, input: InputState, errors: ErrorEvent[], seed: number): NightX {
+    return nerdOn() ? quantum.runNight(level, prog, input, errors, seed, { nerd: true }) : quantum.runNight(level, prog, input, errors, seed);
+  }
+  function pageUnlocked(page: NerdPageDef | NerdPageId): boolean {
+    const pg = typeof page === 'string' ? NERD_PAGES.find((x) => x.id === page) : page;
+    if (!pg) return false;
+    if (pg.id === 'dump') return !!save.flags['nerd:dump'];
+    return pg.unlockAfter ? levelDone(pg.unlockAfter) : false;
+  }
+  function mountNotebook() {
+    if (notebook) return;
+    const create = findCreateNotebook();
+    if (!create) return; // the notebook module hasn't landed yet: nerd mode shows only hover numbers + the inspector
+    nerdHost.innerHTML = '';
+    try {
+      notebook = create(nerdHost, { level, isUnlocked: pageUnlocked, onDump: () => onDump() });
+    } catch (e) { console.error(e); notebook = null; return; }
+    nbKey = '';
+    // surprise beats: pages unlocked since the notebook was last open
+    for (const pg of NERD_PAGES) {
+      if (pg.unlockAfter && pageUnlocked(pg) && !save.flags['nerd:seen:' + pg.id]) { save.flags['nerd:seen:' + pg.id] = true; notebook.pulseUnlock?.(pg.id); }
     }
+    persist();
+    updateNotebook();
+  }
+  function unmountNotebook() { notebook?.destroy(); notebook = null; nerdHost.innerHTML = ''; }
+  function updateNotebook() {
+    if (!notebook) return;
+    const snap = currentSnap();
+    const key = `${pb ? pb.night.seed ?? 0 : -1}|${pb?.i ?? 0}|${xray}|${snapId(snap)}`;
+    if (key === nbKey) return;
+    nbKey = key;
+    try { notebook.update({ night: pb?.night ?? null, step: pb?.i ?? 0, snap, xray, lightsOut: scene.lightsOut }); } catch (e) { console.error(e); }
+  }
+  function snapId(s: Snapshot | null): number { if (!s) return 0; let v = snapIds.get(s); if (!v) { v = ++snapSeq; snapIds.set(s, v); } return v; }
+  /** nerd turned on mid-run: re-simulate the shown night with NerdInfo (same seed → same trace), keep the position */
+  function refreshNerdNight() {
+    if (!pb) return;
+    const n = pb.night, i = pb.i;
+    let night: NightX;
+    try { night = runShown(progs(), n.input, n.errors, n.seed ?? 1); } catch { return; }
+    if (night.steps.length !== n.steps.length) return;
+    const wasXray = xray, playing = pb.playing;
+    playNight(night, { xray: wasXray, paused: true, onEnd: lastOnEnd });
+    pb?.seek(i);
+    if (playing) pb?.play();
+  }
+  /** the RAW DUMP easter egg was found: remember it (the notebook's dump page has its own Download .json button) */
+  function onDump() {
+    if (save.flags['nerd:dump']) return;
+    save.flags['nerd:dump'] = true; save.flags['nerd:seen:dump'] = true; persist();
+  }
+  /** open the notebook on a page: uses notebook.openPage when the designer provides it, else remounts on that page */
+  function openNotebookPage(page: NerdPageId, qubit?: QubitId) {
+    if (!notebook) return;
+    if (notebook.openPage) { notebook.openPage(page, qubit); return; }
+    try { localStorage.setItem('np.nb.page', page); localStorage.setItem('np.nb.open', '1'); } catch { /* ignore */ }
+    unmountNotebook(); mountNotebook();
   }
 
   // ───────── playback ─────────
@@ -275,7 +330,9 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     syncControls();
   }
 
+  let lastOnEnd: ((n: NightX) => void) | undefined;
   function playNight(night: NightX, opts: { xray?: boolean; onEnd?: (n: NightX) => void; paused?: boolean } = {}) {
+    lastOnEnd = opts.onEnd;
     const token = ++runToken;
     scene.caretakerMood = null;
     if (opts.xray != null) setXray(opts.xray);
@@ -322,7 +379,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     dialogue.close(false);
     const pick = input ? { input, errors: errors ?? [] } : pickNight();
     let night: NightX;
-    try { night = quantum.runNight(level, progs(), pick.input, pick.errors, (Math.random() * 2 ** 31) | 0); }
+    try { night = runShown(progs(), pick.input, pick.errors, (Math.random() * 2 ** 31) | 0); }
     catch (e) { toast(String((e as Error).message ?? e), 'bad'); return; }
     playNight(night, { xray: lab ? true : undefined, onEnd: (n) => afterRun(n), paused });
   }
@@ -375,8 +432,8 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
 
   function replay(n: NightX, paused = false) {
     let night: NightX = n;
-    if (!n.steps.length || n.steps.some((s) => !s.snap.bloch || !Object.keys(s.snap.bloch).length)) {
-      night = quantum.runNight(level, progs(), n.input, n.errors, n.seed ?? 1);
+    if (!n.steps.length || n.steps.some((s) => !s.snap.bloch || !Object.keys(s.snap.bloch).length) || (nerdOn() && !n.steps[0]?.snap.nerd)) {
+      night = runShown(progs(), n.input, n.errors, n.seed ?? 1);
     }
     playNight(night, { xray: true, paused });
   }
@@ -539,9 +596,13 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   const QUIPS = ['I am both bored and not bored.', 'I contain multitudes. Mostly naps.', 'Meow. That\'s all you get.', 'Don\'t look at me. Literally.', 'I sit in boxes. It\'s a whole thing.', 'Your code. My box. Same energy.', 'Poke the bots, not the cat.'];
   const TAUNTS: Record<string, string[]> = { flipper: ['nyeh! flip flip!', 'can\'t catch me!', 'upside down, baby!'], phasey: ['wooOOoo… swirl!', 'you can\'t see meee', 'phase happens~'], wobbles: ['wibble wobble!', 'just a little nudge…', 'whoopsie~'] };
   const pokeCount = new Map<string, { n: number; t: number }>();
+  function blochNums(id: QubitId): string {
+    const b = currentSnap()?.bloch[id]; if (!b) return '';
+    return `⟨X⟩ ${b.x.toFixed(2)} ⟨Y⟩ ${b.y.toFixed(2)} ⟨Z⟩ ${b.z.toFixed(2)} |r| ${Math.hypot(b.x, b.y, b.z).toFixed(2)}`;
+  }
   function tipFor(hit: NonNullable<ReturnType<Scene['hitAny']>>): string {
     switch (hit.kind) {
-      case 'qubble': return !level.classical && scene.xray > 0.5 ? `${hit.id}: click to inspect its true dream (X-ray)` : level.classical ? `${hit.id}: a box with one bit inside (peeking is fine here: click!)` : peekSafe ? `${hit.id}: peeking is allowed here` : scene.woke.has(hit.id!) ? `${hit.id}: awake and grumpy` : `${hit.id}: fast asleep under the blanket (poke gently)`;
+      case 'qubble': return !level.classical && scene.xray > 0.5 ? `${hit.id}: click to inspect its true dream (X-ray)${scene.nerd ? '  ·  ' + blochNums(hit.id!) : ''}` : level.classical ? `${hit.id}: a box with one bit inside (peeking is fine here: click!)` : peekSafe ? `${hit.id}: peeking is allowed here` : scene.woke.has(hit.id!) ? `${hit.id}: awake and grumpy` : `${hit.id}: fast asleep under the blanket (poke gently)`;
       case 'bot': return `bot ${hit.id}: says hi when clicked`;
       case 'caretaker': return busy() ? 'You, the caretaker (busy!)' : 'You, the caretaker: click or drag to move me';
       case 'schrodi': return busy() ? 'Schrödi: supervisor. Cat. Possibly both.' : 'Schrödi: drag his box somewhere comfier';
@@ -566,10 +627,11 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     const b = currentSnap()?.bloch[id] ?? { x: 0, y: 0, z: 1 };
     const sphere = createBloch3D({ size: 150, interactive: false, rotatable: true, measure: false, labels: 'game', initial: b });
     const cap = h('div', { class: 'insp-cap' }), nums = h('div', { class: 'insp-nums' });
+    const toNb = h('button', { class: 'chip insp-nb hidden', title: 'Open this Qubble on the Bloch page of the lab notebook', onclick: () => { openNotebookPage('bloch', id); closeInspector(); } }, '📓 open in notebook');
     const el = h('div', { class: 'qubble-inspector panel', role: 'dialog', 'aria-label': `${id}: true dream (X-ray)` },
       h('div', { class: 'insp-head' }, h('span', { class: 'display' }, `${id} · true dream`),
         h('button', { class: 'btn icon small', 'aria-label': 'Close', onclick: () => closeInspector() }, '×')),
-      sphere.el, cap, nums);
+      sphere.el, cap, nums, toNb);
     sceneArea.appendChild(el);
     sceneTip.classList.add('hidden');
     insp = { id, el, sphere, cap, nums, last: '' };
@@ -598,6 +660,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     // the sphere widget captions mixed/entangled states itself; we only name clear dreams
     insp.cap.textContent = r < 0.95 ? '' : eq > 0.5 ? 'a clear swirl dream' : b.z > 0 ? 'a clear Sunny dream' : 'a clear Moony dream';
     insp.nums.classList.toggle('hidden', !scene.nerd);
+    insp.el.querySelector('.insp-nb')?.classList.toggle('hidden', !(scene.nerd && notebook && pageUnlocked('bloch')));
     insp.nums.textContent = `⟨X⟩ ${b.x.toFixed(2)}  ⟨Y⟩ ${b.y.toFixed(2)}  ⟨Z⟩ ${b.z.toFixed(2)}  |r| ${r.toFixed(2)}`;
   }
 
@@ -819,6 +882,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     fill.style.width = `${(pb?.progress() ?? 0) * 100}%`;
     updateHud();
     updateInspector();
+    updateNotebook();
   }));
 
   function setLevel(def: LevelDef) {
@@ -836,14 +900,22 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   }
   syncNerd(); syncControls();
   audio.setScene(lab ? 'lab' : level.lightsOut ? 'lightsout' : 'build');
-  if (story && level.intro.length) setTimeout(() => dialogue.play(level.intro), 350);
+  const foundNotes = () => {
+    if (!nerdUnlocked() || save.flags['nerd:found']) return;
+    save.flags['nerd:found'] = true; persist();
+    bNerd.classList.remove('hidden'); bNerd.classList.add('glow-once');
+    setTimeout(() => bNerd.classList.remove('glow-once'), 6000);
+    dialogue.play([{ who: 'schrodi', text: 'Oh. You found my notes. Don\'t tell the Qubbles.', mood: 'shock' }]);
+  };
+  if (story && level.intro.length) setTimeout(() => dialogue.play(level.intro, foundNotes), 350);
+  else setTimeout(foundNotes, 350);
   void won;
 
   return () => {
     for (const c of cleanups) c();
     window.removeEventListener('keydown', onKey);
     window.removeEventListener('keyup', onKeyUp);
-    closeInspector();
+    closeInspector(); unmountNotebook();
     dialogue.close(false); editor.destroy(); scene.destroy();
     runToken++;
   };

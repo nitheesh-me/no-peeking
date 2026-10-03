@@ -8,6 +8,7 @@ import { CODEX, CODEX_CATS, type CodexEntry, type CodexCat } from '../codexData'
 import { codexHas, codexFound, unlockAll } from '../unlocks';
 import { linkify } from '../learnLinks';
 import { demoCanvas } from '../cardGuidePanel';
+import { cardAnatomy } from '../cardAnatomy';
 import { CARD_GUIDE } from '../cardGuide';
 import { createBloch3D, type Bloch3D } from '../bloch3d';
 import type { Nav } from '../app';
@@ -343,10 +344,18 @@ function openDetail(e: CodexEntry): void {
   const controls = h('div', { class: 'cd-controls' });
   if (e.view === 'card') {
     const lvl = LEVELS.find((l) => l.id === '2-3') ?? LEVELS[0];
-    const d = demoCanvas(CARD_GUIDE[e.op!].demo, lvl, e.op!);
-    stop = d.stop;
-    live = h('div', { class: 'cd-live cd-card', tabindex: 0, role: 'button', 'aria-label': 'Card demo' },
-      h('div', { class: `card op-${e.op}` }, h('span', { class: 'cname' }, e.op === 'NOTE' ? 'COMMENT' : e.op!)), d.el);
+    // the designer's annotated card diagram + animated walkthrough (falls back to the Card Guide demo)
+    let ana: { el: HTMLElement; destroy(): void } | null = null;
+    try { ana = cardAnatomy(e.op!, lvl); } catch (err) { console.error(err); }
+    if (ana) {
+      const a2 = ana; stop = () => a2.destroy();
+      live = h('div', { class: 'cd-live cd-card cd-anatomy', tabindex: 0, 'aria-label': `${e.name}: anatomy and walkthrough` }, a2.el);
+    } else {
+      const d = demoCanvas(CARD_GUIDE[e.op!].demo, lvl, e.op!);
+      stop = d.stop;
+      live = h('div', { class: 'cd-live cd-card', tabindex: 0, role: 'button', 'aria-label': 'Card demo' },
+        h('div', { class: `card op-${e.op}` }, h('span', { class: 'cname' }, e.op === 'NOTE' ? 'COMMENT' : e.op!)), d.el);
+    }
     controls.append(h('ul', { class: 'guide-tips' }, ...CARD_GUIDE[e.op!].tips.slice(0, 3).map((x) => h('li', null, x))));
   } else {
     const cv = h('canvas', { class: 'cd-canvas', width: W * dpr, height: H * dpr, style: `width:${W}px;height:${H}px`, tabindex: 0, role: 'button', 'aria-label': `${e.name}: ${e.play} (Enter or Space)` }) as HTMLCanvasElement;

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lab notebook test</title>
+<link rel="stylesheet" href="/src/styles/main.css" />
+<style>
+  body { margin: 0; background: #f2f0eb; font-family: Quicksand, sans-serif; }
+  #bar { display: flex; gap: 8px; align-items: center; padding: 8px 12px; border-bottom: 2px solid #0e0e0e; flex-wrap: wrap; font-size: 13px; }
+  #stage { position: relative; height: calc(100vh - 52px); background: radial-gradient(#e8e2d4, #cfc6b4); overflow: hidden; }
+  #stage::after { content: 'stage'; position: absolute; right: 20px; bottom: 16px; font-family: Quantum, sans-serif; opacity: 0.25; font-size: 40px; }
+</style>
+</head>
+<body>
+<div id="bar">
+  night <select id="night"><option value="flip">bit-flip on q2</option><option value="wobble">wobble on q2</option><option value="copy">copy attempt (Bell)</option><option value="real:1-3">REAL sim 1-3</option><option value="real:2-3">REAL sim 2-3 (flip q2)</option><option value="real:3-3">REAL sim 3-3 (wobble q2)</option><option value="real:4-1">REAL sim 4-1 (Shor)</option></select>
+  step <input id="step" type="range" min="0" max="20" value="20" /> <span id="sv"></span>
+  <label><input id="xray" type="checkbox" checked /> X-ray</label>
+  <label><input id="lo" type="checkbox" /> lights out</label>
+  <label><input id="all" type="checkbox" checked /> unlock all</label>
+  <button id="pulse" class="btn small">pulseUnlock(density)</button>
+</div>
+<div id="stage"></div>
+<script type="module">
+  import { createNerdNotebook } from './notebook.ts';
+  import { mockLevel, mockNight } from './mock.ts';
+  import { quantum, getLevel } from '../../engine/deps.ts';
+  const $ = (id) => document.getElementById(id);
+  const qs = new URLSearchParams(location.search);
+  if (qs.has('night')) $('night').value = qs.get('night');
+  if (qs.has('xray')) $('xray').checked = qs.get('xray') === '1';
+  if (qs.has('lo')) $('lo').checked = true;
+  if (qs.has('locked')) $('all').checked = false;
+  let level = mockLevel();
+  const make = (v) => {
+    if (!v.startsWith('real:')) { level = mockLevel(); return mockNight(v); }
+    level = getLevel(v.slice(5));
+    const errs = v.endsWith('1-3') ? [] : v.endsWith('3-3') ? [{ kind: 'wobble', t: 'q2', axis: 'x', angle: 1.0 }] : [{ kind: 'flip', t: 'q2' }];
+    const input = level.inputs.find((i) => typeof i === 'string' && i !== 'random') ?? 'plus';
+    return quantum.runNight(level, level.solution, input, errs, 7, { nerd: true });
+  };
+  let nb;
+  const mount = () => { nb?.destroy(); nb = createNerdNotebook($('stage'), {
+    level, prog: () => level.solution,
+    isUnlocked: (p) => $('all').checked || ['state', 'bloch', 'entangle', 'circuit'].includes(p),
+    onDump: () => console.log('dump revealed'),
+  }); window.__nb = nb; };
+  let night = make($('night').value);
+  mount();
+  const push = () => {
+    const max = night.steps.length - 1;
+    $('step').max = String(max);
+    const step = Math.min(+$('step').value, max);
+    $('sv').textContent = `${step}/${max} ${night.steps[step].ev.k}`;
+    nb.update({ night, step, snap: night.steps[step].snap, xray: $('xray').checked, lightsOut: $('lo').checked });
+  };
+  $('night').onchange = () => { night = make($('night').value); mount(); $('step').value = '99'; push(); };
+  for (const id of ['step', 'xray', 'lo']) $(id).oninput = push;
+  $('all').onchange = push;
+  $('pulse').onclick = () => nb.pulseUnlock('density');
+  if (qs.has('step')) $('step').value = qs.get('step');
+  push();
+  window.__setStep = (s) => { $('step').value = String(s); push(); };
+</script>
+</body>
+</html>

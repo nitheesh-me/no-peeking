@@ -174,3 +174,25 @@ it in X-ray using its `seed`.
   unlocks still fire: swirl/silk thread/…). Esc, clicking anywhere else or turning X-ray off closes it. It lives inside
   the scene area, so the editor and the playback controls stay usable. Gremlin clicks still win (they are hit-tested
   first). QA: `.scratch/pw/bloch.mjs`.
+
+## v0.6b: Nerd mode = Schrödi's Lab Notebook (spec: docs/NERD_MODE.md)
+- Old nerd visuals are gone: no amplitude panel and no floating ⟨Z⟩/r labels. In X-ray + nerd, the per-qubit numbers
+  are in the Qubble hover tooltip (and in the inspector). Nerd off behaves exactly as before.
+- **Gate**: `nerdUnlocked()` = `levelDone('1-1')` (judge mode counts). The 📓 Nerd button stays hidden until then; the
+  first time it appears (on the next level screen, after the intro) Schrödi says "Oh. You found my notes. Don't tell
+  the Qubbles." and the button glows once (`save.flags['nerd:found']`). Settings shows "🔒 find Schrödi's notes first"
+  until it's unlocked.
+- **Simulation**: `runShown()` calls `quantum.runNight(..., { nerd: true })` only when nerd is on, and only for the
+  nights we display (runs/replays; testLevel never). Turning nerd on mid-run re-simulates the shown night with the same
+  seed and keeps the position (`refreshNerdNight`).
+- **Notebook**: `src/ui/nerd/loader.ts` finds the designer's `createNerdNotebook` (src/ui/nerd/notebook.ts) and mounts
+  it in `.nerd-host` (left edge of the scene area) only while nerd is on. `update({night, step, snap, xray, lightsOut})`
+  runs when the step, snapshot, X-ray or night changes. `isUnlocked(page)` = `levelDone(page.unlockAfter)`; dump =
+  `save.flags['nerd:dump']` (set by `onDump`; the dump page has its own download button). Pages unlocked since the
+  notebook was last mounted get `pulseUnlock` once (`save.flags['nerd:seen:'+id]`).
+- The inspector's "📓 open in notebook" switches to the Bloch page (via `openPage` if the notebook adds it; otherwise
+  it remounts the notebook open on the Bloch page through its localStorage keys).
+- The Codex card entries show the designer's `cardAnatomy(op, level)` (annotated diagram + walkthrough), which is
+  destroyed on close. The Card Guide demo is the fallback.
+- QA: `.scratch/pw/prog-nerd.mjs` (fresh-save unlock flow, nerd off, blankets 🙈 vs X-ray, judge mode pages, 4-2) and
+  `.scratch/pw/prog-anat.mjs`.

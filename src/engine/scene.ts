@@ -681,22 +681,11 @@ export class Scene {
 
     this.drawCaptions(t);
 
-    // x-ray tint + nerd numbers
+    // x-ray tint (nerd numbers live in the hover tooltip + the lab notebook)
     if (xr > 0.02) {
       ctx.save();
       ctx.globalAlpha = 0.10 * xr; ctx.fillStyle = '#6c63ff'; ctx.fillRect(0, 0, this.w, this.h);
       ctx.restore();
-      if (this.nerd) {
-        ctx.save(); ctx.globalAlpha = xr; ctx.font = `700 ${Math.max(10, 12 * s)}px Quicksand, sans-serif`; ctx.textAlign = 'center';
-        for (const q of this.level.qubbles) {
-          const p = this.screenPos.get(q.id)!; const b = this.blochOf(q.id);
-          const txt = `⟨Z⟩=${b.z.toFixed(2)}  r=${Math.hypot(b.x, b.y, b.z).toFixed(2)}`;
-          const w = ctx.measureText(txt).width + 10;
-          ctx.fillStyle = 'rgba(14,14,14,0.85)'; ctx.beginPath(); ctx.roundRect(p.x - w / 2, p.y + 16 * s, w, 18, 6); ctx.fill();
-          ctx.fillStyle = '#f2f0eb'; ctx.fillText(txt, p.x, p.y + 16 * s + 13);
-        }
-        ctx.restore();
-      }
     }
     ctx.restore();
   }

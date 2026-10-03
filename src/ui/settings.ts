@@ -3,7 +3,8 @@ import { audio } from '../engine/deps';
 import { save, persist, resetSave, lastRepair } from '../engine/store';
 import { h, modal, toast } from '../engine/util';
 import { applySettings, nav } from './app';
-import { setUnlockAll, unlockAll } from './unlocks';
+import { setUnlockAll, unlockAll, levelDone } from './unlocks';
+import { NOTEBOOK_UNLOCK } from './nerd/pages';
 import { fsSupported, isFullscreen, setFullscreen } from './fullscreen';
 
 export function openSettings(): void {
@@ -25,7 +26,9 @@ export function openSettings(): void {
   const body = h('div', null,
     h('h2', null, 'Settings'),
     slider('Master', 'master'), slider('Music', 'music'), slider('Sounds', 'sfx'), slider('Voices', 'voice'),
-    toggle('Nerd mode', 'X-ray also shows amplitudes, kets and ⟨Z⟩ numbers', 'nerd'),
+    levelDone(NOTEBOOK_UNLOCK)
+      ? toggle('Nerd mode', 'Schrödi\'s lab notebook: circuits, syndromes, and (in X-ray) the full quantum state', 'nerd')
+      : h('div', { class: 'toggle locked' }, h('span', null, h('div', null, 'Nerd mode'), h('div', { class: 'muted', style: 'font-size:12px' }, '🔒 find Schrödi\'s notes first')), h('input', { type: 'checkbox', disabled: true, 'aria-label': 'Nerd mode (locked)' })),
     toggle('X-ray on by default', 'for replays and the curious (spoils the blanket!)', 'xrayDefault'),
     toggle('Reduced motion', 'fewer wiggles and shakes', 'reducedMotion'),
     fsSupported() ? (() => {

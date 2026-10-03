@@ -70,3 +70,7 @@
 .cd-live.with-sphere .cd-canvas { width: 420px !important; flex: 1 1 300px; }
 .cd-sphere { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0; flex: 0 0 auto; }
 .cd-sphere-cap { font-size: 12px; font-weight: 700; color: var(--ink2); text-align: center; max-width: 240px; }
+
+/* v0.6b: card anatomy (designer) inside Codex card entries */
+.cd-live.cd-anatomy { background: #fff; padding: 10px; display: block; }
+.cd-live.cd-anatomy > * { max-width: 440px; margin: 0 auto; }
