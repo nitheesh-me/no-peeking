@@ -1,6 +1,6 @@
 // Art preview harness: open /src/art/preview.html under `npx vite`.
 // Query params: ?night=0..1  ?t=<seconds> (freeze time)  ?only=scene|qubbles|cast  ?scale=1
-import { art, wallSignSlots } from './index';
+import { art, wallSignSlots, dataBoxPortrait } from './index';
 import type { Bloch, BotVisual, IsoFn, QubbleVisual, Speaker, DialogueLine, CaretakerVisual, SchrodiActorVisual } from '../core/contracts';
 
 const qs = new URLSearchParams(location.search);
@@ -25,7 +25,7 @@ if (only) { (document.getElementById('logo') as HTMLElement).style.display = 'no
 const cv = document.getElementById('c') as HTMLCanvasElement;
 const ctx = cv.getContext('2d')!;
 const W = 1400;
-const H = only === 'actors' ? 1180 : only === 'closeup' ? 1000 : only === 'room' ? 1180 : only === 'map' ? 900 : only === 'scene' ? 760 : only === 'qubbles' ? 1060 : only === 'cast' ? 900 : 2700;
+const H = only === 'actors' ? 1270 : only === 'closeup' ? 1000 : only === 'room' ? 1180 : only === 'map' ? 900 : only === 'scene' ? 760 : only === 'qubbles' ? 1060 : only === 'cast' ? 900 : 2700;
 const dpr = window.devicePixelRatio || 1;
 cv.width = W * dpr; cv.height = H * dpr;
 cv.style.width = W + 'px'; cv.style.height = H + 'px';
@@ -250,11 +250,21 @@ function actorsSheet(t: number) {
     art.drawBot(ctx, 1000 + i * 130, 960, 1.4, { light: 0, action: a, facing: -1 }, t);
     label('bot ' + a, 1000 + i * 130, 990, 12);
   });
-  heading('Wall signs (left / right wall)', 1040);
-  ctx.fillStyle = '#efe0c8'; ctx.fillRect(20, 1060, W - 40, 110);
+  heading('Data boxes (classical): closed / open 0 / open 1 / states', 1010);
+  const dbs: [number, number, QubbleVisual['state'], number][] = [[1, 0, 'sleep', 1], [0, 0, 'sleep', 0], [PI, 0, 'sleep', 0], [0, 0, 'happy', 0], [PI, 0, 'scared', 0], [0, 0, 'mumble', 1], [PI, 0, 'awake-grumpy', 0]];
+  dbs.forEach(([th, , st2, bl], i) => {
+    art.drawQubble(ctx, 560 + i * 120, 1065, 1.1, { bloch: B(th, 0), blanket: bl, state: st2, classical: true, label: 'q' + (i + 1) }, t);
+    label(st2 + (bl ? ' (lid)' : ''), 560 + i * 120, 1100, 11);
+  });
+  if (!(window as any).__dbp) {
+    (window as any).__dbp = [null, 0, 1].map((v) => { const im = new Image(); im.src = dataBoxPortrait(v as any); return im; });
+  }
+  (window as any).__dbp.forEach((im: HTMLImageElement, i: number) => { if (im.complete) ctx.drawImage(im, 40 + i * 150, 1025, 90, 90); });
+  heading('Wall signs (left / right wall)', 1140);
+  ctx.fillStyle = '#efe0c8'; ctx.fillRect(20, 1155, W - 40, 100);
   ['NO COPIES', 'BEWARE OF GHOST', 'DAY SHIFT: PEEKING OK'].forEach((tx, i) => {
-    art.drawWallSign!(ctx, 120 + i * 200, 1115, 1, tx, 'left', t);
-    art.drawWallSign!(ctx, 760 + i * 200, 1115, 1, tx, 'right', t, i === 1 ? 1 : 0);
+    art.drawWallSign!(ctx, 120 + i * 200, 1205, 1, tx, 'left', t);
+    art.drawWallSign!(ctx, 760 + i * 200, 1205, 1, tx, 'right', t, i === 1 ? 1 : 0);
   });
 }
 function mapSheet(t: number) {

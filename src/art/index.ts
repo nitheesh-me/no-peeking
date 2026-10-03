@@ -6,7 +6,7 @@ import { drawGremlin } from './gremlins';
 import { drawSchrodi, drawSchrodiActor } from './schrodi';
 import { drawFloor, drawBackground, drawLink, drawSign } from './world';
 import { burst, drawParticles, clearParticles, particleCount } from './particles';
-import { portrait } from './portraits';
+import { portrait, dataBoxPortrait } from './portraits';
 import { drawRoom, drawWallSign, wallSignSlots, SIGN_BAND } from './room';
 import { drawCaretaker } from './caretaker';
 import { drawMapBackdrop, drawMapIsland, drawMapNode, drawMapPath } from './map';
@@ -55,6 +55,8 @@ export const art: ArtAPI = {
 
 /** Extras outside the contract (optional to use). */
 export type { QubbleArm } from './qubble';
+export { dataBoxPortrait };
+export { drawDataBox } from './qubble';
 export { drawBed, clearParticles, particleCount, wallSignSlots, SIGN_BAND };
 export type { WallSlot } from './room';
 export const LOGO_URL = 'art/logo.svg';

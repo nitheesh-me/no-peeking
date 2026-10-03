@@ -322,10 +322,8 @@ export function drawQubble(ctx: Ctx, x: number, y: number, s: number, v: QubbleV
     ctx.stroke();
     ctx.restore();
   }
-  drawBed(ctx, x, y, s, sceneState.night);
-  const yb = y - 5 * s; // sits on the mattress top
-  if (v.classical) drawBitBall(ctx, x, yb, s, v, t, seed);
-  else drawBlob(ctx, x, yb, s, v, t, seed);
+  if (v.classical) drawDataBox(ctx, x, y, s, v, t, seed); // 7 Billion Humans homage: a data crate on the floor tile
+  else { drawBed(ctx, x, y, s, sceneState.night); drawBlob(ctx, x, y - 5 * s, s, v, t, seed); }
   if (v.label) nameTag(ctx, x + 24 * s, y + 9 * s, s, v.label);
   ctx.restore();
 }
@@ -633,76 +631,6 @@ function giggleNotes(ctx: Ctx, s: number, t: number, w: number, h: number) {
   ctx.restore();
 }
 
-/** Classical bit-ball (Ch0): plain flat Sunny/Moony, with a sleep mask. */
-function drawBitBall(ctx: Ctx, x: number, y: number, s: number, v: QubbleVisual, t: number, seed: number) {
-  const one = v.bloch.z < 0;
-  const col = one ? MOONY : SUNNY;
-  const st = v.state;
-  const R = 17 * s;
-  const breath = Math.sin(t * 1.8 + seed);
-  let hop = 0;
-  if (st === 'happy' || st === 'giggle') hop = Math.abs(Math.sin(t * 5 + seed)) * 6 * s;
-  const sq = st === 'collapsed' ? 0.8 : 1 - 0.03 * breath;
-  groundShadow(ctx, x, y, 20 * s, 8 * s, 0.28);
-  ctx.save();
-  ctx.translate(x, y - hop);
-  ctx.scale(2 - sq, sq);
-  circle(ctx, 0, -R, R);
-  const g = ctx.createRadialGradient(-R * 0.35, -R * 1.4, 2 * s, 0, -R, R * 1.1);
-  g.addColorStop(0, rgba(lighten(col, 0.35)));
-  g.addColorStop(0.5, rgba(col));
-  g.addColorStop(1, rgba(darken(col, 0.18)));
-  ctx.fillStyle = g;
-  ctx.fill();
-  // bit-ball seam
-  ctx.save();
-  ctx.clip();
-  ctx.strokeStyle = rgba(darken(col, 0.3), 0.6);
-  ctx.lineWidth = 1.5 * s;
-  ctx.beginPath();
-  ctx.ellipse(0, -R, R * 0.35, R * 1.05, 0, 0, TAU);
-  ctx.stroke();
-  ctx.restore();
-  circle(ctx, 0, -R, R);
-  inkStroke(ctx, s);
-  ctx.fillStyle = 'rgba(255,255,255,0.8)';
-  ellipse(ctx, -R * 0.45, -R * 1.5, 3.5 * s, 2.2 * s, -0.6); ctx.fill();
-  ctx.restore();
-
-  ctx.save();
-  ctx.translate(x, y - hop);
-  const faceY = -R * 1.05;
-  const masked = st === 'sleep';
-  const maskY = masked ? faceY - 1 * s : faceY - 12 * s;
-  // sleep mask band
-  ctx.beginPath();
-  ctx.moveTo(-R * 0.98, maskY - 2 * s);
-  ctx.bezierCurveTo(-R * 0.6, maskY - 7 * s, R * 0.6, maskY - 7 * s, R * 0.98, maskY - 2 * s);
-  ctx.lineTo(R * 0.92, maskY + 4 * s);
-  ctx.bezierCurveTo(R * 0.5, maskY + 7 * s, -R * 0.5, maskY + 7 * s, -R * 0.92, maskY + 4 * s);
-  ctx.closePath();
-  ctx.fillStyle = '#2b2d55';
-  ctx.fill();
-  inkStroke(ctx, s, 1.8);
-  // emblem: 0 or 1 dream
-  ctx.fillStyle = one ? '#c9c5ff' : '#ffd77a';
-  ctx.font = `700 ${8 * s}px Quicksand, sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  if (masked) {
-    ctx.strokeStyle = '#c9c5ff';
-    ctx.lineWidth = 1.4 * s;
-    for (const ex of [-6 * s, 6 * s]) { ctx.beginPath(); ctx.arc(ex, maskY - 0.5 * s, 2.6 * s, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke(); }
-    ctx.fillStyle = INK;
-    circle(ctx, 0, faceY + 9 * s, 1.4 * s); ctx.fill();
-    zzz(ctx, R * 0.8, -R * 2, s, t + seed);
-  } else {
-    ctx.fillText(one ? '1' : '0', 0, maskY + 0.5 * s);
-    drawFace(ctx, st, s * 0.85, t, 0, faceY + 3 * s, 6);
-  }
-  ctx.restore();
-}
-
 /** Optional HIGHFIVE arm (pending contract field `QubbleVisual.arm`). dx,dy = screen-px direction toward the partner. */
 export interface QubbleArm { dx: number; dy: number; t: number }
 /** Gooey arm popping out from under the blanket. When the qubble is hidden (blanket ≥ 0.5) the arm wears a neutral
@@ -738,4 +666,151 @@ function gooArm(ctx: Ctx, s: number, w: number, h: number, arm: QubbleArm, col: 
     }
   }
   ctx.restore();
+}
+
+// ═════════════════════════════ DATA BOX (classical, v0.4) ═════════════════════════════
+// Homage to 7 Billion Humans: a chunky cardboard crate on the tile with its value stencilled big on the lid.
+// Anchor = tile centre (same as the qubble). Footprint 0.56×0.56 tile (≈54×27 px at s=1), body 26·s tall.
+// blanket ≥ 0.5 = lid closed (value hidden behind a "?" stencil); < 0.5 = flaps open, value showing.
+const CB: RGB = [222, 176, 112], CB_D: RGB = [178, 128, 70], CB_L: RGB = [240, 206, 150];
+export function drawDataBox(ctx: Ctx, x: number, y: number, s: number, v: QubbleVisual, t: number, seed: number) {
+  const one = v.bloch.z < 0;
+  const st = v.state;
+  const open = clamp(1 - v.blanket * 2); // 0 closed … 1 fully open (blanket 0)
+  const closed = v.blanket >= 0.5;
+  const tint: RGB = one ? MOONY : SUNNY;
+  const nN = sceneState.night;
+  const col = (c: RGB, k = 0) => rgba(mix(mix(c, tint, 0.12), [40, 40, 80], nN * 0.45 + k));
+  const h = 0.28, H = 26 / 48; // half-size (tiles), height (tile-heights)
+  // reactions
+  let hop = 0, rot = 0, jx = 0, flipK = 1;
+  if (st === 'happy' || st === 'giggle') hop = Math.abs(Math.sin(t * 6 + seed)) * (st === 'giggle' ? 3 : 7);
+  if (st === 'scared') { jx = Math.sin(t * 48) * 1.6; flipK = Math.cos(t * 9); } // shake + digit spinning over
+  if (st === 'mumble') rot = Math.sin(t * 2.6 + seed) * 0.07;
+  if (st === 'giggle') rot = Math.sin(t * 18) * 0.05;
+  const breath = st === 'sleep' ? Math.sin(t * 1.6 + seed) * 0.6 : 0;
+  // floor contact shadow (stays put while hopping)
+  groundShadow(ctx, x, y + 1 * s, 34 * s * (1 - hop / 40), 15 * s * (1 - hop / 40), 0.3);
+  ctx.save();
+  ctx.translate(x + jx * s, y - hop * s);
+  ctx.rotate(rot);
+  const P = (u: number, vv: number, z = 0) => bp(0, 0, s, u, vv, z);
+  const Hz = H + breath / 48;
+  const top = [P(-h, -h, Hz), P(h, -h, Hz), P(h, h, Hz), P(-h, h, Hz)];
+  const fl = [P(-h, h, Hz), P(h, h, Hz), P(h, h, 0), P(-h, h, 0)]; // +gy face (lower-left)
+  const fr = [P(h, -h, Hz), P(h, h, Hz), P(h, h, 0), P(h, -h, 0)]; // +gx face (lower-right)
+  const quad = (q: { x: number; y: number }[]) => { ctx.beginPath(); ctx.moveTo(q[0].x, q[0].y); for (let i = 1; i < q.length; i++) ctx.lineTo(q[i].x, q[i].y); ctx.closePath(); };
+  // back flaps (open): hinge on the two back top edges, fold outward/up
+  if (open > 0.01) {
+    const lift = open * 0.32;
+    for (const [a, b, d] of [[top[0], top[1], { x: 0.6, y: -1 }], [top[3], top[0], { x: -0.6, y: -1 }]] as const) {
+      quad([a, b, { x: b.x + d.x * lift * 48 * s * 0.5, y: b.y + d.y * lift * 48 * s }, { x: a.x + d.x * lift * 48 * s * 0.5, y: a.y + d.y * lift * 48 * s }]);
+      ctx.fillStyle = col(CB_D, 0.05); ctx.fill(); inkStroke(ctx, s, 1.8);
+    }
+  }
+  // side faces with multi-stop shading + corrugation lines
+  quad(fl);
+  const gl = ctx.createLinearGradient(fl[0].x, fl[0].y, fl[3].x, fl[3].y);
+  gl.addColorStop(0, col(CB_L)); gl.addColorStop(0.5, col(CB)); gl.addColorStop(1, col(CB, 0.08));
+  ctx.fillStyle = gl; ctx.fill();
+  quad(fr);
+  const gr = ctx.createLinearGradient(fr[0].x, fr[0].y, fr[3].x, fr[3].y);
+  gr.addColorStop(0, col(CB)); gr.addColorStop(1, col(CB_D, 0.05));
+  ctx.fillStyle = gr; ctx.fill();
+  ctx.save(); quad([fl[3], fl[0], fr[0], fr[1], fr[2], fl[2]]); ctx.clip();
+  ctx.strokeStyle = 'rgba(110,70,30,0.16)'; ctx.lineWidth = 0.8 * s;
+  for (let k = 1; k < 8; k++) {
+    const u = -h + (2 * h * k) / 8;
+    let a = P(u, h, Hz), b = P(u, h, 0); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    a = P(h, u, Hz); b = P(h, u, 0); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  // AO at the floor
+  const ao = ctx.createLinearGradient(0, -8 * s, 0, 2 * s);
+  ao.addColorStop(0, 'rgba(40,20,10,0)'); ao.addColorStop(1, 'rgba(40,20,10,0.3)');
+  ctx.fillStyle = ao; ctx.fillRect(-40 * s, -10 * s, 80 * s, 14 * s);
+  ctx.restore();
+  // little stencil on the front-left face: "this side up" arrows
+  ctx.save();
+  const fc = P(0, h, Hz * 0.42);
+  ctx.translate(fc.x, fc.y); ctx.transform(1, -0.5, 0, 1, 0, 0);
+  ctx.strokeStyle = 'rgba(14,14,14,0.45)'; ctx.lineWidth = 1.3 * s; ctx.lineCap = 'round';
+  for (const ax of [-5, 5]) { ctx.beginPath(); ctx.moveTo(ax * s, 4 * s); ctx.lineTo(ax * s, -4 * s); ctx.moveTo((ax - 2.5) * s, -1.5 * s); ctx.lineTo(ax * s, -4 * s); ctx.lineTo((ax + 2.5) * s, -1.5 * s); ctx.stroke(); }
+  ctx.restore();
+  // edges
+  ctx.lineJoin = 'round'; ctx.strokeStyle = INK; ctx.lineWidth = LINE * s;
+  quad([top[0], top[1], fr[3], fr[2], fl[3], top[3]]); ctx.stroke();
+  ctx.lineWidth = 1.6 * s; ctx.beginPath(); ctx.moveTo(top[2].x, top[2].y); ctx.lineTo(fr[2].x, fr[2].y); ctx.stroke();
+  // top / lid
+  quad(top);
+  if (closed) {
+    const tg = ctx.createLinearGradient(top[0].x, top[0].y, top[2].x, top[2].y);
+    tg.addColorStop(0, col(CB_L, -0.05)); tg.addColorStop(1, col(CB));
+    ctx.fillStyle = tg; ctx.fill(); inkStroke(ctx, s, 2);
+    // flap seam + tape strip along +gx
+    const a = P(-h, 0, Hz), b = P(h, 0, Hz);
+    const tw = 0.06;
+    quad([P(-h, -tw, Hz), P(h, -tw, Hz), P(h, tw, Hz), P(-h, tw, Hz)]);
+    ctx.fillStyle = nN > 0.5 ? 'rgba(200,190,160,0.6)' : 'rgba(255,240,200,0.75)'; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineWidth = 1 * s; ctx.strokeStyle = 'rgba(14,14,14,0.5)'; ctx.stroke();
+    topText('?', 'rgba(14,14,14,0.55)', null, 1);
+  } else {
+    // open: dark interior, value tile sitting inside
+    ctx.fillStyle = rgba(mix([90, 60, 30], [20, 20, 40], nN * 0.5)); ctx.fill(); inkStroke(ctx, s, 2);
+    const ih = h - 0.05, iz = Hz - 0.05 * (1 - open);
+    quad([P(-ih, -ih, iz), P(ih, -ih, iz), P(ih, ih, iz), P(-ih, ih, iz)]);
+    const panel = mix(tint, [255, 255, 255], one ? 0.08 : 0.15);
+    const pg = ctx.createLinearGradient(P(-ih, -ih, iz).x, P(-ih, -ih, iz).y, P(ih, ih, iz).x, P(ih, ih, iz).y);
+    pg.addColorStop(0, rgba(lighten(panel, 0.35))); pg.addColorStop(0.6, rgba(panel)); pg.addColorStop(1, rgba(darken(panel, 0.12)));
+    ctx.fillStyle = pg; ctx.fill(); inkStroke(ctx, s, 1.6);
+    topText(one ? '1' : '0', one ? '#ffffff' : INK, one ? 'rgba(20,10,60,0.5)' : 'rgba(255,255,255,0.6)', flipK);
+    // front flaps folded down outside
+    if (open > 0.3) {
+      for (const [a, b, d] of [[top[3], top[2], { x: -0.55, y: 0.5 }], [top[2], top[1], { x: 0.55, y: 0.5 }]] as const) {
+        const L = 9 * s * open;
+        quad([a, b, { x: b.x + d.x * L, y: b.y + d.y * L + L * 0.4 }, { x: a.x + d.x * L, y: a.y + d.y * L + L * 0.4 }]);
+        ctx.fillStyle = col(CB_L); ctx.fill(); inkStroke(ctx, s, 1.6);
+      }
+    }
+    // specular glint on the panel
+    const gp = P(-0.12, -0.14, iz);
+    ctx.fillStyle = 'rgba(255,255,255,0.7)'; ellipse(ctx, gp.x, gp.y, 3.5 * s, 1.5 * s, 0.45); ctx.fill();
+  }
+  // rim light along the top front edges
+  ctx.strokeStyle = 'rgba(255,250,235,0.55)'; ctx.lineWidth = 1.2 * s;
+  ctx.beginPath(); ctx.moveTo(top[3].x, top[3].y + 1.5 * s); ctx.lineTo(top[2].x, top[2].y + 1.5 * s); ctx.lineTo(top[1].x - 1 * s, top[1].y + 1.5 * s); ctx.stroke();
+  // state accents
+  if (st === 'sleep' && closed) zzz(ctx, 18 * s, -40 * s, s, t + seed);
+  if (st === 'mumble') {
+    ctx.save(); ctx.font = `700 ${9 * s}px Quicksand, sans-serif`; ctx.fillStyle = INK; ctx.globalAlpha = Math.sin(((t * 0.6) % 1) * Math.PI);
+    ctx.fillText('mmh', 16 * s, -40 * s - ((t * 0.6) % 1) * 10 * s); ctx.restore();
+  }
+  if (st === 'scared') {
+    ctx.save(); ctx.strokeStyle = INK; ctx.lineWidth = 1.5 * s; ctx.lineCap = 'round';
+    for (const sd of [-1, 1]) for (let i = 0; i < 2; i++) { const xx = sd * (32 + i * 4) * s, yy = (-14 - i * 9) * s; ctx.beginPath(); ctx.moveTo(xx, yy - 3 * s); ctx.lineTo(xx + sd * 3 * s, yy); ctx.lineTo(xx, yy + 3 * s); ctx.stroke(); }
+    ctx.restore();
+  }
+  if (st === 'happy') { starPath(ctx, -26 * s, -42 * s + Math.sin(t * 4) * 2 * s, 3.5 * s, t * 2); ctx.fillStyle = PALETTE.sunny; ctx.fill(); inkStroke(ctx, s, 1.2); }
+  if (st === 'awake-grumpy') {
+    const p2 = (t * 0.8) % 1; ctx.globalAlpha = 1 - p2; ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    circle(ctx, 20 * s + p2 * 6 * s, -38 * s - p2 * 10 * s, (2 + p2 * 3) * s); ctx.fill(); inkStroke(ctx, s, 1.2); ctx.globalAlpha = 1;
+  }
+  const arm = (v as QubbleVisual & { arm?: QubbleArm }).arm;
+  if (arm && arm.t > 0.01) { ctx.save(); ctx.translate(0, -6 * s); gooArm(ctx, s, 22 * s, 30 * s, arm, null, t); ctx.restore(); }
+  ctx.restore();
+
+  /** Big stencil value on the lid plane (iso top-face text: reads along +gx). flip = cos of the spin (scared). */
+  function topText(txt: string, fill: string, shadow: string | null, flip: number) {
+    const c = P(0, 0, Hz);
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.transform(1, 0.5, -1, 0.5, 0, 0); // local x → +gx edge, local y → +gy edge (top-face plane)
+    ctx.scale(1, Math.abs(flip) < 0.08 ? 0.08 : flip);
+    ctx.font = `${22 * s}px Quantum, Quicksand, sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (shadow) { ctx.fillStyle = shadow; ctx.fillText(txt, 1.2 * s, 2.2 * s); }
+    ctx.lineWidth = 2.2 * s; ctx.strokeStyle = fill === '#ffffff' ? INK : 'rgba(255,255,255,0.0)';
+    if (fill === '#ffffff') ctx.strokeText(txt, 0, 1 * s);
+    ctx.fillStyle = fill; ctx.fillText(txt, 0, 1 * s);
+    ctx.restore();
+  }
 }

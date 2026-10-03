@@ -121,6 +121,29 @@ function system() {
 }
 
 const cache = new Map<string, string>();
+/** Classical (Ch0) data box portrait: 7 Billion Humans-style crate with its value. value null = closed lid with "?". */
+function dataBox(value: 0 | 1 | null) {
+  const panel = value === 1 ? '#6c63ff' : value === 0 ? '#ffb72b' : '#ebc48b';
+  const digit = value === null ? '?' : String(value);
+  const dcol = value === 1 ? '#fff' : INK;
+  return badge(value === 1 ? '#e6e4ff' : '#fff1d1', `
+<ellipse cx="60" cy="104" rx="40" ry="10" fill="#0e0e1e" opacity="0.18"/>
+<path d="M20 50 L60 30 L100 50 L100 88 L60 108 L20 88Z" fill="#deb070" ${SW}/>
+<path d="M60 70 L100 50 L100 88 L60 108Z" fill="#b2803f" ${SW}/>
+<path d="M20 50 L60 30 L100 50 L60 70Z" fill="${panel}" ${SW}/>
+<path d="M60 74 v30 M26 60 v20 M94 60 v20" stroke="#8a5a2b" stroke-width="1.5" opacity="0.4"/>
+<path d="M36 82 v-10 m-3 3 l3 -3 l3 3 M46 87 v-10 m-3 3 l3 -3 l3 3" fill="none" stroke="${INK}" stroke-width="2" opacity="0.45" stroke-linecap="round"/>
+<g transform="matrix(1 0.5 -1 0.5 60 50)"><text x="0" y="9" text-anchor="middle" font-family="Quantum,Quicksand,sans-serif" font-weight="700" font-size="30" fill="${dcol}" ${value === 1 ? `stroke="${INK}" stroke-width="2" paint-order="stroke"` : ''}>${digit}</text></g>
+<ellipse cx="44" cy="46" rx="6" ry="2.5" fill="#fff" opacity="0.6" transform="rotate(25 44 46)"/>`);
+}
+/** Extra (outside the contract): portrait of a classical data box. */
+export function dataBoxPortrait(value: 0 | 1 | null = null): string {
+  const key = 'databox:' + value;
+  let url = cache.get(key);
+  if (!url) { url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(dataBox(value)); cache.set(key, url); }
+  return url;
+}
+
 export function portrait(who: Speaker, mood?: DialogueLine['mood']): string {
   const m: Mood = mood ?? (who === 'qubble' ? 'sleepy' : who === 'flipper' || who === 'phasey' || who === 'wobbles' ? 'smug' : 'deadpan');
   const key = who + ':' + m;

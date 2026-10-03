@@ -13,7 +13,7 @@ Procedural Canvas2D, everything in `src/art/`. Preview: `npx vite`, then open `/
 - Equatorial strength e = √(x²+y²) shows a two-tone swirl. The Sunny half points along φ = atan2(y,x) (screen angle, CCW from +x), and the chirality = cos φ. So + and − are mirror images, and ±i is a straight split (Sunny up for +i, down for −i). Sparkles flow along the seam in the chirality direction. The rim back-light hue follows φ.
 - r = |b| < 1 makes the qubble misty: desaturated, semi-transparent, with a fog halo and drifting puffs. r≈0 is a grey ghost.
 - `blanket`: 1 = an opaque quilt bump (the face is hidden, it snores). Below 1 the quilt is translucent with a dashed edge (X-ray ≈ 0.25).
-- `collapsed`: flat single colour, squashed, with dizzy spiral eyes. `classical`: a flat bit-ball with a sleep mask and 0/1.
+- `collapsed`: flat single colour, squashed, with dizzy spiral eyes. `classical`: a DATA BOX (v0.4, see below).
 
 ## Sizes and anchors (s = 1 is tuned for an iso tile of 96×48 px; the engine passes s = TW/96)
 | Thing | Anchor | Approx size at s=1 |
@@ -76,3 +76,10 @@ Same design as the boxed Schrödi (grey tabby, forehead stripes, heavy-lidded ye
 ## Fidelity pass (v0.3)
 Multi-stop gradients on the walls (floor AO band, top light), the floor slab (highlight, shade, wood-grain streaks), the rug and the mattress. AO bands on the floor along both walls and in the back corner. Contact shadows under props, beds, the rug, signs and Schrödi. Fabric weave on the rug, the quilt tile and the mattress sheet. Qubbles get bottom AO, a crisp cool rim light and the existing specular. Bots get floor bounce light, a rim light and a specular glint. All static work stays in the cached room/floor layers.
 **Night tint for signs and beds:** `drawRoom`/`drawFloor` store the frame's `night` in a shared `sceneState`; `drawWallSign` and the bed under each qubble read it. So always call `drawRoom` before the signs and entities in a frame (the engine already does).
+
+## Data box (v0.4, `classical: true`), an homage to 7 Billion Humans
+`drawQubble` with `classical: true` draws a cardboard crate instead of a qubble on a bed. It has the same anchor (tile centre), so the engine needs no changes. Footprint 0.56×0.56 tile (≈54×27 at s=1), body 26·s tall, sitting directly on the floor tile with a contact shadow.
+- Value: z ≥ 0 → "0" on a Sunny panel (ink digit); z < 0 → "1" on a Moony panel (white digit with an ink outline). It is printed big in the Quantum font in the lid plane.
+- `blanket` ≥ 0.5 = lid closed and taped, with a "?" stencil (the value is hidden). Below 0.5 the flaps are open and the value shows; the flap opening scales with 1 − 2·blanket.
+- Reactions: happy = bounce plus a star; giggle = a small wiggle-hop; scared = a hard shake while the digit spins over (a scaleY flip on cos t); mumble = a slow wobble plus "mmh"; awake-grumpy = a steam puff; sleep with the lid closed = zzz. A HIGHFIVE `arm` still pops out (neutral colour).
+- Portrait: `dataBoxPortrait(value: 0 | 1 | null)` is an extra export from `src/art` (`null` = closed "?"). `portrait()` has no classical speaker, so use this helper for Ch0 box speakers. `drawDataBox` is exported too.
