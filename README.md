@@ -104,3 +104,7 @@ npm run build    # static build in dist/ (host anywhere)
 
 Built during the quriosity 16-hour sprint by Nitheesh Chandra, with a crew of AI agents (Claude): director, quantum expert, programmer, art designer, audio designer and level designer. Fonts: *Quantum* (from the quriosity site) and *Quicksand*. All art and audio are procedural, made in code.
 Inspirations: *7 Billion Humans*, *Baba Is You*, GMTK.
+
+## License
+
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) © 2026 Nitheesh Chandra: share and remix with credit, non-commercially, under the same licence. Third-party fonts (*Quantum* from the quriosity site; *Quicksand*, SIL OFL 1.1) and npm dependencies keep their own licences. See [`LICENSE`](LICENSE).
