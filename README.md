@@ -19,7 +19,7 @@ That is quantum error correction. You just did it by accident.
 1. Drag command cards into your bots' program (like *7 Billion Humans*).
 2. Press **Run Night**. The lights go out, the gremlins strike, and your bots listen.
 3. Press **Test**. Your program runs against many random nights: random dreams × every gremlin attack.
-4. Watch the **X-ray replay** to see what really happened under the blankets.
+4. Watch the **X-ray replay** to see what really happened under the blankets (a simulator-only view: no real experiment can watch this without disturbing it).
 
 | Card | What it does in the game | What it really is |
 |---|---|---|
@@ -39,7 +39,7 @@ _(Team: fill in with your real "wait, what?" moments. Draft prompts below.)_
 - **"Wait, you can't just copy it?"** The classical fix for noise is to keep three copies and take a vote. The no-cloning theorem forbids copying an unknown qubit. A CNOT doesn't copy |+⟩; it entangles. So the repetition code does not store three copies of the state. It *spreads one state* across three qubits: α|000⟩ + β|111⟩.
 - **"How do you find an error without looking?"** You ask a *parity* question ("do qubits 1 and 2 agree?") instead of a value question ("what is qubit 1?"). An ancilla collects the parity through two CNOTs. Measuring it reveals the syndrome but nothing about α or β, so the superposition survives.
 - **"Phase errors are invisible?!"** The bit-flip code is blind to Z errors: every syndrome comes back quiet, yet the state is wrong. A Hadamard on every qubit swaps the roles of X and Z, so the same trick works sideways (the phase-flip code). Nest both and you get Shor's 9-qubit code.
-- **"Continuous errors become discrete?!"** A *small* rotation error, measured by the syndrome, collapses into either "no error" or "a full flip". Both of those we can fix. This is why QEC works at all, and it was our biggest "ohhh".
+- **"Continuous errors become discrete?!"** A *small* rotation error becomes, once the syndrome is extracted and read, either "no error" or "a full flip". The entangling gates remove the half-flip's coherence; the readout picks which. Both of those we can fix. This is why QEC works at all, and it was our biggest "ohhh".
 - **"Codes aren't magic."** With two errors, the decoder confidently fixes the wrong qubit. The code only helps when the physical error rate p is low: the logical failure rate is 3p² − 2p³, which beats p only when p < ½.
 
 ## How the idea became the game
@@ -55,7 +55,7 @@ Every Qubble and every Ancillabot in NO PEEKING! is a real qubit in an exact sta
 (complex amplitudes, double precision, up to 17 qubits). Every card is a real operation: BOOP = X,
 SHUSH = Z, SPIN = Hadamard, HIGHFIVE = CNOT, LISTEN/PEEK = projective measurement in the computational
 basis with Born-rule random outcomes and true collapse, RESET = reset to |0⟩. Gremlins apply real
-errors: X (Flipper), Z (Phasey), Y (both) and *partial* rotations exp(−iθX/2) (Wobbles). Nothing is
+errors: X (Flipper), Z (Phasey), Y (both) and *partial* rotations exp(−iθX/2) or exp(−iθZ/2) (Wobbles). Nothing is
 faked: a level is won only if the final state of the Qubbles has fidelity ≥ 99.9% with the ideal
 encoded state, checked on many test nights (random input states × every error the code should fix).
 The bit-flip, phase-flip and Shor 9-qubit codes in the game are the textbook ones, and our test suite

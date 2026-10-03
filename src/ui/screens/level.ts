@@ -66,7 +66,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   const bStepMode = h('button', { class: 'btn small', title: 'Step mode: go one event at a time', 'aria-pressed': 'false', onclick: () => setStepMode(!stepMode) }, 'Step mode');
   const tlTip = h('div', { class: 'tl-tip hidden' });
   const timeline = h('div', { class: 'timeline', role: 'slider', 'aria-label': 'Night timeline: click to jump' }, h('div', { class: 'segs' }), h('div', { class: 'fill' }), tlTip);
-  const bXray = h('button', { class: 'btn small', title: 'X-ray: see the true dreams (X)', onclick: () => setXray(!xray) }, 'X-ray');
+  const bXray = h('button', { class: 'btn small', title: 'X-ray: see the true dreams (X). Simulator only: a real lab can\'t see this without measuring.', onclick: () => setXray(!xray) }, 'X-ray');
   const bNerd = h('button', { class: 'btn small hidden', title: 'Nerd mode: Schrödi\'s lab notebook', onclick: () => { save.settings.nerd = !save.settings.nerd; persist(); syncNerd(); } }, '📓 Nerd');
   const bRun = h('button', { class: 'btn primary', onclick: () => startRun() }, 'Run night');
   const bTest = h('button', { class: 'btn go', onclick: () => testAll() }, 'Test all');

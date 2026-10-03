@@ -162,7 +162,7 @@ function anatomySpec(name: OpName, level?: LevelDef): AnatomySpec {
         op: { op: 'PEEK', t: q },
         callouts: [
           { targets: ['name'], side: 'top', title: 'Card name: what to do', text: day ? 'Open the box and read the bit inside. On the day shift this is fine.' : g.what },
-          { targets: ['target'], side: 'bottom', title: 'What to look at', text: 'A Qubble or box (q1…) or a bot (a…). Peeking at a bot is always safe.' },
+          { targets: ['target'], side: 'bottom', title: 'What to look at', text: 'A Qubble or box (q1…) or a bot (a…). Peeking at a bot never wakes a Qubble: it works just like LISTEN.' },
           { targets: ['tag'], side: 'top', title: wakes ? 'Wakes it!' : 'Safe here', text: wakes ? 'Looking at a Qubble wakes it, and its double-dream pops into one. Ask a bot instead.' : 'Peeking is allowed in this level.' },
         ],
       };
@@ -424,7 +424,7 @@ function walkFor(name: OpName, level?: LevelDef): Walk {
     case 'RESET': return one([{ op: 'LISTEN', t: 'a' }, { op: 'RESET', t: 'a' }, { op: 'LISTEN', t: 'a' }], [
       [null, { a: 'unheard' }, 'Bot a heard a flip earlier in the night.'],
       [0, { a: 'BEEP' }, 'LISTEN a: BEEP.'],
-      [1, { a: 'BEEP' }, 'RESET a: the bot forgets everything and is fresh again. IF still remembers that last BEEP.'],
+      [1, { a: 'BEEP' }, 'RESET a: the bot\'s qubit is fresh again (back to |0⟩). Its light and IF still remember that last BEEP.'],
       [2, { a: 'QUIET' }, 'LISTEN a again: QUIET. Ready to answer a new question.', '💤 done'],
     ]);
     case 'PEEK': {
