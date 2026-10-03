@@ -189,7 +189,10 @@ export function createNerdNotebook(host: HTMLElement, o: NerdNotebookOpts): Nerd
       case 'export': body.replaceChildren(exportView()); break;
       case 'dump': body.replaceChildren(dumpView()); break;
     }
+    if (n && (page === 'state' || page === 'entangle' || page === 'density')) body.append(simNote());
   }
+  /** These pages show the simulator's hidden state: say so, once per page. */
+  const simNote = () => h('p', { class: 'nb-cap nb-simnote' }, 'Simulator notes: a real lab only gets the bots\' beeps.');
   const noData = () => h('p', { class: 'nb-empty' }, 'No notes for this step. (The simulator only writes them in Nerd mode: re-run the night.)');
   const hiddenView = () => h('div', { class: 'nb-hidden' }, h('div', { class: 'nb-stamp' }, '🙈'), h('p', null, 'State hidden: the Qubbles are asleep. Turn on X-ray to read my notes.'));
 
@@ -252,7 +255,7 @@ export function createNerdNotebook(host: HTMLElement, o: NerdNotebookOpts): Nerd
         blochW.set(q, { w, nums });
       }
       const extra = ids.length > show.length ? h('p', { class: 'nb-cap' }, `${ids.length} qubits: showing the first ${show.length}. The rest are in the dump.`) : null;
-      body.replaceChildren(grid, ...(extra ? [extra] : []));
+      body.replaceChildren(grid, ...(extra ? [extra] : []), simNote());
     }
     if (focusQ && blochW.has(focusQ)) {
       const card = blochW.get(focusQ)!.w.el.closest('.nb-bcard') as HTMLElement | null;
@@ -437,7 +440,7 @@ export function createNerdNotebook(host: HTMLElement, o: NerdNotebookOpts): Nerd
       <text x="${X(0.31)}" y="${Y(0.36)}" class="nb-svgt" font-size="9" fill="#55524b">one Qubble: p</text>
       <text x="${X(0.06)}" y="${Y(0.05) - 10}" class="nb-svgt" font-size="9" fill="#4b43d6">three: 3p² − 2p³</text>
       <text x="${X(0.25)}" y="${H - 1}" text-anchor="middle" class="nb-svgt" font-size="8.5">physical error p</text></svg>`;
-    return h('div', null, h('div', { html: svg }), h('p', { class: 'nb-cap' }, 'The green gap is where the 3-qubit code helps. The curves cross at p = 1/2: past that, majority vote makes things worse. Real codes chase the same crossing (the threshold).'));
+    return h('div', null, h('div', { html: svg }), h('p', { class: 'nb-cap' }, 'The green gap is where the 3-qubit code helps. The curves cross at p = 1/2: past that, majority vote makes things worse. This crossing is a pseudo-threshold. The real threshold is where bigger codes start beating smaller ones.'));
   }
 
   // ── density matrix ──
@@ -482,7 +485,7 @@ export function createNerdNotebook(host: HTMLElement, o: NerdNotebookOpts): Nerd
       h('label', { class: 'nb-cap' }, 'qubit(s): ', select),
       h('div', { class: 'nb-row2' }, grid('re'), grid('im')),
       h('p', { class: 'nb-cap' }, `largest off-diagonal |ρᵢⱼ| = ${off.toFixed(3)}${off < 0.01 ? ' (classical: nothing left to lose)' : ' (coherence)'}${n.truncated ? ' · from the 256 biggest amplitudes' : ''}`));
-    if (caught) wrap.append(h('div', { class: 'nb-caught' + (reduced ? '' : ' slap') }, 'error discretization,', h('br'), 'caught in the act'), h('p', { class: 'nb-cap' }, 'The half-flip\'s coherence just leaked into the bot. From here on it is either flipped or not: a plain X error the code can fix.'));
+    if (caught) wrap.append(h('div', { class: 'nb-caught' + (reduced ? '' : ' slap') }, 'error discretization,', h('br'), 'caught in the act'), h('p', { class: 'nb-cap' }, 'The half-flip\'s coherence just leaked into the bot. From here on it is either flipped or not: a plain X error the code can fix, and the LISTEN will say which.'));
     return wrap;
   }
   const cellColor = (v: number) => { const a = Math.min(1, Math.abs(v) * 1.6); return v >= 0 ? `rgba(255,183,43,${(0.08 + 0.85 * a).toFixed(3)})` : `rgba(108,99,255,${(0.08 + 0.85 * a).toFixed(3)})`; };

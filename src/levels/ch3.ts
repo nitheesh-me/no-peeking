@@ -192,18 +192,18 @@ const L33: LevelDef = {
   ],
   hints: [
     'Run your old Who Got Flipped routine first. Then watch the replay closely.',
-    'Watch the Qubble right when the bot LISTENs. Is it still half flipped after that?',
-    'Your 2-3 routine already works. Listening forces the half-flip to pick a side.',
+    'Watch the Qubble during the bots\' high-fives and their LISTEN. The high-fives tie the half-flip to the bots; the LISTEN picks a side.',
+    'Your 2-3 routine already works. The high-fives and the LISTEN together force the half-flip to pick a side.',
   ],
   winLine: [
     { who: 'wobbles', text: 'i was... partway... and then... the bot listened... and i was... all the way...?', mood: 'shock' },
     { who: 'schrodi', text: 'Asking the question forced an answer. Full flip or no flip. Both of which you can fix.', mood: 'smug' },
   ],
-  reveal: 'Listening forces a half-flip to become a full flip or no flip. Asking about the damage squashes a small error into one you can fix.',
+  reveal: 'Asking about the damage turns a half-flip into a full flip or no flip: the high-fives tie the two possibilities to the bots, and listening picks one. Both are fixable.',
   proTerm: 'Pros call this: error discretization. Syndrome measurement projects a continuous error onto a discrete Pauli error.',
   solution: { morning: DECODE3_BITFLIP },
   traps: [
-    { name: 'Do nothing (half-flips add up)', morning: [] },
+    { name: 'Do nothing (a half-flip is still damage)', morning: [] },
     {
       name: 'Only one bot',
       morning: P(`

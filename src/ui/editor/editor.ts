@@ -196,7 +196,7 @@ export class Editor {
   // ───────────── model helpers ─────────────
   get peekWakes(): boolean { return this.opts.peekMode ? this.opts.peekMode === 'wakes' : !(this.level.classical || this.level.allowPeekData); }
   private helpFor(name: OpName): string {
-    if (name === 'PEEK') return this.peekWakes ? 'PEEK: on a Qubble it WAKES it (pops its double-dream). On a bot it is safe.' : this.level.classical ? 'Peek: look in the box' : 'Peek: look at it (allowed here)';
+    if (name === 'PEEK') return this.peekWakes ? 'PEEK: on a Qubble it WAKES it (pops its double-dream). On a bot it never wakes anyone (same as LISTEN).' : this.level.classical ? 'Peek: look in the box' : 'Peek: look at it (allowed here)';
     return CARD_HELP[name];
   }
   /** write the live programs back into their active slots */
@@ -546,7 +546,7 @@ export class Editor {
       const onBot = !o.tool && isBot(op.t);
       if (this.peekWakes && !onBot) c.classList.add('hazard');
       if (!o.tool) {
-        c.title = onBot ? `PEEK ${op.t}: look at a bot. Safe: bots don't dream (same as LISTEN)` : this.helpFor('PEEK');
+        c.title = onBot ? `PEEK ${op.t}: look at a bot. Wakes no Qubble (same as LISTEN)` : this.helpFor('PEEK');
         c.appendChild(h('small', { class: 'peek-tag' + (this.peekWakes && !onBot ? ' wakes' : ' safe') }, this.peekWakes && !onBot ? 'wakes it!' : 'safe'));
       }
     }

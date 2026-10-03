@@ -151,7 +151,7 @@ const L41: LevelDef = {
     'After folding, the leaders are a sideways 3-code: SPIN q1 q4 q7, check them with bots g and h, BOOP the odd one, SPIN back, then unfold the rows again.',
   ],
   winLine: [
-    { who: 'schrodi', text: 'Any gremlin, any Qubble, fixed blind. That is a real quantum memory. I am getting a bigger box.', mood: 'happy' },
+    { who: 'schrodi', text: 'Any gremlin, any Qubble, fixed blind. That is how a real quantum memory works, in miniature. I am getting a bigger box.', mood: 'happy' },
     { who: 'flipper', text: 'flip gang and twist gang both cooked 💀💀', mood: 'shock' },
     { who: 'phasey', text: 'gg 👻', mood: 'sleepy' },
   ],
@@ -210,8 +210,8 @@ const L42: LevelDef = {
     { who: 'eye', text: '!', mood: 'shock' },
     { who: 'schrodi', text: 'You never saw a thing. Every dream survived. That is how the real machines do it, every night.', mood: 'happy' },
   ],
-  reveal: 'A real quantum computer never sees its data. It only hears the clues, and that is enough.',
-  proTerm: 'Pros call this: fault-tolerant thinking. Syndrome extraction plus a decoding table, run blind.',
+  reveal: 'While it protects its data, a real quantum computer never looks at it. It only hears the clues, and that is enough.',
+  proTerm: 'Pros call this: blind syndrome extraction and decoding, the core loop of quantum error correction. (Full fault tolerance also survives faulty gates and faulty readouts.)',
   meta: ['lights-out', 'credits'],
   solution: { morning: DECODE3_PHASE },
   traps: [

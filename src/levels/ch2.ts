@@ -43,7 +43,7 @@ const L21: LevelDef = {
   ],
   hints: [
     'You cannot ask a Qubble what it dreams. But you can ask whether two Qubbles agree.',
-    'A bot that high-fives BOTH Qubbles flips twice if they agree, and once if they do not.',
+    'A bot that high-fives BOTH Qubbles flips an even number of times (0 or 2) if they agree, and exactly once if they do not.',
     'HIGHFIVE q1 -> a, HIGHFIVE q2 -> a, LISTEN a. IF a BEEP, BOOP q2.',
   ],
   winLine: [

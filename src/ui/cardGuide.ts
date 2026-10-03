@@ -33,7 +33,7 @@ export const CARD_GUIDE: Record<OpName, CardGuide> = {
     tips: [
       'BOOP twice and nothing changed. Handy for undoing a mistake.',
       'It is how you FIX a flip once your bots tell you who got flipped.',
-      'Booping a swirly Qubble leaves the swirl alone. It only swaps Sunny and Moony.',
+      'Booping a sideways (|+⟩ or |−⟩) Qubble leaves it alone. It only swaps Sunny and Moony.',
     ],
   },
   SHUSH: {
@@ -75,19 +75,19 @@ export const CARD_GUIDE: Record<OpName, CardGuide> = {
     demo: { actor: 'caretaker', action: 'listen', target: 'bot', light: 1 },
     pro: { term: 'measuring an ancilla (reading the syndrome)', unlockAfter: '2-1' },
     tips: [
-      'Listening to a bot is safe: it\'s a bot, not a Qubble.',
+      'Listening never wakes a Qubble by itself, but it is a real measurement. If the bot copied ONE Qubble, listening reads (and pops) that Qubble. Safe questions compare two Qubbles.',
       'LISTEN after the high-fives, not before. The bot needs something to tell you.',
       'Two bots give four answers. That is enough to point at any one of three Qubbles.',
     ],
   },
   RESET: {
     name: 'RESET',
-    what: 'Press a bot\'s button and it forgets everything. Back to QUIET, ready to help again.',
+    what: 'Press a bot\'s button and its qubit goes back to |0⟩, ready to help again. (Its light keeps showing the last LISTEN.)',
     demo: { actor: 'caretaker', action: 'press', target: 'bot', light: 0 },
     pro: { term: 'resetting an ancilla qubit', unlockAfter: '2-4' },
     tips: [
       'Reuse a bot instead of buying a new one: LISTEN, then RESET, then ask the next question.',
-      'A bot still remembers its last BEEP until you RESET it.',
+      'A bot\'s qubit still holds its last answer until you RESET it: high-fiving it again would add to it.',
       'IF still sees the last LISTEN result after a RESET, so you can decide first and reset later.',
     ],
   },
@@ -146,11 +146,11 @@ export const CARD_GUIDE: Record<OpName, CardGuide> = {
 
 export function peekTips(level: LevelDef): string[] {
   if (level.classical) return ['Peeking is safe on the day shift: these are boxes with one bit inside.', 'PEEK first, then IF on what you saw.', 'Three boxes and a vote beat one box and a gremlin.'];
-  if (level.allowPeekData) return ['Peeking is allowed here.', 'Peeking at a bot is always safe.', 'A peeked Qubble stays peeked: it picks one dream for good.'];
+  if (level.allowPeekData) return ['Peeking is allowed here.', 'Peeking at a bot never wakes a Qubble (it works just like LISTEN).', 'A peeked Qubble stays peeked: it picks one dream for good.'];
   return [
     'PEEK (wakes it!): looking at a Qubble wakes it, and its double-dream pops into one boring dream.',
     'Ask a bot instead: HIGHFIVE the Qubbles into a bot, then LISTEN to the bot.',
     'There\'s no undo: you can\'t rewind past a peek.',
-    'PEEK at a bot instead of a Qubble and nothing wakes up: bots don\'t dream. It works just like LISTEN.',
+    'PEEK at a bot instead of a Qubble and no Qubble is marked awake. It works just like LISTEN: a real measurement, so a bot tangled up with ONE Qubble\'s dream still disturbs it.',
   ];
 }

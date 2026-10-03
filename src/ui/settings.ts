@@ -29,7 +29,7 @@ export function openSettings(): void {
     levelDone(NOTEBOOK_UNLOCK)
       ? toggle('Nerd mode', 'Schrödi\'s lab notebook: circuits, syndromes, and (in X-ray) the full quantum state', 'nerd')
       : h('div', { class: 'toggle locked' }, h('span', null, h('div', null, 'Nerd mode'), h('div', { class: 'muted', style: 'font-size:12px' }, '🔒 find Schrödi\'s notes first')), h('input', { type: 'checkbox', disabled: true, 'aria-label': 'Nerd mode (locked)' })),
-    toggle('X-ray on by default', 'for replays and the curious (spoils the blanket!)', 'xrayDefault'),
+    toggle('X-ray on by default', 'for replays and the curious (spoils the blanket! Only a simulator can do this)', 'xrayDefault'),
     toggle('Reduced motion', 'fewer wiggles and shakes', 'reducedMotion'),
     fsSupported() ? (() => {
       const inp = h('input', { type: 'checkbox' }) as HTMLInputElement;

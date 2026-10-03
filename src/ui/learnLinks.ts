@@ -24,7 +24,7 @@ const LINKS: [RegExp, string, string][] = [
   [/Pauli-Z(?: \(phase flip\))? gate|Z \(phase-flip\) error/i, `${DOCS}/api/qiskit/qiskit.circuit.library.ZGate`, 'Qiskit docs: ZGate'],
   [/mid-circuit measurement and reset|resetting an ancilla qubit/i, `${DOCS}/guides/measure-qubits`, 'Qiskit guide: measure qubits (mid-circuit measurement)'],
   [/measuring an ancilla(?: \(reading the syndrome\))?|a measurement \(in the Z basis\)|measurement(?= plus)/i, `${DOCS}/guides/measure-qubits`, 'Qiskit guide: measure qubits'],
-  [/threshold idea|fault-tolerant thinking/i, QEC, 'IBM Quantum Learning: Foundations of quantum error correction'],
+  [/threshold idea|fault-tolerant thinking|core loop of quantum error correction/i, QEC, 'IBM Quantum Learning: Foundations of quantum error correction'],
 ];
 
 /** Split `text` into plain strings and <a> links for every known phrase. */
