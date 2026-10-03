@@ -122,6 +122,25 @@ export interface Snapshot {
   amps: { ket: string; re: number; im: number; p: number }[];
   lights: Partial<Record<QubitId, 0 | 1 | null>>;
   logicalFidelity?: number; // vs ideal (if computable at this point)
+  /** Full quantum info dump for Nerd mode (only when runNight is called with { nerd: true }). */
+  nerd?: NerdInfo;
+}
+export interface NerdInfo {
+  /** ket bit order, left → right (e.g. ['q1','q2','q3','a','b']); classical (measured/untouched) qubits included with their value */
+  order: QubitId[];
+  /** every amplitude with |amp|² > 1e-9 (capped at 256, largest first); ket = bitstring in `order` */
+  amps: { ket: string; re: number; im: number }[];
+  truncated: boolean;
+  /** per-qubit reduced state: Bloch vector, purity Tr(ρ²) ∈ [½,1], von Neumann entropy S(ρ) in bits */
+  reduced: Record<QubitId, { x: number; y: number; z: number; purity: number; entropy: number }>;
+  /** pairwise mutual information I(A:B) in bits, matrix indexed like `order` (symmetric, diagonal = 2·S) */
+  mi: number[][];
+  /** Pauli expectation values useful for codes: ZZ and XX on neighbouring Qubbles (+ any the VM finds relevant), e.g. { label: 'Z₁Z₂', value: 1 } */
+  stabilizers: { label: string; value: number }[];
+  /** fidelity of the data qubits with the level's ideal target state at this step, if defined */
+  fidelity?: number;
+  /** classical record so far: measured bits by qubit (LISTEN/PEEK results, in order) */
+  record: { who: QubitId; bit: 0 | 1 }[];
 }
 
 export type TraceEvent =
@@ -162,7 +181,7 @@ export interface TestReport {
 /** Implemented by src/quantum/ (Quantum Expert). Pure, deterministic given seed. */
 export interface QuantumAPI {
   /** Run one night fully; returns trace for animation. */
-  runNight(level: LevelDef, prog: { bedtime?: Program; morning?: Program }, input: InputState, errors: ErrorEvent[], seed: number): NightResult;
+  runNight(level: LevelDef, prog: { bedtime?: Program; morning?: Program }, input: InputState, errors: ErrorEvent[], seed: number, opts?: { nerd?: boolean }): NightResult;
   /** Build the test suite and run all nights. */
   testLevel(level: LevelDef, prog: { bedtime?: Program; morning?: Program }, seed?: number): TestReport;
   /** Parse/print text form of programs (shareable). */
