@@ -66,6 +66,15 @@ errors only strike during the "night" between encoding and correction, and measu
 
 Details and conventions: [`docs/QUANTUM_NOTES.md`](docs/QUANTUM_NOTES.md).
 
+## Further reading (linked in-game)
+
+After you win a level, the "Pros call this…" line links its textbook terms to real material:
+
+- Qiskit guide: [classical feedforward and control flow](https://quantum.cloud.ibm.com/docs/en/guides/classical-feedforward-and-control-flow) (the conditional X gate behind every IF → BOOP)
+- Qiskit docs: [XGate](https://quantum.cloud.ibm.com/docs/en/api/qiskit/qiskit.circuit.library.XGate), [ZGate](https://quantum.cloud.ibm.com/docs/en/api/qiskit/qiskit.circuit.library.ZGate), [HGate](https://quantum.cloud.ibm.com/docs/en/api/qiskit/qiskit.circuit.library.HGate), [CXGate](https://quantum.cloud.ibm.com/docs/en/api/qiskit/qiskit.circuit.library.CXGate), [measuring qubits](https://quantum.cloud.ibm.com/docs/en/guides/measure-qubits)
+- IBM Quantum Learning, *Foundations of quantum error correction*: [repetition codes](https://quantum.cloud.ibm.com/learning/en/courses/foundations-of-quantum-error-correction/correcting-quantum-errors/repetition-codes), [the Shor code](https://quantum.cloud.ibm.com/learning/en/courses/foundations-of-quantum-error-correction/correcting-quantum-errors/shor-code), [discretization of errors](https://quantum.cloud.ibm.com/learning/en/courses/foundations-of-quantum-error-correction/correcting-quantum-errors/discretization-of-errors)
+- IBM Quantum Learning, *Basics of quantum information*: [no-cloning](https://quantum.cloud.ibm.com/learning/en/courses/basics-of-quantum-information/quantum-circuits/limitations-on-quantum-information), [entanglement](https://quantum.cloud.ibm.com/learning/en/courses/basics-of-quantum-information/multiple-systems/quantum-information)
+
 ## Run locally
 
 ```bash

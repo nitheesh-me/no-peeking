@@ -15,6 +15,7 @@ import { cloneGlitch, floodColor } from '../meta';
 import { openNightLab } from '../nightLab';
 import type { Nav } from '../app';
 import { fullscreenButton } from '../fullscreen';
+import { linkify } from '../learnLinks';
 
 export interface LevelArg {
   def: LevelDef;
@@ -439,7 +440,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
         sb(stars[1], 'Short', `${r.lines} lines${ch.lines != null ? ` (par ${ch.lines})` : ''}`, 1),
         sb(stars[2], 'Speedy', `${r.avgSteps.toFixed(1)} steps${ch.steps != null ? ` (par ${ch.steps})` : ''}`, 2)),
       h('div', { class: 'reveal-line' }, level.reveal),
-      level.proTerm ? h('div', { class: 'pro-term' }, level.proTerm) : null,
+      level.proTerm ? h('div', { class: 'pro-term' }, ...linkify(level.proTerm)) : null,
       h('div', { class: 'row', style: 'justify-content:center;margin-top:18px' },
         h('button', { class: 'btn small', onclick: () => { close(); const n = report?.nights.find((x) => x.errors.length) ?? report?.nights[0]; if (n) replay(n); } }, 'X-ray replay'),
         story ? h('button', { class: 'btn small', onclick: () => { close(); nav.go('map'); } }, 'Map') : null,

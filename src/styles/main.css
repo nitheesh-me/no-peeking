@@ -738,3 +738,6 @@ button { font-family: inherit; color: inherit; }
 .snip:hover .snip-move, .snip:focus-within .snip-move { opacity: 1; }
 .snip-move button { width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--ink); background: #fff; font: 700 13px/1 var(--body); padding: 0; cursor: pointer; }
 .snip.drop-before { box-shadow: -5px 0 0 var(--red); }
+.learn-link { white-space: nowrap; color: inherit; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; font-weight: 700; }
+.learn-link::after { content: ' ↗'; font-size: .85em; opacity: .8; }
+.learn-link:hover, .learn-link:focus-visible { color: var(--sunny); text-decoration-style: solid; }

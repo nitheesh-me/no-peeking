@@ -5,6 +5,7 @@ import { onFrame } from '../engine/loop';
 import { save } from '../engine/store';
 import { h, modal } from '../engine/util';
 import { CARD_GUIDE, peekTips, type CardDemo } from './cardGuide';
+import { linkify } from './learnLinks';
 
 const BLOCH: Record<NonNullable<CardDemo['from']>, Bloch> = {
   sunny: { x: 0, y: 0, z: 1 }, moony: { x: 0, y: 0, z: -1 }, plus: { x: 1, y: 0, z: 0 }, minus: { x: -1, y: 0, z: 0 },
@@ -77,7 +78,7 @@ export function openCardGuide(name: OpName, level: LevelDef): void {
     demo.el,
     h('h4', null, 'Tips & tricks'),
     h('ul', { class: 'guide-tips' }, ...tips.map((t) => h('li', null, t))),
-    g.pro ? h('div', { class: 'guide-pro' }, proOpen ? `Pros call this: ${g.pro.term}` : `🔒 The pro name unlocks after level ${g.pro.unlockAfter}`) : null,
+    g.pro ? h('div', { class: 'guide-pro' }, ...(proOpen ? ['Pros call this: ', ...linkify(g.pro.term)] : [`🔒 The pro name unlocks after level ${g.pro.unlockAfter}`])) : null,
   );
   modal(body, { cls: 'guide-wrap', onClose: () => demo.stop() });
 }
