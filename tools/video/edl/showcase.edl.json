@@ -1,0 +1,891 @@
+{
+ "schema": "np-edl/1",
+ "video": "showcase",
+ "fps": 60,
+ "layout": "strip",
+ "work": [
+  1920,
+  1080
+ ],
+ "outputs": [
+  {
+   "name": "showcase_1080p",
+   "size": [
+    1920,
+    1080
+   ],
+   "path": "videos/final/showcase.mp4",
+   "zoom_cap": 1.8
+  }
+ ],
+ "zoom_cap": 1.8,
+ "cue_sheet": null,
+ "clips": [
+  {
+   "id": "S001",
+   "shot": "sc_grid16",
+   "src": "videos/capture_placeholder/sc_grid16.mkv",
+   "src_kind": "placeholder",
+   "start": 0,
+   "dur": 300,
+   "in": 0,
+   "speed": 1,
+   "grade": "none",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "open",
+   "cues": [],
+   "note": "4x4 money shot"
+  },
+  {
+   "id": "S002",
+   "shot": "sc_title_peek",
+   "src": "videos/capture/sample-title-peek.mkv",
+   "src_kind": "alias",
+   "start": 300,
+   "dur": 360,
+   "in": 53,
+   "speed": 1,
+   "grade": "day",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "open",
+   "cues": [],
+   "events": "videos/capture/sample-title-peek.events.json",
+   "layout_json": "videos/capture/sample-title-peek.layout.json"
+  },
+  {
+   "id": "S003",
+   "shot": "sc_dream_map",
+   "src": "videos/capture_placeholder/sc_dream_map.mkv",
+   "src_kind": "placeholder",
+   "start": 660,
+   "dur": 378,
+   "in": 0,
+   "speed": 1,
+   "grade": "day",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "open",
+   "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 0.5,
+     "cy": 0.5,
+     "ease": "linear"
+    },
+    {
+     "f": 360,
+     "z": 1.2,
+     "cx": 0.55,
+     "cy": 0.5,
+     "ease": "inout"
+    }
+   ]
+  },
+  {
+   "id": "S004",
+   "shot": "sc_lv_1-1",
+   "src": "videos/capture_placeholder/sc_lv_1-1.mkv",
+   "src_kind": "placeholder",
+   "start": 1020,
+   "dur": 720,
+   "in": 120,
+   "speed": {
+    "keys": [
+     [
+      0,
+      1.0
+     ],
+     [
+      60,
+      4.0
+     ],
+     [
+      630,
+      4.0
+     ],
+     [
+      690,
+      1.0
+     ]
+    ]
+   },
+   "grade": "night",
+   "transition": {
+    "type": "blanket-wipe",
+    "frames": 18
+   },
+   "flags": {},
+   "section": "ch1",
+   "cues": [],
+   "note": "hero level sped up 4.0x"
+  },
+  {
+   "id": "S005",
+   "shot": "sc_clone_glitch",
+   "src": "videos/capture_placeholder/sc_clone_glitch.mkv",
+   "src_kind": "placeholder",
+   "start": 1740,
+   "dur": 480,
+   "in": 0,
+   "speed": 1,
+   "grade": "day",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "ch1",
+   "cues": []
+  },
+  {
+   "id": "S006",
+   "shot": "sc_lv_0-1",
+   "src": "videos/capture_placeholder/sc_lv_0-1.mkv",
+   "src_kind": "placeholder",
+   "start": 2220,
+   "dur": 36,
+   "in": 1800,
+   "speed": 6,
+   "grade": "day",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "ch1",
+   "cues": [],
+   "note": "1-beat strobe sped up 6x"
+  },
+  {
+   "id": "S007",
+   "shot": "sc_lv_0-2",
+   "src": "videos/capture_placeholder/sc_lv_0-2.mkv",
+   "src_kind": "placeholder",
+   "start": 2256,
+   "dur": 36,
+   "in": 1800,
+   "speed": 6,
+   "grade": "day",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "ch1",
+   "cues": [],
+   "note": "1-beat strobe sped up 6x"
+  },
+  {
+   "id": "S008",
+   "shot": "sc_lv_1-2",
+   "src": "videos/capture_placeholder/sc_lv_1-2.mkv",
+   "src_kind": "placeholder",
+   "start": 2292,
+   "dur": 36,
+   "in": 1800,
+   "speed": 6,
+   "grade": "night",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "ch1",
+   "cues": [],
+   "note": "1-beat strobe sped up 6x"
+  },
+  {
+   "id": "S009",
+   "shot": "sc_lv_1-4",
+   "src": "videos/capture_placeholder/sc_lv_1-4.mkv",
+   "src_kind": "placeholder",
+   "start": 2328,
+   "dur": 54,
+   "in": 1800,
+   "speed": 6,
+   "grade": "night",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "ch1",
+   "cues": [],
+   "note": "1-beat strobe sped up 6x"
+  },
+  {
+   "id": "S010",
+   "shot": "sc_lv_2-3",
+   "src": "videos/capture_placeholder/sc_lv_2-3.mkv",
+   "src_kind": "placeholder",
+   "start": 2364,
+   "dur": 840,
+   "in": 120,
+   "speed": {
+    "keys": [
+     [
+      0,
+      1.0
+     ],
+     [
+      60,
+      4.0
+     ],
+     [
+      750,
+      4.0
+     ],
+     [
+      810,
+      1.0
+     ]
+    ]
+   },
+   "grade": "night",
+   "transition": {
+    "type": "blanket-wipe",
+    "frames": 18
+   },
+   "flags": {},
+   "section": "ch2",
+   "cues": [],
+   "note": "hero level sped up 4.0x"
+  },
+  {
+   "id": "S011",
+   "shot": "sc_map_flip",
+   "src": "videos/capture_placeholder/sc_map_flip.mkv",
+   "src_kind": "placeholder",
+   "start": 3204,
+   "dur": 480,
+   "in": 0,
+   "speed": 1,
+   "grade": "day",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "ch2",
+   "cues": []
+  },
+  {
+   "id": "S012",
+   "shot": "sc_lv_2-1",
+   "src": "videos/capture_placeholder/sc_lv_2-1.mkv",
+   "src_kind": "placeholder",
+   "start": 3684,
+   "dur": 36,
+   "in": 1800,
+   "speed": 6,
+   "grade": "night",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "ch2",
+   "cues": [],
+   "note": "1-beat strobe sped up 6x"
+  },
+  {
+   "id": "S013",
+   "shot": "sc_lv_2-2",
+   "src": "videos/capture_placeholder/sc_lv_2-2.mkv",
+   "src_kind": "placeholder",
+   "start": 3720,
+   "dur": 36,
+   "in": 1800,
+   "speed": 6,
+   "grade": "night",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "ch2",
+   "cues": [],
+   "note": "1-beat strobe sped up 6x"
+  },
+  {
+   "id": "S014",
+   "shot": "sc_lv_2-4",
+   "src": "videos/capture_placeholder/sc_lv_2-4.mkv",
+   "src_kind": "placeholder",
+   "start": 3756,
+   "dur": 36,
+   "in": 1800,
+   "speed": 6,
+   "grade": "night",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "ch2",
+   "cues": [],
+   "note": "1-beat strobe sped up 6x"
+  },
+  {
+   "id": "S015",
+   "shot": "sc_lv_2-5",
+   "src": "videos/capture_placeholder/sc_lv_2-5.mkv",
+   "src_kind": "placeholder",
+   "start": 3792,
+   "dur": 54,
+   "in": 1800,
+   "speed": 6,
+   "grade": "night",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "ch2",
+   "cues": [],
+   "note": "1-beat strobe sped up 6x"
+  },
+  {
+   "id": "S016",
+   "shot": "sc_lv_3-1",
+   "src": "videos/capture_placeholder/sc_lv_3-1.mkv",
+   "src_kind": "placeholder",
+   "start": 3828,
+   "dur": 720,
+   "in": 120,
+   "speed": {
+    "keys": [
+     [
+      0,
+      1.0
+     ],
+     [
+      60,
+      4.0
+     ],
+     [
+      630,
+      4.0
+     ],
+     [
+      690,
+      1.0
+     ]
+    ]
+   },
+   "grade": "night",
+   "transition": {
+    "type": "blanket-wipe",
+    "frames": 18
+   },
+   "flags": {},
+   "section": "ch3",
+   "cues": [],
+   "note": "hero level sped up 4.0x"
+  },
+  {
+   "id": "S017",
+   "shot": "sc_lv_3-3",
+   "src": "videos/capture_placeholder/sc_lv_3-3.mkv",
+   "src_kind": "placeholder",
+   "start": 4548,
+   "dur": 720,
+   "in": 120,
+   "speed": {
+    "keys": [
+     [
+      0,
+      1.0
+     ],
+     [
+      60,
+      4.0
+     ],
+     [
+      630,
+      4.0
+     ],
+     [
+      690,
+      1.0
+     ]
+    ]
+   },
+   "grade": "night",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "ch3",
+   "cues": [],
+   "note": "hero level sped up 4.0x"
+  },
+  {
+   "id": "S018",
+   "shot": "sc_lv_3-2",
+   "src": "videos/capture_placeholder/sc_lv_3-2.mkv",
+   "src_kind": "placeholder",
+   "start": 5268,
+   "dur": 54,
+   "in": 1800,
+   "speed": 6,
+   "grade": "night",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "ch3",
+   "cues": [],
+   "note": "1-beat strobe sped up 6x"
+  },
+  {
+   "id": "S019",
+   "shot": "sc_lv_4-1",
+   "src": "videos/capture_placeholder/sc_lv_4-1.mkv",
+   "src_kind": "placeholder",
+   "start": 5304,
+   "dur": 720,
+   "in": 120,
+   "speed": {
+    "keys": [
+     [
+      0,
+      1.0
+     ],
+     [
+      60,
+      4.0
+     ],
+     [
+      630,
+      4.0
+     ],
+     [
+      690,
+      1.0
+     ]
+    ]
+   },
+   "grade": "night",
+   "transition": {
+    "type": "blanket-wipe",
+    "frames": 18
+   },
+   "flags": {},
+   "section": "ch4",
+   "cues": [],
+   "note": "hero level sped up 4.0x"
+  },
+  {
+   "id": "S020",
+   "shot": "sc_lights_out_ear",
+   "src": "videos/capture_placeholder/sc_lights_out_ear.mkv",
+   "src_kind": "placeholder",
+   "start": 6024,
+   "dur": 618,
+   "in": 0,
+   "speed": 1,
+   "grade": "night",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "ch4",
+   "cues": []
+  },
+  {
+   "id": "S021",
+   "shot": "sc_gremlin_lab",
+   "src": "videos/capture_placeholder/sc_gremlin_lab.mkv",
+   "src_kind": "placeholder",
+   "start": 6624,
+   "dur": 840,
+   "in": 0,
+   "speed": 1,
+   "grade": "night",
+   "transition": {
+    "type": "blanket-wipe",
+    "frames": 18
+   },
+   "flags": {},
+   "section": "labs",
+   "cues": []
+  },
+  {
+   "id": "S022",
+   "shot": "sc_threshold",
+   "src": "videos/capture_placeholder/sc_threshold.mkv",
+   "src_kind": "placeholder",
+   "start": 7464,
+   "dur": 738,
+   "in": 0,
+   "speed": 1,
+   "grade": "day",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "labs",
+   "cues": []
+  },
+  {
+   "id": "S023",
+   "shot": "sc_codex_tour",
+   "src": "videos/capture_placeholder/sc_codex_tour.mkv",
+   "src_kind": "placeholder",
+   "start": 8184,
+   "dur": 1080,
+   "in": 0,
+   "speed": 1,
+   "grade": "day",
+   "transition": {
+    "type": "blanket-wipe",
+    "frames": 18
+   },
+   "flags": {},
+   "section": "codex",
+   "cues": []
+  },
+  {
+   "id": "S024",
+   "shot": "sc_card_guide",
+   "src": "videos/capture_placeholder/sc_card_guide.mkv",
+   "src_kind": "placeholder",
+   "start": 9264,
+   "dur": 480,
+   "in": 0,
+   "speed": 1,
+   "grade": "day",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "codex",
+   "cues": []
+  },
+  {
+   "id": "S025",
+   "shot": "sc_notebook",
+   "src": "videos/capture_placeholder/sc_notebook.mkv",
+   "src_kind": "placeholder",
+   "start": 9744,
+   "dur": 978,
+   "in": 0,
+   "speed": 1,
+   "grade": "day",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "notebook",
+   "cues": []
+  },
+  {
+   "id": "S026",
+   "shot": "sc_qol_grid",
+   "src": "videos/capture_placeholder/sc_qol_grid.mkv",
+   "src_kind": "placeholder",
+   "start": 10704,
+   "dur": 900,
+   "in": 0,
+   "speed": 1,
+   "grade": "none",
+   "transition": {
+    "type": "blanket-wipe",
+    "frames": 18
+   },
+   "flags": {},
+   "section": "qol",
+   "cues": []
+  },
+  {
+   "id": "S027",
+   "shot": "sc_save_joke",
+   "src": "videos/capture_placeholder/sc_save_joke.mkv",
+   "src_kind": "placeholder",
+   "start": 11604,
+   "dur": 198,
+   "in": 0,
+   "speed": 1,
+   "grade": "day",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "qol",
+   "cues": []
+  },
+  {
+   "id": "S028",
+   "shot": "sc_curtain_call",
+   "src": "videos/capture_placeholder/sc_curtain_call.mkv",
+   "src_kind": "placeholder",
+   "start": 11784,
+   "dur": 840,
+   "in": 0,
+   "speed": 1,
+   "grade": "day",
+   "transition": {
+    "type": "blanket-wipe",
+    "frames": 18
+   },
+   "flags": {},
+   "section": "credits",
+   "cues": []
+  },
+  {
+   "id": "S029",
+   "shot": "sc_morning_still",
+   "src": "videos/capture_placeholder/sc_morning_still.mkv",
+   "src_kind": "placeholder",
+   "start": 12624,
+   "dur": 300,
+   "in": 0,
+   "speed": 1,
+   "grade": "day",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "close",
+   "cues": []
+  },
+  {
+   "id": "S030",
+   "shot": "mo_circuit_morph",
+   "src": "videos/capture_placeholder/mo_circuit_morph.mkv",
+   "src_kind": "placeholder",
+   "start": 12924,
+   "dur": 360,
+   "in": 0,
+   "speed": 1,
+   "grade": "none",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "close",
+   "cues": [
+    {
+     "name": "snap",
+     "frame": 12924,
+     "kind": "design"
+    }
+   ]
+  },
+  {
+   "id": "S031",
+   "shot": "mo_end_card",
+   "src": "videos/capture_placeholder/mo_end_card.mkv",
+   "src_kind": "placeholder",
+   "start": 13284,
+   "dur": 300,
+   "in": 0,
+   "speed": 1,
+   "grade": "none",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "end_card",
+   "cues": []
+  }
+ ],
+ "captions": [
+  {
+   "id": "cap01",
+   "text": "16 levels. Every one verified.",
+   "start": 24,
+   "end": 294,
+   "legible_from": 34,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap02",
+   "text": "The dream map",
+   "start": 690,
+   "end": 960,
+   "legible_from": 700,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap03",
+   "text": "1-1  Dont Wake Them  \u00b7  = measurement",
+   "start": 1050,
+   "end": 1728,
+   "legible_from": 1060,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap04",
+   "text": "= you can't copy a dream (no-cloning)",
+   "start": 1760,
+   "end": 2210,
+   "legible_from": 1770,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap05",
+   "text": "2-3  Who Got Flipped?  \u00b7  = syndrome decoding",
+   "start": 2394,
+   "end": 3192,
+   "legible_from": 2404,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap06",
+   "text": "The map flips",
+   "start": 3224,
+   "end": 3504,
+   "legible_from": 3234,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap07",
+   "text": "3-1  Somethings Off  \u00b7  = phase flips",
+   "start": 3858,
+   "end": 4536,
+   "legible_from": 3868,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap08",
+   "text": "3-3  Wobbles  \u00b7  = small rotations get caught too",
+   "start": 4578,
+   "end": 5256,
+   "legible_from": 4588,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap09",
+   "text": "4-1  Nesting Dolls  \u00b7  = the Shor 9-qubit code",
+   "start": 5334,
+   "end": 6012,
+   "legible_from": 5344,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap10",
+   "text": "4-2  Lights Out: solve it by ear",
+   "start": 6044,
+   "end": 6614,
+   "legible_from": 6054,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap11",
+   "text": "Gremlin Lab & Night Shift: your code vs random gremlins",
+   "start": 6654,
+   "end": 7454,
+   "legible_from": 6664,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap12",
+   "text": "Codes only help when noise is rare: below p = \u00bd",
+   "start": 7494,
+   "end": 8174,
+   "legible_from": 7504,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap13",
+   "text": "The Codex: everything you meet, collected",
+   "start": 8214,
+   "end": 8724,
+   "legible_from": 8224,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap14",
+   "text": "Card Guide: every card explained",
+   "start": 9284,
+   "end": 9734,
+   "legible_from": 9294,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap15",
+   "text": "Schr\u00f6di's Lab Notebook: the real maths behind each night",
+   "start": 9774,
+   "end": 10694,
+   "legible_from": 9784,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap16",
+   "text": "Snippets \u00b7 doodle comments \u00b7 help slot \u00b7 step mode",
+   "start": 10734,
+   "end": 11594,
+   "legible_from": 10744,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap17",
+   "text": "It's just a game\u2026",
+   "start": 12644,
+   "end": 12914,
+   "legible_from": 12654,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap18",
+   "text": "\u2026where you accidentally learned quantum error correction.",
+   "start": 12930,
+   "end": 13278,
+   "legible_from": 12940,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  }
+ ],
+ "overlays": [],
+ "fx": [],
+ "marks": [],
+ "audio": {
+  "mix": "videos/final/work/showcase/mix.wav",
+  "mixreport": "videos/final/work/showcase/mixreport.json",
+  "stems": "videos/final/work/showcase/stems"
+ },
+ "notes": [
+  "sc_dream_map: align event gremlin_flip not found; using in_s",
+  "sc_clone_glitch: align event glitch not found; using in_s",
+  "sc_map_flip: align event gremlin_flip not found; using in_s",
+  "sc_lights_out_ear: align event chord not found; using in_s"
+ ],
+ "duration": 13584
+}

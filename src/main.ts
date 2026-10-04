@@ -1,4 +1,6 @@
 import './styles/main.css';
+import './styles/cinema.css';
+import { applyCinema } from './engine/cinema';
 import { art, audio, quantum, LEVELS } from './engine/deps';
 import { registerScreen, nav, applySettings, setSettingsOpener, type ScreenName } from './ui/app';
 import { titleScreen } from './ui/screens/title';
@@ -36,4 +38,5 @@ function route() {
 if (import.meta.env.DEV || location.search.includes('qa')) (window as unknown as Record<string, unknown>).__np = { LEVELS, quantum };
 window.addEventListener('hashchange', route);
 applySettings();
+applyCinema();
 art.ready().catch(() => {}).finally(route);

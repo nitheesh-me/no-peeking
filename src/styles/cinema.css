@@ -1,0 +1,46 @@
+/* Capture-only cinema layout (?cinema=1, see src/engine/cinema.ts). Every rule is scoped to html.cinema. */
+
+/* level: the stage fills the viewport, all chrome hidden */
+html.cinema .screen { animation: none; }
+html.cinema .topbar,
+html.cinema .level-main > .editor,
+html.cinema .editor,
+html.cinema .controls,
+html.cinema .tl-row,
+html.cinema .hints-panel,
+html.cinema .scene-tip,
+html.cinema:not(.cinema-nb) .nerd-host,
+html.cinema .lvl-badge,
+html.cinema .codex-count,
+html.cinema .fs-btn,
+html.cinema .title-corner { display: none !important; }
+html.cinema:not(.cinema-hud) .stage-hud { display: none !important; }
+html.cinema:not(.cinema-dialogue) .dialogue { display: none !important; }
+html.cinema:not(.cinema-toasts) .toasts { display: none !important; }
+html.cinema .level-main { position: fixed; inset: 0; }
+html.cinema .stage { background: transparent; }
+
+/* title: only the letter-Qubbles */
+html.cinema .title-menu,
+html.cinema .title-tagline { display: none !important; }
+
+/* credits: the stage alone (no roll, controls, skip, paused tag, end box) */
+html.cinema .cr-roll,
+html.cinema .cr-ctl,
+html.cinema .cr-top,
+html.cinema .cr-paused,
+html.cinema .cr-end { display: none !important; }
+
+/* codex hero insert: one live animation, full frame on paper */
+html.cinema .cinema-insert-host {
+  position: fixed; inset: 0; z-index: 5000; background: #f7f4ec;
+  display: flex; align-items: center; justify-content: center;
+}
+html.cinema .cinema-insert-host canvas { display: block; }
+html.cinema .cinema-insert-host .cd-sphere-cap { display: none; }
+html.cinema .cinema-insert-host .bloch3d > :not(canvas):not(:has(canvas)) { display: none !important; }
+html.cinema-insert .codex-body,
+html.cinema-insert .screen > .topbar { visibility: hidden; }
+
+/* lab notebook full-width (&nb=1): the circuit scales up with the drawer (vector SVG, so it stays sharp) */
+html.cinema-nb .nb-cscroll svg.nb-circ { width: 100%; height: auto; }

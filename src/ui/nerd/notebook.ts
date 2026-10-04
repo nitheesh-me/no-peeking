@@ -3,6 +3,7 @@
  * A spine tab docked to the stage's left edge that opens into a ruled-paper notebook with progressively unlocked pages.
  * Only the open page renders, and only when its inputs change.
  */
+import { cinema } from '../../engine/cinema';
 import '../../styles/nerd.css';
 import type { LevelDef, NightResult, Snapshot, QubitId, NerdInfo, Program } from '../../core/contracts';
 import { NERD_PAGES, type NerdPageId, type NerdPageDef } from './pages';
@@ -81,7 +82,7 @@ export function createNerdNotebook(host: HTMLElement, o: NerdNotebookOpts): Nerd
   const grip = h('div', { class: 'nb-grip', role: 'separator', 'aria-orientation': 'vertical', 'aria-label': 'Resize notebook', tabindex: '0', title: 'Drag to resize' });
   const pin = h('button', { class: 'nb-pin', title: 'Pin wide / narrow', 'aria-pressed': 'false' }, '📌');
   root.append(book, grip, spine);
-  const maxW = () => Math.max(300, host.clientWidth * 0.6);
+  const maxW = () => Math.max(300, host.clientWidth * (cinema.on && cinema.nb ? 1 : 0.6));
   let width = Math.max(300, Number(lsGet(LS.w)) || 360);
   const applyW = (w: number, save = true) => { width = Math.max(300, Math.min(maxW(), w)); book.style.width = width + 'px'; pin.setAttribute('aria-pressed', String(width > 420)); if (save) lsSet(LS.w, String(Math.round(width))); };
   applyW(width, false);

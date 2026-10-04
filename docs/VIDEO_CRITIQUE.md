@@ -1,0 +1,319 @@
+# NO PEEKING! Video Critique (The Critic)
+
+Reviewed: `docs/VIDEO_BIBLE.md`, the old cut's contact sheets (`trail_sheet.png`, `mech_sheet.png`), README, DESIGN_BIBLE §2/§7, and the screenshots in `.scratch/shots/` and `/tmp/codex-*.png`.
+Every note below says what is weak, why, and what to do instead.
+
+---
+
+## 1. Verdict on the plan
+
+The bible fixes the old cut's *technical* failures well (deterministic capture, a real SFX mix, the caption gate). But it carries over the old cut's *editorial* failure: a trailer that lists things rather than telling a story. The montage at bars 13–22 is eleven features in 25 seconds, and none of them shows the one idea a stranger needs: **something broke under a blanket, a robot beeped, and you fixed it without looking.** If a viewer walks away with only one sentence, it has to be that one. As written, they walk away with "cute game with a Bloch sphere and a Qiskit button".
+
+**The single biggest risk is framing, not music or transitions.** The old contact sheet shows the full app UI at 1080p: the diorama fills about 35% of the frame, and the code editor is a wall of illegible coloured bars. The game's strongest asset is the diorama (`room3z.png` by day, `room3n.png` by night, and the curtain-call line-up in `cred_1280_36.png`), and it has to *fill the frame*. The bible's "4K capture + push-ins" does not solve this. The scene canvas caps DPR at 2 (`src/engine/scene.ts:116`), so inside the normal play layout the room is only about 1,800 px wide even at DSF 2, and cropping to it is an *upscale* for 1080p. It is worse for the 1440p master. Without a stage-only "cinema" capture layout, the new cut will be sharper but just as small, and it will feel as cheap.
+
+---
+
+## 2. Trailer structure, bar by bar
+
+### 2.1 Is the cold open earned? Is 80 s too long?
+- **30 seconds before the drop is too long** for this audience (judges scrolling through 40 submissions, plus social autoplay). Bars 1–12 contain three separate "intro" ideas (dreaming, one rule, gremlins), each with its own card. That is three openings.
+- **"Something is dreaming."** is a vague horror-movie line that teaches nothing. A whisper card has to do two jobs at once: set the mood and set up the rule. Replace it with **"Every Qubble dreams two dreams at once."** It is honest (superposition), it is cute, and it gives the peek something to destroy.
+- The cold open is *earned* only if it ends in a consequence. As written, the first collapse comes at 0:15. Move it to **0:07.5**: the first impact is the first rule being broken.
+- **80 s → 70 s (28 bars).** Cut the duplicated set-up and the stutter section, not the payoff.
+
+### 2.2 Does the montage show the hook to a non-quantum viewer?
+**No.** The causal chain (gremlin strikes → bots beep → caretaker fixes the right one → X-ray proves the dream survived) never appears in order. Its pieces are spread across the montage as unrelated features (BOOP, HIGHFIVE, LISTEN, X-ray). A stranger cannot rebuild cause and effect from shuffled shots.
+**Fix:** before the montage, give the hook its own **4-bar "proof" sequence in one continuous location**: the same room, the same Qubble (q2), shot in order, one bar per step (see §2.5, bars 10–13). It is the trailer's mini-story. Everything after it is "and there's more".
+
+### 2.3 "It's just a game… where you accidentally learned quantum error correction."
+Two black title cards with text on them is the weakest possible staging, and the old cut already did exactly that (`trail_sheet.png`, last panels). It *claims* the twist instead of showing it.
+**Stage it as a reveal:**
+1. "It's just a game…" is set **in the world**, over a cosy, nearly still morning shot of the daycare: Qubbles snoring, Schrödi blinks once. The music drops to a lone music box. Hold 2 beats of near-silence.
+2. Hard cut on the downbeat, with a dry "snap" (the `snap_measure` SFX plus a paper whip): the **same program the kid just ran**, shown as the Lab Notebook's real circuit (CNOTs, the red X error, the syndrome readout) filling the frame. The second half of the line, "…where you accidentally learned quantum error correction.", sets in under it.
+
+The joke only works if the second half arrives as *evidence*: cute world, then a textbook circuit. The README's best line ("That is quantum error correction. You just did it by accident.") deserves that visual proof.
+
+### 2.4 Money shots vs filler
+
+| Shot | Verdict | Why |
+|---|---|---|
+| Moonlit blanket close-up, breathing | **Money** | Mood, and it carries the rule |
+| PEEK collapse (flashlight beam → swirl pops to one pole) | **Money** | The signature event of the game. Show it twice: the cold open and the title gag |
+| Title letters collapsing on hover | **Money** | Pure Baba energy. Sync each collapse to an 8th note so the letters *play the motif* |
+| Day → night, same framing (`room3z` → `room3n`), moon rising | **Money** | The prettiest asset in the game. Do it as an in-place relight, never as a cut |
+| Gremlin silhouettes | Money if short | 1 beat each. The longer they're held, the more they read as clip art |
+| BEEP + caretaker BOOPs the right Qubble | **Money** | This *is* the hook |
+| X-ray dissolve showing the dream intact | **Money** | The payoff of the hook, and it doubles as a transition |
+| Lights Out (black screen, syndrome chord) | **Money** | The only shot where *sound* is the picture. Hold a full bar; it is the montage's breath |
+| Schrödi popping out of his box | Good | Character beat. 1 beat |
+| Test strip ✓✓✓ | Good | Reads as "verified" at a glance, but only if it fills the frame |
+| Curtain call (cast line-up, gremlins bow) | **Money** | The only shot with everyone in it. Crop out the "Built with" panels |
+| Codex 3D Bloch sphere spin | Filler as UI | `codex-all.png` is a flat card grid. Use it only as a full-frame sphere with a Qubble's swirl colours, or cut it |
+| Lab Notebook "cards morph into gates" | Money **only** as a bespoke motion piece | Captured raw, it is a small panel with a debug bar (`nb_circuit.png`). Save it for the payoff (§2.3), not the montage |
+| Qiskit export scroll | **Filler** | Scrolling code is unreadable at montage speed, and nobody outside quantum cares. Turn it into a stamped label, "Exports to Qiskit", on the circuit shot |
+| Dream-map fly-over | Filler unless Flipper hits it | The *flipped tile + blinking map bots* beat is the interesting part; a plain fly-over is not |
+| Full-UI wide shots of the editor | **Cut from the trailer** | Illegible coloured bars; they read as a spreadsheet |
+
+### 2.5 Proposed structure: 28 bars = 70.0 s at 96 BPM (bar = 2.5 s, beat = 0.625 s = 37.5 frames)
+
+| Bars | Time | Picture | Sound |
+|---|---|---|---|
+| 1–2 | 0:00.0–0:05.0 | Black → moonlit close-up of a blanket breathing (slow push, 1.0→1.15). Card at 0:01.25 (b1 beat 3): **"Every Qubble dreams two dreams at once."** Hold until 0:04.4 | Room tone, heartbeat sub on beats 1 and 1-and, detuned music-box motif fragment (4 notes) |
+| 3 | 0:05.0–0:07.5 | Flashlight beam creeps across the floor toward the blanket (the PEEK). Ticking clock as 8ths | Reversed cymbal from 0:05.6, peaking at 0:07.5 |
+| 4 | **0:07.5** | **COLLAPSE.** The swirl snaps to one pole; Sunny/Moony shard shatter (its only use); 2-frame white flash; then black. Card at 0:08.75: **"Look, and one dream is gone."** | Hard impact = sub drop + noise burst + layered `peek_collapse`; 1.25 s reverb tail into silence |
+| 5 | 0:10.0–0:12.5 | Title-screen register: the cursor sweeps the letters and each one collapses on an 8th note | Each collapse is the peek SFX pitched to a note of the motif; the title *plays the theme* |
+| 6–8 | 0:12.5–0:20.0 | b6: in-place relight day → night (the moon rises). b7: Flipper, Phasey and Wobbles as silhouettes, 1 beat each, plus a beat of empty door. b8: **"You can't look."** set over the dark room, blankets only | Pizzicato ostinato, braam swells on b7, `gremlin_flip` / `ghost_phase` / `wobble` stingers on their beats, rising Shepard riser |
+| 9 | 0:20.0–0:22.5 | Card on black: **"So ask."** at 0:20.0; from 0:21.25 the screen goes black | Everything cuts at 0:21.25 (2 beats of silence, room tone at −60 dBFS). At **0:21.875** a single bot **BEEP**, dry and close |
+| 10 | **0:22.5** | **DROP.** The bot's antenna flashes red, full frame. The glitch tear (its only use) resolves into the game's daylight palette | Full groove; the motif on lead; the BEEP becomes the lead's first note |
+| 10–13 | 0:22.5–0:32.5 | **Proof sequence, one room, one bar each:** (10) in darkness, a gremlin flips q2: only its blanket twitches. (11) Bots HIGHFIVE and LISTEN: one **BEEP**, one quiet. Label: **"Something's wrong with #2."** (12) The caretaker walks to q2 and BOOPs it, blanket untouched. Label: **"Fix it blind."** (13) **X-ray dissolve:** the blankets go translucent, the dreams are intact, the fidelity meter fills to ✓ | Real SFX on the beat: `gremlin_flip`, `highfive`, `listen_beep` (bot note) + `listen_quiet`, `boop`, then the X-ray shimmer and `test_pass` |
+| 14–19 | 0:32.5–0:47.5 | **Montage, accelerating:** b14–15 one shot per bar (Schrödi's checklist, the Phasey twist with SPIN cards), b16–17 one shot per half-bar (Test strip ✓✓✓, Flipper hits the map, the clone glitch, the Shor-9 room), b18 one shot per beat (4 hero gremlin/bot reactions). **b19: Lights Out**, black for a full bar | SFX on every cut; the groove thins at b19 to just the syndrome chord, played twice |
+| 20–21 | 0:47.5–0:52.5 | Snap back to full light: the Test strip runs all nights, then the **"Morning check: perfect!"** stars burst on the b21 downbeat | Snare roll + filter sweep (b20) → `level_win` reharmonised big on b21 |
+| 22–23 | 0:52.5–0:57.5 | Curtain call: the Qubbles wake, the gremlins bow, Schrödi steps out (cropped to the stage, no panels). Slow push-out | Groove resolves; fanfare tail |
+| 24–25 | 0:57.5–1:02.5 | **"It's just a game…"** over a still morning daycare. Schrödi blinks on b25 beat 1 | Music box alone, then 2 beats of silence |
+| 26 | **1:02.5** | Hard cut, with a snap: the real circuit (bespoke card→gate morph). **"…where you accidentally learned quantum error correction."** | Dry snap, then a warm major-7 swell (the game's "high fidelity" chord) |
+| 27–28 | 1:05.0–1:10.0 | End card: the logo letters assemble *uncollapsed* (all swirling), then settle. *quriosity 2026 · Option 06* / *Play free in your browser* / the URL | Final chord, sub tail, one last snore at 1:09 |
+
+Cut from the bible's plan: the "One rule." card (the peek *is* the rule), the stutter build "Find the error / Fix it / Never see it" (three cards in a row stalls the momentum just before the payoff, and the proof sequence already says it), the Qiskit scroll, and the Codex grid.
+
+---
+
+## 3. Music and sound
+
+### 3.1 What the cue needs
+- **Contrast, not genre.** "Thriller-cute" means a *cute instrument playing in an ominous context*: a celesta/music-box motif in **D major** over a **D minor/Phrygian drone** (the Eb rubs against the D). The melody stays innocent; the harmony underneath lies. When the drop comes, the harmony finally agrees with the melody. That is the emotional release.
+- **One signature sound used as a motif:** `peek_collapse`. Use it three times, the way a trailer uses a "braam": the cold-open impact (b4), the title gag pitched as notes (b5), and as the transient of the final snap (b26). The bot BEEP is the *answer* motif: the last sound before the drop and the first note of the groove. Danger (peek) against salvation (beep) is the whole game in two sounds.
+- **Silence is an instrument.** Use two real silences: the reverb tail into black at b4, and the 2-beat gap at b9 that only the BEEP breaks. Keep room tone at about −60 dBFS so it reads as *held breath* rather than a dropout. Do not fill the silence with a riser; the riser ends *before* the silence.
+
+### 3.2 Arrangement notes (all synthesisable)
+- **Heartbeat sub (b1–4):** sine 58→38 Hz pitch drop over 120 ms, a 2-hit "lub-dub" (beat 1 and the 16th after), lowpass at 120 Hz. Speed up subtly by moving it to beats 1 and 3 in b3.
+- **Music box:** FM bell (carrier:modulator 1:3.5, fast decay, index 2→0), slight random detune ±12 cents per note, lots of pre-delay plate reverb. For the "ominous" version, add a copy 1 octave down at −18 dB, detuned −25 cents.
+- **Ticking clock:** short bandpassed noise clicks at 3.2 kHz on 8ths, alternating tick/tock pitch ±200 Hz.
+- **Pizzicato ostinato (b6–9):** Karplus–Strong pluck, D–F–A–Bb pattern in 8ths, filter opening across 4 bars.
+- **Braam (b7, b9):** 6 detuned saws (±15 cents) + a sub sine, lowpass sweeping 200 Hz→2 kHz over 1 bar, slow attack, hard cut.
+- **Risers:** a Shepard tone (5 octave-spaced sines under a bell-curve amplitude, gliding up) plus noise through a bandpass sweeping 300 Hz→8 kHz. Every riser **stops dead** half a beat before the hit.
+- **Impacts:** three layers: sub drop (sine 80→30 Hz, 600 ms), a transient (a 10 ms noise click with a 40 ms body), and a tail (noise into a 3 s dark reverb). Layer the game SFX on top as the "character".
+- **Drop groove (b10–23):** synth toms (pitched-down sine with pitch envelope) on 1 and 3-and; claps from layered noise bursts on 2 and 4; finger-snap ticks; a bass that walks D–A–Bb–C; the game's motif on a square-ish lead with vibrato. Brighter and wider than the lullaby, the same melody.
+- **Lights Out (b19):** strip everything except a low pad and the **syndrome chord** (the bots' pentatonic notes). Play it twice: the second time with one note different, as if the error moved. Sound designers will love it.
+- **Ending:** a major-7 swell (D–F#–A–C#) as the "fidelity = 1" chord the game already uses, then a sub tail and one Qubble snore.
+
+### 3.3 SFX mix rules
+- The game's SFX are designed as small UI sounds; on their own they **will vanish** under a trailer bed again. Give every featured SFX a *sweetener*: a sub thump (≤ 80 Hz, 60 ms) and a short room reverb, and boost 2–4 kHz by 3 dB.
+- Carve a 2–5 kHz dip (−4 dB, sidechained) into the score bus whenever an SFX or a Qubblese voice plays, rather than relying on broadband ducking alone.
+- Qubblese voices: *only* in the mechanic and showcase videos, never under the trailer groove. Gibberish under a groove reads as mud.
+
+---
+
+## 4. Visuals and transitions
+
+### 4.1 Framing (fix this first)
+- Add a **capture-only cinema layout**: the stage canvas fills a 1920×1080 viewport at DSF 2 (a 3840×2160 backing store), and the editor, toolbar and dialogue are hidden. All trailer b-roll comes from this layout.
+- **Push-in limits:** ≤ 1.8× for 1080p delivery and ≤ 1.4× for the 1440p master. Anything beyond that is an upscale. Add a gate for it (§7).
+- The full UI appears in the trailer **at most once**, deliberately: the kid's program running beside the room, for 1 bar, with a camera move so the cards are big enough to read.
+
+### 4.2 Transitions likely to look cheap
+| Transition | Risk | Decision |
+|---|---|---|
+| Collapse shatter | Generic Voronoi shards read as a 2009 After Effects preset | **Keep once (b4).** Shards must be the *Sunny/Moony swirl itself* breaking along the swirl's spiral, with motion blur, 10–14 frames, followed by black, not the next shot |
+| Glitch tear | Glitches are the most overused trailer cliché | **Keep once (the drop).** Only 6 frames, RGB split in Sunny/Moony/Phasey colours, matching the clone-glitch look from 1-3 |
+| Card flip | Looks like PowerPoint | **Cut** |
+| Iris through a Qubble | Looks like a 1990s cartoon wipe | **Cut** (or use it as the final frame of the end card only) |
+| Bloch-sphere portal | A 3D fly-through on an ill-fitting sphere looks amateur and costs days | **Cut** |
+| Blanket wipe | Cheap if it's a flat textured rectangle | **Priority 2.** Use the game's quilt pattern, with a curved leading edge, a cast shadow and 12 px of soft fold displacement, eased in-out-cubic over 18 frames. Use it for chapter changes in the showcase |
+| X-ray dissolve | Low risk: the game already renders it | **Priority 1.** Render it *in-engine* (the blanket alpha 1→0.2 plus the silk threads appearing), never as a crossfade between two clips |
+
+**Rule: at least 80% of trailer cuts are hard cuts on the beat.** A transition on every cut is the surest sign of amateur editing. Budget: 1 shatter, 1 glitch, 2 X-ray dissolves, 1 in-place relight, and the rest hard cuts.
+
+### 4.3 Typography
+- The trailer has **at most 7 text events**, each ≤ 7 words except the closing line.
+- Display (Quantum): cap height ≥ 7% of the frame height (≥ 76 px at 1080). Lines (Quicksand Bold): ≥ 52 px. Never use Quicksand Regular over gameplay.
+- The letter-collapse type animation lasts **≤ 18 frames for the whole word**, staggered by 2 frames per letter. Anything longer eats reading time, and the gag wears out by the second card.
+- Text over night shots: paper `#f2f0eb` with a 2 px ink outline and a soft 20 px dark glow. Text over day shots: ink `#0e0e0e` on a paper torn-note plate. Never use coloured text on a coloured background.
+
+### 4.4 Caption placement
+- **Trailer:** text sits in a full-frame card moment *or* in the top third over cinema-layout b-roll. With the dialogue hidden in that layout, overlap is impossible by construction.
+- **Mechanic and showcase:** reject per-shot dynamic placement. Captions that jump from bottom-left to top-right between shots make the eye hunt, and the old cut already felt cluttered. Instead, composite the game at **88% scale into the top of the frame** and keep a **fixed caption band in the bottom 12%** on a paper strip. The caption is always in the same place, never overlaps, and needs no DOM gate (keep the gate anyway as a safety net).
+
+### 4.5 Grade
+- The night grade must survive 8-bit yuv420p. Moonlit gradients **will band**. Add 1–2% luma grain or ordered dither *before* the encode, and check for banding on a calibrated display and on a phone.
+
+---
+
+## 5. Mechanic video (~2:30)
+
+Problems with the bible's §5:
+- **No-cloning/encoding is never explained**, yet step 4 starts with "Schrödi's checklist encodes". A beginner doesn't know why you can't just keep a copy. One sentence fixes this: "You can't copy a dream. You can only *share* it across three Qubbles."
+- **The syndrome table, the actual "ohhh", is missing.** Two bots give four answers, and each answer points at one Qubble. It needs a clean 4-row graphic (quiet/quiet = nobody; beep/quiet = #1; beep/beep = #2; quiet/beep = #3) whose rows light up in sync with the bots' antennae.
+- **Captions and Schrödi's dialogue compete.** The old sheet shows both at once, so the viewer has to read two texts. Choose one: **Schrödi's in-game lines are the narration** (with a slow push-in so his box is readable), and captions are used *only* as "real term" labels, e.g. "= measurement", "= parity check", "= syndrome".
+- **Step 6 is three UI tours in a row** (Card Guide, Notebook, Codex). The Card Guide is a help dialog (`guide-if.png`) and makes dull video. Move it to the showcase.
+- The 2-1 → 2-3 jump repeats the HIGHFIVE explanation. Fold 2-1 into a single 10-second beat.
+
+Re-cut with exact timings:
+
+| Time | Beat | Content |
+|---|---|---|
+| 0:00–0:06 | Cold open | Moonlit blanket. "Every Qubble dreams two dreams at once." |
+| 0:06–0:24 | The rule | 1-1: PEEK → collapse → X-ray shows the lost half. Label: "= measurement collapses a superposition" |
+| 0:24–0:38 | The threat | Lights out, a gremlin strikes, one blanket twitches. "One dream changed. Which one? You can't look." |
+| 0:38–0:50 | Can't copy | Schrödi's checklist: HIGHFIVEs share the dream across 3 Qubbles (the silk threads in X-ray). Label: "= encoding (no copies allowed)" |
+| 0:50–1:15 | Ask, don't look | Bot HIGHFIVEs two Qubbles, LISTEN → BEEP. "Do these two match?" Then the **syndrome table graphic**. Label: "= parity check, syndrome" |
+| 1:15–1:38 | The repair | 2-3 full night: IF a BEEP and b QUIET → BOOP q1, with the caretaker walking to it. Then **Test all**, the strip filling ✓ |
+| 1:38–1:52 | The proof | X-ray replay of one night, with the Bloch sphere showing the shared dream survived. "The bots never learned the dream." |
+| 1:52–2:08 | The twist | 3-1: Phasey's swirl flip, every bot quiet but the dream wrong. A SPIN sandwich turns it into a flip the bots can catch. Label: "= phase-flip code (Hadamard basis)" |
+| 2:08–2:22 | Under the hood | Cards morph into the circuit (the same bespoke piece as the trailer) → a 2 s Qiskit export stamp → "a real state-vector simulator, real gates" |
+| 2:22–2:30 | Close | The closing line, staged as in §2.3, then the end card |
+
+---
+
+## 6. Showcase (~4:00)
+
+The risk is real: §6 is a 13-item list read out in order, which makes it a settings menu with music. Fixes:
+- **Give it a spine:** "One caretaker's whole career in 4 minutes": chapters 1→5 in order, with every feature appearing *where the player first meets it*, not in a separate "features" block.
+- **The 16 levels:** a 4-second **4×4 grid of all 16 levels solving at the same time** as the opener money shot. Then **5 hero levels** at 4–6× speed (1-1, 2-3, 3-1, Wobbles, Shor-9), each ≤ 12 s with a 1 s blanket-wipe title. The other 11 appear as a 1-beat strobe sequence. Sixteen sped-up solves at equal length is the most boring possible minute.
+- **Energy changes every 20–30 s:** alternate a *watch* segment (a level playing) with a *wow* segment (a meta beat: the clone glitch, the map flip, Lights Out by ear). Never put two UI tours back to back.
+- **Bundle the quality-of-life features** (snippets, doodle comments, help slot, step mode/timeline) into one 15-second **quick-fire split screen** with 4 panels and a label each. **Settings and fullscreen: cut** (1 s at most, as the "save data protected by a 3-qubit repetition code ✓" joke, which is worth keeping).
+- **The threshold chart** needs a one-line takeaway ("Codes only help when noise is rare: below p = ½") and an animated curve draw, or it is dead air.
+- Music: a 3-section cue (cosy → night → triumphant) tied to chapters, *not* the 80 s trailer cue looped.
+
+---
+
+## 7. Quality gates: what's missing
+
+1. **Fresh-eyes test (blocking):** show the trailer once to 2–3 people who know nothing about quantum. Ask: "What do you do in this game?" Pass = they say some version of "fix things without looking at them". If they say "programming puzzle" or "quantum something", the hook failed. Re-cut.
+2. **Muted test:** watch with the sound off. The story must still read from picture and text (most social autoplay is muted).
+3. **Audio-only test:** listen with the screen off. You should still hear the peek, the silence, the beep, the drop and the payoff.
+4. **Small-speaker test:** play it on a phone speaker and on laptop speakers. Every featured SFX must still be audible. Also check mono compatibility (fold-down cancellation from stereo widening).
+5. **Reading time:** max(1.2 s, 0.3 s per word + 0.4 s) from when the text is fully legible (after its animation ends), not from its first frame. The bible's "1.6 s + 40 ms per character" over-allocates for short trailer cards and under-allocates for words that arrive mid-animation.
+6. **Contrast:** text contrast ≥ 4.5:1 against the *actual underlying pixels* (sample the frame behind the glyph boxes), checked per text event.
+7. **Minimum effective font size:** no visible game UI text below 18 px at 1080 in the trailer (catches illegible full-UI wides).
+8. **Shot rhythm:** a shot-length histogram per section, a monotonic acceleration through bars 14–18, no shot < 12 frames except flash frames, and no more than 3 consecutive shots of identical length outside the beat-strobe.
+9. **Upscale guard:** the effective scale factor per shot (capture px / delivered px) must be ≥ 1.0. Fail on any push-in that upscales.
+10. **Clean-frame check:** no debug bars (the `nb_circuit.png` capture shows "night / step / X-ray / lights out / unlock all / pulseUnlock" controls plus a "STAGE" watermark), no "judge mode" badges (`codex-all.png`: "33/33 found · judge mode"), no cursor unless scripted, no hover artefacts, no browser chrome.
+11. **Inverse SFX gate:** every visible event in the capture log (boop, beep, flip, collapse, win) has a sound in the mix. The bible only checks the reverse direction.
+12. **Banding check** on night shots after the final encode, and a **re-encode check**: upload a private copy to YouTube/Drive and review *that*, since platform re-encoding is what judges will actually see.
+13. **Thumbnail/first-frame:** pick a deliberate poster frame (the collapse or the curtain call), and make sure the first 3 seconds are not black-only. Autoplay previews start at frame 0.
+14. **Gate brittleness:** `scdet` will flag the flashes and Lights Out as cuts, and miss the in-engine dissolves. Mark intentional flashes and dissolves in the EDL and exempt them, or the gate will produce false failures and get ignored.
+
+---
+
+## 8. Prioritised top-10 changes
+
+1. **Add a stage-only cinema capture layout** (the canvas fills the viewport at DSF 2, with the editor, toolbar and dialogue hidden) for all trailer b-roll, cap push-ins at 1.8× for 1080p and 1.4× for 1440p, and add an upscale gate. Without it, the new cut will be small and soft again.
+2. **Insert a 4-bar "proof sequence" (bars 10–13)** right after the drop: one room, one Qubble, in order (gremlin flips under the blanket → BEEP/quiet → caretaker BOOPs q2 blind → X-ray dissolve shows it intact). This is the hook. Without it, the trailer is a feature list.
+3. **Cut the trailer to 70 s (28 bars) using the §2.5 table:** collapse at 0:07.5, drop at 0:22.5, payoff at 0:50, the line at 0:57.5–1:05. Remove the "One rule." card, the stutter build, the Qiskit scroll and the Codex grid.
+4. **Make the drop trigger the bot's BEEP:** 2 beats of true silence at 0:21.25, a single dry BEEP at 0:21.875, and the groove at 0:22.5, with the BEEP becoming the lead's first note. Peek (danger) against beep (rescue) becomes the cue's motif system.
+5. **Use `peek_collapse` as the signature motif three times** (the cold-open impact, the title letters pitched to the melody, the final snap), and sweeten every featured game SFX with a sub thump, a 2–4 kHz lift and a sidechained 2–5 kHz dip in the score.
+6. **Restage the closing line as evidence:** "It's just a game…" over a still, cosy morning shot, then a hard cut with a snap to the kid's program as a real circuit (a bespoke card→gate morph) under "…where you accidentally learned quantum error correction."
+7. **Restrict transitions:** at least 80% hard cuts; one shatter (b4), one glitch (the drop), in-engine X-ray dissolves, an in-place day→night relight, and blanket wipes in the showcase only. Cut card flip, iris and the Bloch portal.
+8. **Fix captions in the mechanic and showcase videos with a fixed bottom-12% band** (the game composited at 88%), and use Schrödi's in-game lines as the narration, with captions only as "= real term" labels. Never show two texts at once.
+9. **Re-cut the mechanic video to the §5 timing table:** add the no-copy/encoding beat and the 4-row syndrome-table graphic, fold 2-1 into 10 s, and move the Card Guide and Codex tours to the showcase.
+10. **Add human and perceptual QA gates:** a fresh-eyes "what do you do?" test (blocking), muted, audio-only and phone-speaker passes, reading time measured from full legibility, contrast against the real background pixels, a clean-frame check (no debug bar, "STAGE" watermark or judge-mode badge), an inverse SFX gate, banding, and a review of the platform re-encode.
+
+---
+
+## Milestone: music edit (`videos/music/trailer_edit.wav`, `cue_sheet.json`, `docs/VIDEO_MUSIC.md`)
+
+**What I reviewed:** the cue sheet and edit log, the candidate plots in `videos/music/analysis/`, my own RMS and spectral-centroid pass over the edit (every 0.5 s), and a meter check on the 155 `detected_hits`.
+
+### Verdict
+The *skeleton* is right, and the frame engineering is excellent. Every named hit sits on a downbeat (f434 k12, f1394 k42, f2930 k90, f3026 k93, f3794 k117). The BEEP at f1362 is the upbeat into the drop. Both silences are true digital zero. The *energy curve*, though, is wrong for this trailer, and **the track cannot ship**. In order of severity:
+
+1. **Licence (blocking).** The doc itself says "personal use only, must not be distributed". A hackathon submission linked from the README is distribution, and a YouTube upload would get a Content ID claim or a mute. So what the judges hear will be the Composer's original-score alternate, and this edit is a **temp track**. The real danger is *temp love*: the team tunes the picture to Rok Nardin's production, and the synthesized replacement then sounds like a downgrade. **Decide today which track ships.** The good news: "Twinkle Twinkle" / "Ah ! vous dirai-je, maman" is public domain. **The Composer can legally write an original lullaby-epic arrangement of the same melody**, keep the concept, and fix the flaws below at the same time. Treat this edit as a timing and structure reference only.
+2. **The 33.6 s plateau.** From the drop (f1394) to the end of the payoff (f3410), the bed sits at −18 ± 2 dB RMS with a spectral centroid stuck at about 2.1 kHz. That is one continuous source span (101.6–135.2 s) with no internal dynamics (see the A6Y82YjXMhU plot: a flat brick from 100 s to 138 s). Consequences:
+   - The **payoff "slam" at f3026 is only a return to the same level** (−16.9 dB against a montage average of about −18). It is not a peak. The only shape in 34 s is the 1.6 s Lights Out dip.
+   - The **proof sequence (the hook) plays under a full orchestra** whose energy sits in the 1–4 kHz band where the BEEP, the quiet and the BOOP live. The cute SFX will be masked; a broadband 4–6 dB duck will not save them.
+3. **The build doesn't build.** From f810 to f1140 the level is flat at −25/−26 dB. Then it **falls 7 dB** at the pre-drop-riser splice (f1170: −33 dB) before climbing again. Energy that steps down right before a drop is anti-tension.
+4. **The drop is barely bigger than the build's swells.** The drop averages −19 dB. That is about 6.5 dB over the build *average* (about −25.5 dB), but only 1–2 dB over the build's own peaks (f810 −21 dB, f1260 −20 dB). The viewer has already heard "this loud" twice before the drop, and the silence is doing all the work. Keep the build's peaks ≥ 4 dB under the drop.
+5. **The peek hit is a melody restart, not a consequence.** At f434 the second music-box phrase simply enters (+24 dB after the decay, which is good), and then carries on twinkling sweetly for 3 bars as if nothing happened. After the first rule is broken, the lullaby should sound *damaged*.
+
+### Lullaby-epic vs the runner-up
+**Lullaby-epic is the right call**, and Twinkle beats Hush Little Baby:
+- Twinkle is about a star at night, so it matches the moon, the sleeping Qubbles and the night shift. Hush has a lead vocal (feat. Brian Skeel), which fights the on-screen text and the Qubblese, and it is darker.
+- Hush does have better *dynamics*: impacts and pockets every 5–10 s (see its plot). Its 31 ms tempo drift (about 2 frames at 60 fps) would have been workable by cutting to onsets. So the runner-up's real advantage is shape, not tempo.
+
+The fix is to give Twinkle Hush's shape: automate the filter and level in the edit now, and write it into the original arrangement.
+
+### Is 3/4 a problem?
+**No, if the cut pattern respects the meter; and it can be an asset.** The meter check confirms a true waltz: hit strength on k%3==0 is 35.1, against 11.6 and 9.8 on the other two beats. A mod-4 fit is flat. The beat is 32 frames, which is perfect, but the bar is 1.6 s, not the 2.5 s in my §2.5 plan, so three rules change:
+- **There is no "half-bar".** Half a bar is 1.5 beats, which falls off the grid. Delete "one shot per half-bar" from the montage plan.
+- **The acceleration ladder is 96 → 64 → 32 frames:** downbeat cuts (1.6 s), then **hemiola cuts every 2 beats** (3 cuts across 2 bars, the classic epic-orchestral 3-against-2 that makes the cutting feel like it is pulling against the music before it locks back in), then every beat (0.53 s).
+- Never cut on beat 2 alone. The weak-beat cut is the one that will feel "off" to viewers who can't say why.
+
+### Section lengths vs picture
+| Section | Now | Problem | Change |
+|---|---|---|---|
+| cold_open | f0–434 (7.2 s) | Fine. The music box decays to −47 dB into the hit, which makes the viewer lean in | Keep. Add the heartbeat sub under it |
+| peek | f434–722 (3 bars) | The lullaby continues unharmed | **Detune phrase 2:** pitch wow ±30 cents at 0.7 Hz, −6 dB, plus a tape-stop dip on the f434 transient. The impact layer (sub drop + `peek_collapse`) on f434 comes from the Sound Designer |
+| build | f722–1298 (6 bars) | Flat, then a 7 dB hole at f1170 | Automate a **low-pass sweep from 900 Hz to fully open** across all 6 bars, and a **level ramp from −6 dB to 0**. Overlap the build tail under the riser head by 1 bar (equal-power), so f1170 never drops below −26 dB. Hold the whole build ≥ 6 dB under the drop |
+| silence | f1298–1394 | Correct | Tune the BEEP (f1362) to the drop's tonic (or its 5th), so it reads as the drop's pickup note |
+| drop | f1394–1586 (2 bars) | Fine | Add a layered impact on f1394 |
+| proof | f1586–1970 (4 bars = 1.6 s per step) | **Too short.** A stranger cannot read "gremlin flips → BEEP/quiet → walk + BOOP → X-ray + meter fill" at 1.6 s a step, and "Something's wrong with #2." alone needs about 1.9 s after its animation | **Extend to 6 bars, f1586–2162, with steps of 1/2/1/2 bars:** flip (f1586), bots ask + label (f1682), BOOP (f1874), X-ray reveal (f1970). **Duck the bed to a "submerged" mix** (low-pass at 1.2 kHz, −6 dB) so the SFX lead. This is a picture/EDL change only; the plateau is uniform, so no music splice is needed |
+| montage | f1970–2930 (10 bars) | Over-long once the proof grows; flat energy | **f2162–2834 (7 bars):** 3 downbeat cuts, 2 hemiola bars (3 cuts), 2 bars of beat cuts (6 cuts) = 12 shots. **Open the filter fully at f2162**: that is the second lift after the drop |
+| lights_out | f2930–3026 (1 bar) | 1.6 s of black is too short for the syndrome chord to be heard twice, and that pocket is the montage's breath | **f2834–3026 (2 bars).** Keep the 300 Hz low-pass. A reversed cymbal from f2930 lands on f3026 |
+| payoff | f3026–3410 (4 bars) | Same level as the montage | Ride the montage bed −2 dB so the payoff is the loudest moment. Layer the reorchestrated `level_win` + cymbal on f3026 |
+| closing music box | f3410–3698 (9 beats) + silence to f3794 | 6.4 s for a 4-word line; the pause goes slack | **Cut to 6 beats (one phrase, ending on the held "star" note), f3410–3602.** Let it decay naturally into the 3-beat silence (f3602–3698) |
+| circuit reveal | f3794–3986 (2 bars) | 3.2 s for a 7-word line *plus* a circuit to take in | Snap at **f3698**, reveal for **3 bars (f3698–3986)** |
+| end_card | f3986–4336 | Fine | Keep, and end at about f4240. The total drops 96 frames, to **70.7 s** |
+
+### Concrete changes (owner: Music Supervisor / Composer, then the EDL)
+1. **Decide which track ships: an original public-domain Twinkle arrangement**, synthesized, built on this cue sheet. Use the Rok Nardin edit only as the temp. Do not lock the picture to its production details.
+2. **Section frames:** proof f1586–2162, montage f2162–2834, lights_out f2834–3026, closing music box f3410–3602, silence f3602–3698, snap and circuit f3698–3986, end card f3986–4240. Every boundary stays on k%3==0.
+3. **Energy automation** (it becomes an arrangement directive for the original): low-pass + level ramp on the build, the 1-bar overlap at f1170, the submerged proof bed, the filter opening at f2162, the montage −2 dB, payoff peaks.
+4. **Detune and wow the post-peek music box** (f434–722).
+5. **Tune the BEEP to the drop's tonic.** Replace the broadband duck with a sidechained 2–5 kHz dynamic-EQ dip (−6 dB) under every featured SFX.
+6. **Montage cut ladder in 3/4:** 96 → 64 (hemiola) → 32 frames. No half-bar cuts, and no isolated beat-2 cuts.
+7. **Gate:** re-run the RMS curve after the changes. Require: the build rises monotonically (per-bar RMS non-decreasing, ±1 dB); drop ≥ build average + 6 dB and ≥ build peak + 4 dB; payoff ≥ montage average + 2 dB; proof bed ≥ 6 dB under the montage.
+
+---
+
+## Milestone: music v2
+
+**Verdict: approved for the personal cut. All seven craft changes landed, and I checked them against the WAV and `gate_v2.json`, not only the doc.**
+
+- **Landed:**
+  - All 13 section frames match my table, and every boundary is on a downbeat.
+  - The build now rises bar by bar (−37 → −23 dB).
+  - The drop is +11.7 dB over the build average and +4.6 dB over its peak.
+  - The payoff is +5.0 dB over the montage, so it is now the loudest section (−14.8 dB).
+  - Lights Out has its 2 bars, with the reversed cymbal from f2930.
+  - Both silences are digital zero. The only samples in them are the 10 ms splice pre-rolls at f1393 and f3697: inaudible and sub-frame.
+- **Proof bed −8.5 dB instead of −6: accept.** The gate is what mattered: it is 6.3 dB under the montage. *Condition:* this leaves a 10.6 dB fall from the drop into the proof, so the proof's energy has to come from the SFX. Every featured cue in f1586–2162 (flip, BEEP/quiet, BOOP, X-ray shimmer) should peak around −14 dB short-term in the final mix, louder than the bed was in the drop. Otherwise the trailer deflates right after its biggest moment. Add this to the mix QA.
+- **Closing phrase "lit-tle star" (A A G, ending on the held G): accept, and it is better than my note.** In C it ends on the dominant: a half-cadence, an unanswered question under "It's just a game…". The snap and final chord then resolve it. *Small catch:* it fades to zero at about f3580, not f3602, so the real silence is about 2.0 s (118 frames) rather than 1.6 s. That is the upper limit of a held breath. Either let the G ring to f3602 or keep it, but have the Editor time "It's just a game…" to hold until the snap.
+- **BEEP tuned to C5: accept.** It is the tonic one octave above the C4 pickup, so it reads as the drop's first note.
+- **0.3 s breath dip before f1170: accept.** It is the source's own inhale (about 6 dB, shorter than a beat), the per-bar curve still rises, and a breath before the final riser is musical, not a hole. My objection was to the 7 dB *drop that lasted a bar* in v1.
+- **Nit:** the WAV is 4,243 frames, but the cue sheet says 4,240. Trim the file (or update `duration_frames`) so the Editor's assembly length check doesn't flag it.
+- **Public alternate:** the Sound Designer's public-domain arrangement must pass the **same `gate_v2` thresholds**, with the same named hits. Run the gate script on it before the Director listens.
+
+---
+
+## Milestone: sound design (`docs/VIDEO_SOUND.md`, `videos/audio2/`)
+
+**What I measured:** I checked the Editor-EDL mixes (`test/editor_trailer_{song,public}`) frame by frame, per stem; the mix reports; key estimates per section (Krumhansl) on both beds; and the energy shape of both beds full-range and with a 300 Hz high-pass (a phone-speaker proxy).
+
+**Verdict:** the engineering is first-rate:
+- frame-exact placement;
+- the inverse-SFX log;
+- band-only ducking with a solver;
+- peak-to-loudness (PLR) control;
+- both silences hold at room tone (about −47 dBFS peak) with only the BEEP in them.
+
+The *taste* layer, though, has four real problems: one harmonic clash, one weak punchline, one over-stacked hit, and a public score whose drop disappears on small speakers.
+
+1. **Key clash on the payoff (song cut).** The song's payoff estimates as **F minor** (r 0.77), and so does the drop (0.61). The cue sheet's own `drop_harmony` note says the same. `level_win_big` stacks **C-major** brass stabs on it, so E clashes against F and G against Ab, at the loudest moment of the trailer. → For the song bed (`only_with`), use a third-less version: F + C power stabs, the timpani tuned to F, the crash and the sparkle, with the game's win arpeggio dropped or its 3rd lowered to Ab. Keep the C-major version for the public score (which is C major in every section).
+2. **The motif's bookends are 10 LU apart.** Measured loudness: `sig_a` at f434 is −10.6 LUFS-M, and **`sig_c_snap` at f3698 is −21.0 LUFS-M**, the quietest featured cue in the trailer, and it is the punchline after the closing silence. Both are built from a stack (the snap+whip+click+thump+clap stack and the sub drop+plate stack) in which the peek "pop" is just one layer. A motif reads when the *same* gesture is exposed each time. → Make the pop the loudest layer in the 1–4 kHz band in all three variants. Tune it consistently: sig_a pop ends on C4, the letters carry the melody, and sig_c pop lands on **C5**, the same pitch as the BEEP, so it closes the loop "peek = danger, beep = answer, snap = resolution". Bring sig_c to **about −13 LUFS-M**.
+3. **f434 is over-stacked.** At the same frame the mix has: the game's `peek_collapse` + `sig_a` (which already contains `peek_collapse` twice) + `shatter_whoosh_shards` + `riser_peek_revcymbal` + the score's tape-stop. That is three copies of the peek, probably different seeded variants, which risks a flam or chorus. → Add `suppress_game: peek_collapse` within 0.5 s of f434 (as was done for the BEEP). Drop the shard scatter to −10 dB as a high-frequency tail, *after* the transient (+3 frames). The reversed cymbal is enough of a whoosh.
+4. **The cliché pile.** Heartbeat + 8th-note ticking + reversed cymbal all appear before the peek (f50–434). The build then adds ticks + braam + crickets/owl + a Shepard riser, and on the public cut the score *also* plays a wood-block clock and a heartbeat in the build. → Each device appears in one section only:
+   - **heartbeat:** cold open only;
+   - **ticking:** build only (it is the room's wall clock, so it is diegetic), and on the public cut either the design tick or the score's wood-block, never both;
+   - **reversed cymbal:** 2 beats into f434, plus the Lights Out bar;
+   - **braam:** once, at the build lift;
+   - **owl:** cut (it's the stock "night" sample cliché; keep the crickets, with a high-pass and −3 dB, because they share the 3 kHz band with the ticks).
+5. **Lights Out is being filled.** `snare_roll_1bar` is end-aligned to f3026, so it plays **f2930–3026**, the same bar as the reversed cymbal, inside the "black screen, only the syndrome chord" pocket. → Cut the roll, or keep only its last 2 beats (f2962–3026) at −6 dB. The pocket's power comes from emptiness.
+6. **The public score's drop vanishes on phones.** Full-range, the gate passes (drop +6.8 dB over the build peak by my per-bar measurement). But **75% of the drop's energy is below 120 Hz** (the song: 44%), and almost nothing is above 4 kHz. With a 300 Hz high-pass, the score's drop is only **+4.5 dB over the build peak** (the song: +11.8), and **3 dB quieter in absolute terms** than the song's drop. The payoff holds up (+5.2 dB over the montage on the high-passed signal). An oom-pah-pah with brushes is a waltz, not an epic. → In the drop: −3 dB on the sub kicks; add the `level_win_big` saw-brass stabs on beats 1 and 2-and, a crash on f1394, shaker/hat 8ths, and phrase A an octave up on a bright pluck. **Add a high-pass-300 variant of `music_gate`**: drop ≥ build peak + 6 dB on the high-passed signal too.
+7. **The proof SFX at −15.7 LUFS-S: accept, but the metric is wrong.** A 3 s short-term window averages sparse transients against near-silence. The per-cue numbers are what matter, and they are healthy: gremlin_flip −12.4, highfive −14.7, BEEP −13.1, boop −15.7, test_pass −9.8 LUFS-M, all 19–25 LU over the bed. → Replace the gate with **per-featured-cue momentary ≥ −16 LUFS-M**. One exception: the **QUIET answer (f1770) is −18.4 LUFS-M with a 7.1 LU margin**. "One beeps, one stays quiet" is the hook's information, so the quiet needs to be *heard as a deliberate non-beep*. Raise it to about −16 LUFS-M (a soft marimba "dum" is fine), and keep it ≥ 4 LU under the BEEP.
+8. **Reporting bugs:**
+   - In `editor_trailer_public/mixreport.json`, `beep_tuned_C5` reports **−200.7 LUFS-M / margin 99**. The audio is fine (it peaks at −2 dBFS at f1362/f1368, measured), but the gate measured against the gated music and returned a placeholder pass. Fix it, so a genuinely missing BEEP would fail.
+   - The public cut plays **both** `riser_drop_2bar` groups (−8 dB and 0 dB) at the same time; `drop_riser` needs an `only_with: song`.
+   - The song bed reaches digital zero at about f3580, but room tone only starts at f3602, so there is a 22-frame dropout followed by hiss. Start the room tone where the bed hits zero.
+9. **Got right, keep:** the C5 BEEP (the tonic in the public score, the 5th in the song's F-minor drop), sig_b's 10 notes pitch-verified and resolving on C, Qubblese off in the trailer, the 2–5 kHz ducking, and the final snore.
+
+**Public vs song energy shape:** it is convincing in shape (the build rises bar by bar, the payoff is the loudest section, and the proof sits 7.5 dB down), but not in *weight* (item 6). Once the drop has mid and high energy, the public cut will stand on its own; until then, it is a cosy waltz with a loud sub.

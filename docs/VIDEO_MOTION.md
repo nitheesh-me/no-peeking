@@ -1,0 +1,180 @@
+# Video motion pieces (Motion Designer)
+
+Everything in `tools/video/motion/`, outputs in `videos/motion/`. Every piece is a deterministic canvas animation:
+`render(frame)` draws frame *f* from scratch as a pure function of *f* and its params (no clocks, no `Math.random`;
+particles are closed-form, noise is seeded). The real game art is imported directly from `src/art` (drawQubble,
+drawBot, drawGremlin, drawBackground's night sky with the sleeping moon, the logo SVG paths, the Quantum and
+Quicksand fonts), so the motion pieces match the game pixel for pixel.
+
+## Timing source
+All defaults are keyed to `videos/music/cue_sheet.json` **v2** (60 fps, beat = 32 frames, bar = 96, 3/4, 70.72 s):
+
+| Trailer frame | Event | Asset |
+|---|---|---|
+| f338 → f454 | peek: cursor drifts to the P, it collapses, **shatter on f434** | `title_peek` (place clip f0 at f338; clip f96 = f434) |
+| f530 → f722 (optional) | title letters collapse on 8ths (16 f) | `title_sweep` |
+| f1388 → f1586 | drop: glitch tear (clip f0–5) → **impact clip f6 = f1394** → wordmark settles | `logo_reveal` |
+| f3410 → f3602 | "It's just a game…" over the closing music box | `card_justagame(_alpha)` |
+| f3698 → f3986 | the snap: program cards → circuit, closing line | `circuit_morph` |
+| f3986 → f4240 | end card | `end_card` |
+
+Change any timing per render with `--p '{"frames":240,"impact":120}'` (params below), so a cue-sheet change never
+needs a code edit. Clip-relative markers are written to `videos/motion/<name>.json` (`markers`), e.g. the logo's
+`impact`, the syndrome's `beeps`/`quiets` frames for SFX sync, every text's `text_legible` frame (for the
+reading-time QA gate, counted from full legibility).
+
+## How to render
+Follow `docs/VIDEO_RESOURCES.md`. Every render is a heavy job (one of the 3 machine-wide render slots; never run renders in parallel outside the wrapper):
+```bash
+tools/video/safe-run.sh --heavy -- node tools/video/motion/render.mjs logo_reveal          # 4K FFV1
+tools/video/safe-run.sh --heavy -- node tools/video/motion/render.mjs syndrome --stills 100,300   # PNG stills (1080p)
+node tools/video/motion/render.mjs --list                                                            # all jobs
+```
+- Jobs live in `tools/video/motion/jobs.mjs` (`{ scene, params, alpha?, note }`). `--p '{json}'` overrides params,
+  `--name` changes the output name (e.g. a caption track), `--scale 1` renders 1080p for quick checks.
+- Output: **3840×2160, 60 fps, FFV1 (level 3, intra-only), `bgr0`** — `<name>.mkv`. Alpha jobs write
+  `<name>_fill.mkv` (straight, un-premultiplied RGB) + `<name>_matte.mkv` (8-bit gray luma matte), plus
+  `<name>.json` (frames, markers, resolved params). Stills: `videos/motion/stills/<name>_fNNNN.png`.
+- Resource rules baked into `render.mjs`: software GL only (`--disable-gpu --use-angle=swiftshader`), one browser
+  per run, JS heap capped at 2 GB, a 1920×1080 viewport with the canvas backing store at scale 2 (= 4K; scale > 2
+  is refused), ≤ 600 frames per job (refused otherwise), 2 pages in parallel, ffmpeg `-threads 2` per encoder
+  (≤ 6 total). It reuses a dev server on `MOTION_BASE` (default `http://127.0.0.1:4410`) if one is up, else starts
+  its own vite and stops it at the end. Frames go through `canvas.toBlob('image/png')` (lossless, ~8× faster than
+  a 4K CDP screenshot) and are piped straight into ffmpeg (nothing held in RAM or /tmp).
+- Why not `tools/video/capture`? That tool's job is virtual time for the live game (rAF/timers/CSS shimmed). These
+  pages have no clock at all (frame-indexed pure functions), so they use the same encoder settings and the same
+  determinism guarantee without the shim. The X-ray dissolve and the day→night relight are captured from the game
+  by the Capture Engineer.
+
+### Compositing recipes (ffmpeg)
+```bash
+# A/B transition with a matte (white = B): glitch tear (6 f) or blanket reveal (18 f)
+ffmpeg -i A.mkv -i B.mkv -i videos/motion/glitch_tear_matte.mkv -filter_complex "[0][1][2]maskedmerge" out.mkv
+# overlay a fill+matte clip (quilt, letters, shards, captions) on footage
+ffmpeg -i bg.mkv -i X_fill.mkv -i X_matte.mkv -filter_complex "[0][1][2]maskedmerge" out.mkv
+# blanket wipe = reveal matte between A and B, then the quilt on top
+ffmpeg -i A.mkv -i B.mkv -i blanket_wipe_reveal.mkv -i blanket_wipe_fill.mkv -i blanket_wipe_matte.mkv \
+  -filter_complex "[0][1][2]maskedmerge[ab];[ab][3][4]maskedmerge" out.mkv
+```
+(Inputs must share size/format: add `format=gbrp` / `scale` as needed; mattes are full-range gray.)
+
+## Edit slots (videos/final/work/shot_todo.json, kind: motion)
+Registered in `tools/video/edl/shot_sources.json`. Full-frame (no matte), 3840×2160 FFV1, 60 fps; the Editor trims.
+
+| Shot id | Frames | File | Content / key frames |
+|---|---|---|---|
+| `mo_circuit_morph` | 660 | `videos/motion/mo_circuit_morph.mkv` | snap on f0 (trailer f3698), cards → gates f18–77, closing line from f96 (legible f126), hold. Trailer uses f0–287 (= `circuit_morph`). |
+| `mo_end_card` | 360 | `videos/motion/mo_end_card.mkv` | identical to `end_card` for f0–253 (trailer f3986–4240), then holds; URL legible f134. |
+| `mo_syndrome_table` | 960 | `videos/motion/mo_syndrome_table.mkv` | rows start f60/240/420/600 (180 f each); bot a lights at row+10, bot b at row+24 → beeps f250, f430, f454, f624; quiets f70, f84, f264, f610; all legible f668. |
+| `mo_qiskit_stamp` | 300 | `videos/motion/mo_qiskit_stamp.mkv` | the finished circuit + closing line; "EXPORTS TO QISKIT" stamp slams on f40 (scale 1.8 → 1 over 8 f). |
+
+Exact markers are in each `<id>.json`. Clips over 300 frames render as resumable ≤ 300-frame segments (a killed run
+skips finished segments on re-run) and are concatenated losslessly.
+
+## Assets
+
+### 1. Logo reveal — `logo_reveal` (198 f, 3.3 s) · **impact = clip f6 (trailer f1394)**
+Glitch tear from black (clip f0–5, the clone-glitch look: stepped slices, hue-rotated multiply twin offset (14, −6),
+Sunny/Moony fringes, Phasey/Sunny scan sparks) into the wound-up row of letter-Qubbles (real `drawQubble` on
+beds with the Quantum letters on top, exactly the title look, trembling and squashed, swirls spinning faster).
+**Impact (clip f6):** full-white flash (1.0, .75, .45, .25, .12, .05 over f6–11), camera kick (16 px shake,
+22 f), every Qubble pops in the game's collapse burst, a white shockwave ellipse, a warm sunburst, confetti, and
+the real wordmark letters (paths parsed from `public/art/logo.svg`) fly up from the small letters with
+outBack + damped squash/stretch, popping centre-out (0–4 f stagger). Settles by ~f50 after impact, then bobs
+gently with twinkles.
+- Timeline (logo frames): letters fall (12 f, stretched) and land with squash/stretch + dust on 16ths (every 8 f)
+  from f8 to f80, wind-up f82–96, impact f96. `logo_reveal` shows timeline f90–288 (`offset: 90`, `glitchAt: 90`).
+- Variants: `logo_reveal_alpha` (same timing, no sky/glitch; letters, particles and the flash only, + matte),
+  `logo_reveal_long` (192 f from the drop: glitch on f0, letters land visibly on 16ths, impact clip f96 = f1490,
+  the strongest detected hit; use if the Director wants to see the letters land),
+  `logo_reveal_preroll` (the 96 frames before the impact).
+- Params: `frames, offset, bg (day|night|dusk|image|none), glitchIn, glitchAt, landStart, landEnd, lands[],
+  fall, impact, anticip, width (1640), y (500), grain`.
+- Markers: `impact`, `flash[]`, `glitch[]`, `lands[]` (each letter's landing frame → pitched SFX).
+
+### 2. Title-letter collapse — `title_peek` (116 f) · **shatter = clip f96 (trailer f434)**
+Bespoke (better than capturing the real title screen: no UI, frame-filling, controllable hit frames). The NO
+PEEKING! letter-Qubbles dream on the title's day sky; the camera pushes in (1 → 1.9×) on the P while the cursor
+drifts to it; on clip f96 the P collapses (awake-grumpy, Sunny/Moony recolour, collapse burst) and the frozen
+frame shatters along log-spiral cuts (the swirl's own spiral) from the P: 2-frame flash (1.0, .55), shards rimmed
+Sunny/Moony with an ink edge fly toward camera with 3-sample motion blur over 13 f, then black (7 f).
+- `title_sweep` (192 f): all ten letters collapse on 8ths (16 f) with outcomes `0110100110` — markers `hits[]`
+  for the pitched peek SFX ("the title plays the motif").
+- Params: `frames, hits[10] (null = not peeked), outcomes, cursor, focus, focusZoom, shatterAt, shatterDur,
+  shatterTail, zoom, bg, grain`.
+
+### 3. Cards (in-world, letter-by-letter collapse type)
+Each letter drops in as a tiny dreaming Qubble (Sunny/Moony swirl gumdrop, sleepy eyes), squashes and pops into
+its Quantum glyph (outBack, white tint, sparks). The whole line is fully popped in ≤ 18–34 f (`reveal`, scales
+with length). Night style: paper `#f2f0eb` text, ink outline, soft 20 px dark glow. Day style: ink text on a
+torn paper note with tape. Subtle film grain (also dithers the night gradients for 8-bit delivery). Slow 5% push.
+
+| Job | Frames | Background / prop | Text legible at |
+|---|---|---|---|
+| `card_dreams` | 288 | night sky + a swirling Qubble dreaming a sun and a moon (thought bubbles) | f8 + reveal (marker `text_legible`) |
+| `card_dreams_alpha` | 288 | text only + matte (over the moonlit blanket footage) | 〃 |
+| `card_gremlins` | 96 | Flipper sneaks in and zaps an exposed Sunny Qubble → Moony (a real bit flip) on clip f44 | f4 + reveal |
+| `card_ghosts` | 96 | Phasey drifts by; a swirl Qubble's swirl mirrors (+ → −, a real phase flip) on clip f40 | 〃 |
+| `card_cantlook` / `_alpha` | 96 | three tucked-in Qubbles in moonlight / text only + matte | 〃 |
+| `card_justagame` / `_alpha` | 192 | morning sky + tucked-in Qubbles, ink on a torn note / note + text only + matte (over the cosy morning capture) | f10 + reveal |
+| `card_learned` | 192 | notebook page (standalone; the trailer uses `circuit_morph`) | 〃 |
+| `end_card` | 254 | night sky: the wordmark letters drift in *uncollapsed* (each filled with a turning Sunny/Moony swirl), land by f54, settle into the logo colours by f110 (staggered), then "quriosity 2026 · Option 06" (f84), "Play free in your browser" (f104), the URL on a red game button (f120, legible f134), and a tucked-in Qubble rises and snores | markers |
+
+Card params: `text ('\n' = break), frames, bg, bgImage (blurred gameplay still), style, y, size (Quantum ≥ 104 →
+cap height ≥ 7% of the frame; defaults 118–150), maxW, font, start, reveal, exitStart, exitDur, prop
+(dream|flip|phase|blankets|morning|none), propHit, sub/subY/subSize/subStart (Quicksand line), plate, grain`.
+Trailer cards default to a hard cut out (no exit); set `exitStart` for a letter exit.
+
+### 4. Transitions (the approved ones only)
+| Job | Frames | What | Use |
+|---|---|---|---|
+| `shatter` | 36 | a big swirling Qubble close-up snaps to Moony (f12–15), **shatter on f16** (flash f16–17), black f29–35 | standalone peek option |
+| `shatter_alpha` | 36 | shards only, fill + matte | put the next thing behind |
+| `glitch_tear_matte` | 6 | stepped bands, white = incoming shot | `maskedmerge` A/B at the drop (the logo reveal already contains it) |
+| `glitch_tear_fx` | 6 | Sunny/Moony/Phasey scan sparks + band edges, fill + matte | overlay on the merged A/B |
+| `glitch_tear_demo` | 6 | reference: day tearing into night | — |
+| `blanket_wipe` | 18 | the game's quilt (pink/cream/teal patchwork, hearts, dots, stitching) sweeping left→right, curved leading edge, 12 px fold displacement, rolled hem, cast shadow, ink edges, in-out cubic — fill + matte | showcase chapter changes |
+| `blanket_wipe_reveal` | 18 | white = incoming shot (left of the trailing edge) | under the quilt |
+| `blanket_title` / `_reveal` | 72 | cover 18 / hold 36 with a sewn-on level-title patch ("2-3 · Who Got Flipped?") / uncover 18; B shows from f18 | showcase hero-level titles (`--p '{"title":"…","code":"3-1"}' --name blanket_title_31`) |
+
+Shatter params: `src ('qubble' | absolute image path → shatter any frozen frame), pre, dur, tail, flash, cx, cy,
+pole, seed`. Blanket params: `mode (pass|title), dur, hold, out (overlay|reveal|demo), title, code`.
+
+### 5. Syndrome graphic — `syndrome` (486 f)
+Notebook page, "Two bots. Four answers." Four rows, one bar (96 f) each from f30, all content above the caption
+strip (y < 950): bot a (q1 = q2?) and bot b (q2 = q3?) built from `drawBot` (their own antenna light and
+BEEP!/quiet word pop) + BEEP/QUIET chips, an arrow, three tucked-in Qubbles q1 q2 q3 (the culprit gets the game's
+red dashed highlight, trembles, sparks and a red "!"; the quiet-quiet row gets a mint ✓), and the fix as a
+card chip ("all good" / BOOP q1 / BOOP q2 / BOOP q3). Rows: QUIET-QUIET → nobody; BEEP-QUIET → q1; BEEP-BEEP → q2;
+QUIET-BEEP → q3. Highlighter swipe on the active row.
+- Markers (clip frames): row starts 30/126/222/318; bot a light +10, bot b light +24 → `beeps` [136, 232, 246, 342],
+  `quiets` [40, 54, 150, 328]; culprit highlight +46; `all_legible` 386.
+- Params: `bg, start, rowFrames, hold, title, grain`.
+
+### 6. Program → circuit — `circuit_morph` (288 f, trailer f3698–3986) · **snap = clip f0**
+Bespoke (chosen over capturing the Lab Notebook's own morph: that is a 360 px panel with a debug bar; this fills
+the frame and is the same circuit). Clip f0 is the hard cut with a small slam settle: the real 2-3 program as
+Bot Code cards in three columns (Schrödi's bedtime checklist HIGHFIVE q1→q2, q1→q3; the night's "Flipper flips
+q2"; the morning decoder). From f18 each card (3 f stagger, 26 f each) flies in an arc to its gate and morphs into
+it while the wires draw on: HIGHFIVE → CNOT, the gremlin → red dashed X error, LISTEN → measurement (ancilla
+wires turn classical/double after it), IF … → BOOP qN → X with classical controls (filled = BEEP, open = QUIET on
+a and b). Section labels BEDTIME·encode / NIGHT·error / MORNING·syndrome / FIX·correct; coloured halos remember
+which card each gate was. The closing line "…where you accidentally learned quantum error correction." sets in
+from f96 (legible f126).
+- `circuit_morph_mech` (300 f): same + an "EXPORTS TO QISKIT" rubber stamp at f200 (mechanic video §2:08).
+- Params: `frames, morphStart, stagger, morphDur, line, lineAt, lineReveal, stamp, bg, grain`.
+
+### 7. Caption strip template — scene `caption` (`caption_strip_demo`, 360 f)
+Mechanic/showcase layout: the game at 88% at the top (`GAME_RECT` = x 115.2, y 0, 1689.6 × 950.4 at 1080p), a
+fixed paper strip in the bottom 12% (y 950–1080) plus side gutters, a stitched seam, an ink frame and soft shadow
+around the game hole (transparent). Captions: Quicksand Bold 44 px ink, centred in the strip, with up to two
+"= real term" gloss chips (Quantum on a Sunny pill, ink outline + drop shadow). In: text fades/slides up 10 f, chips
+pop (outBack) at +6/+12 f; out: 8 f fade. Render a whole caption track as one alpha clip:
+```bash
+tools/video/safe-run.sh --heavy -- node tools/video/motion/render.mjs caption_strip_demo --name captions_mech \
+  --p '{"frames":540,"items":[{"in":0,"out":200,"text":"Looking changes it.","gloss":"= measurement"},
+        {"in":220,"out":520,"gloss":"= parity check","gloss2":"= syndrome"}]}'
+```
+then `maskedmerge` (or overlay) `captions_mech_fill/_matte` over the game scaled to 1689.6×950.4 at (115.2, 0)
+(4K: 3379×1901 at (230, 0)). Clips longer than 600 frames: render in ≤ 600-frame pieces (shift `in`/`out`).
+Live preview of any scene/template: `index.html?scene=caption&preview=1&scale=1&p={…}` on the dev server.

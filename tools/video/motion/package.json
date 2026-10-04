@@ -1,0 +1,12 @@
+{
+  "name": "np-video-motion",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic motion-design pieces for the NO PEEKING! videos (rendered frame-by-frame at 4K)",
+  "scripts": {
+    "render": "node render.mjs"
+  },
+  "dependencies": {
+    "playwright": "1.63.0"
+  }
+}

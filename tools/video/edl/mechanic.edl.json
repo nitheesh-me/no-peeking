@@ -1,0 +1,487 @@
+{
+ "schema": "np-edl/1",
+ "video": "mechanic",
+ "fps": 60,
+ "layout": "strip",
+ "work": [
+  1920,
+  1080
+ ],
+ "outputs": [
+  {
+   "name": "mechanic_1080p",
+   "size": [
+    1920,
+    1080
+   ],
+   "path": "videos/final/mechanic.mp4",
+   "zoom_cap": 1.8
+  }
+ ],
+ "zoom_cap": 1.8,
+ "cue_sheet": null,
+ "clips": [
+  {
+   "id": "M001",
+   "shot": "me_cold_blanket",
+   "src": "videos/capture_placeholder/me_cold_blanket.mkv",
+   "src_kind": "placeholder",
+   "start": 0,
+   "dur": 360,
+   "in": 30,
+   "speed": 1,
+   "grade": "night",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "cold_open",
+   "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 0.5,
+     "cy": 0.5,
+     "ease": "linear"
+    },
+    {
+     "f": 360,
+     "z": 1.12,
+     "cx": 0.5,
+     "cy": 0.5,
+     "ease": "inout"
+    }
+   ]
+  },
+  {
+   "id": "M002",
+   "shot": "me_11_peek",
+   "src": "videos/capture_placeholder/me_11_peek.mkv",
+   "src_kind": "placeholder",
+   "start": 360,
+   "dur": 1080,
+   "in": 0,
+   "speed": 1,
+   "grade": "day",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "rule",
+   "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 0.5,
+     "cy": 0.5,
+     "ease": "linear"
+    },
+    {
+     "f": 1080,
+     "z": 1.15,
+     "cx": 0.5,
+     "cy": 0.5,
+     "ease": "inout"
+    }
+   ],
+   "events": "videos/capture_placeholder/me_11_peek.events.json",
+   "layout_json": "videos/capture_placeholder/me_11_peek.layout.json",
+   "scdet_exempt": [
+    [
+     1014,
+     1080
+    ]
+   ]
+  },
+  {
+   "id": "M003",
+   "shot": "me_threat",
+   "src": "videos/capture_placeholder/me_threat.mkv",
+   "src_kind": "placeholder",
+   "start": 1440,
+   "dur": 840,
+   "in": 0,
+   "speed": 1,
+   "grade": "night",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "threat",
+   "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 0.5,
+     "cy": 0.55,
+     "ease": "linear"
+    },
+    {
+     "f": 840,
+     "z": 1.2,
+     "cx": 0.5,
+     "cy": 0.55,
+     "ease": "inout"
+    }
+   ]
+  },
+  {
+   "id": "M004",
+   "shot": "me_encode",
+   "src": "videos/capture_placeholder/me_encode.mkv",
+   "src_kind": "placeholder",
+   "start": 2280,
+   "dur": 720,
+   "in": 0,
+   "speed": 1,
+   "grade": "day",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "cant_copy",
+   "cues": []
+  },
+  {
+   "id": "M005",
+   "shot": "me_21_listen",
+   "src": "videos/capture_placeholder/me_21_listen.mkv",
+   "src_kind": "placeholder",
+   "start": 3000,
+   "dur": 600,
+   "in": 0,
+   "speed": 1,
+   "grade": "day",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "ask",
+   "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 0.5,
+     "cy": 0.5,
+     "ease": "linear"
+    },
+    {
+     "f": 600,
+     "z": 1.1,
+     "cx": 0.5,
+     "cy": 0.5,
+     "ease": "inout"
+    }
+   ]
+  },
+  {
+   "id": "M006",
+   "shot": "mo_syndrome_table",
+   "src": "videos/capture_placeholder/mo_syndrome_table.mkv",
+   "src_kind": "placeholder",
+   "start": 3600,
+   "dur": 900,
+   "in": 0,
+   "speed": 1,
+   "grade": "none",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "ask",
+   "cues": []
+  },
+  {
+   "id": "M007",
+   "shot": "me_23_night",
+   "src": "videos/capture_placeholder/me_23_night.mkv",
+   "src_kind": "placeholder",
+   "start": 4500,
+   "dur": 1380,
+   "in": 0,
+   "speed": 1,
+   "grade": "night",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "repair",
+   "cues": []
+  },
+  {
+   "id": "M008",
+   "shot": "me_23_xray",
+   "src": "videos/capture_placeholder/me_23_xray.mkv",
+   "src_kind": "placeholder",
+   "start": 5880,
+   "dur": 840,
+   "in": 0,
+   "speed": 1,
+   "grade": "night",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "proof",
+   "cues": []
+  },
+  {
+   "id": "M009",
+   "shot": "me_31_phase",
+   "src": "videos/capture_placeholder/me_31_phase.mkv",
+   "src_kind": "placeholder",
+   "start": 6720,
+   "dur": 960,
+   "in": 0,
+   "speed": 1,
+   "grade": "night",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "twist",
+   "cues": []
+  },
+  {
+   "id": "M010",
+   "shot": "mo_circuit_morph",
+   "src": "videos/capture_placeholder/mo_circuit_morph.mkv",
+   "src_kind": "placeholder",
+   "start": 7680,
+   "dur": 600,
+   "in": 0,
+   "speed": 1,
+   "grade": "none",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "under_the_hood",
+   "cues": []
+  },
+  {
+   "id": "M011",
+   "shot": "mo_qiskit_stamp",
+   "src": "videos/capture_placeholder/mo_qiskit_stamp.mkv",
+   "src_kind": "placeholder",
+   "start": 8280,
+   "dur": 240,
+   "in": 0,
+   "speed": 1,
+   "grade": "none",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "under_the_hood",
+   "cues": []
+  },
+  {
+   "id": "M012",
+   "shot": "sc_morning_still",
+   "src": "videos/capture_placeholder/sc_morning_still.mkv",
+   "src_kind": "placeholder",
+   "start": 8520,
+   "dur": 270,
+   "in": 30,
+   "speed": 1,
+   "grade": "day",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "close",
+   "cues": []
+  },
+  {
+   "id": "M013",
+   "shot": "mo_circuit_morph",
+   "src": "videos/capture_placeholder/mo_circuit_morph.mkv",
+   "src_kind": "placeholder",
+   "start": 8790,
+   "dur": 330,
+   "in": 30,
+   "speed": 1,
+   "grade": "none",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "close",
+   "cues": [
+    {
+     "name": "snap",
+     "frame": 8790,
+     "kind": "design"
+    }
+   ]
+  },
+  {
+   "id": "M014",
+   "shot": "mo_end_card",
+   "src": "videos/capture_placeholder/mo_end_card.mkv",
+   "src_kind": "placeholder",
+   "start": 9120,
+   "dur": 300,
+   "in": 0,
+   "speed": 1,
+   "grade": "none",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "end_card",
+   "cues": []
+  }
+ ],
+ "captions": [
+  {
+   "id": "cap01",
+   "text": "Every Qubble dreams two dreams at once.",
+   "start": 24,
+   "end": 354,
+   "legible_from": 34,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap02",
+   "text": "= measurement collapses a superposition",
+   "start": 780,
+   "end": 1380,
+   "legible_from": 790,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap03",
+   "text": "One dream changed. Which one? You can't look.",
+   "start": 1530,
+   "end": 2250,
+   "legible_from": 1540,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap04",
+   "text": "= encoding (no copies allowed)",
+   "start": 2400,
+   "end": 2970,
+   "legible_from": 2410,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap05",
+   "text": "= parity check",
+   "start": 3180,
+   "end": 3570,
+   "legible_from": 3190,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap06",
+   "text": "= syndrome: two answers point at one Qubble",
+   "start": 3660,
+   "end": 4470,
+   "legible_from": 3670,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap07",
+   "text": "= error correction, without ever measuring the dream",
+   "start": 4620,
+   "end": 5850,
+   "legible_from": 4630,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap08",
+   "text": "= the bots never learned the dream",
+   "start": 6000,
+   "end": 6690,
+   "legible_from": 6010,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap09",
+   "text": "= phase-flip code (Hadamard basis)",
+   "start": 6840,
+   "end": 7650,
+   "legible_from": 6850,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap10",
+   "text": "= a real state-vector simulator, real gates",
+   "start": 7740,
+   "end": 8490,
+   "legible_from": 7750,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap11",
+   "text": "It's just a game\u2026",
+   "start": 8538,
+   "end": 8784,
+   "legible_from": 8548,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  },
+  {
+   "id": "cap12",
+   "text": "\u2026where you accidentally learned quantum error correction.",
+   "start": 8796,
+   "end": 9114,
+   "legible_from": 8806,
+   "position": "strip",
+   "style": "strip",
+   "render": "template"
+  }
+ ],
+ "overlays": [],
+ "fx": [],
+ "marks": [
+  {
+   "type": "dissolve",
+   "start": 1014,
+   "end": 1080,
+   "why": "in-engine X-ray reveal"
+  }
+ ],
+ "audio": {
+  "mix": "videos/final/work/mechanic/mix.wav",
+  "mixreport": "videos/final/work/mechanic/mixreport.json",
+  "stems": "videos/final/work/mechanic/stems"
+ },
+ "notes": [
+  "me_threat: align event gremlin_flip not found; using in_s",
+  "me_encode: align event highfive not found; using in_s",
+  "me_21_listen: align event highfive not found; using in_s",
+  "me_23_night: align event gremlin_flip not found; using in_s",
+  "me_23_xray: align event xray_start not found; using in_s",
+  "me_31_phase: align event ghost_phase not found; using in_s"
+ ],
+ "duration": 9420
+}

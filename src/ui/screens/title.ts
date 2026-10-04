@@ -6,6 +6,7 @@ import { save } from '../../engine/store';
 import { h, easeOutBack, clamp } from '../../engine/util';
 import type { Nav } from '../app';
 import { fullscreenButton } from '../fullscreen';
+import { cinema } from '../../engine/cinema';
 
 interface Letter { ch: string; x: number; y: number; collapsed: 0 | 1 | null; at: number; phase: number }
 
@@ -34,7 +35,7 @@ export function titleScreen(root: HTMLElement, nav: Nav): () => void {
   const layout = () => {
     const r = canvas.getBoundingClientRect(); dpr = Math.min(2, devicePixelRatio || 1);
     W = r.width; H = r.height; canvas.width = W * dpr; canvas.height = H * dpr;
-    slot = Math.min(W / (text.length + 1), 120);
+    slot = Math.min(W / (text.length + 1), cinema.on ? 400 : 120);
     const total = slot * text.length;
     letters.length === 0 && [...text].forEach((ch, i) => letters.push({ ch, x: 0, y: 0, collapsed: null, at: 0, phase: i * 0.7 }));
     letters.forEach((l, i) => { l.x = W / 2 - total / 2 + slot * (i + 0.5); l.y = H * 0.46 + Math.sin(i * 1.3) * slot * 0.08; });

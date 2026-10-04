@@ -1,4 +1,5 @@
 /** Codex: every character, enemy, element, object and card. Entries unlock when clicked/met in the game. */
+import { cinema } from '../../engine/cinema';
 import '../../styles/codex.css';
 import type { Bloch, CaretakerVisual, SchrodiActorVisual, BotVisual, QubbleVisual, IsoFn, Speaker } from '../../core/contracts';
 import { art, artExtra, audio, LEVELS } from '../../engine/deps';
@@ -229,7 +230,7 @@ export function codexScreen(root: HTMLElement, nav: Nav): () => void {
 
   function renderGrid() {
     grid.innerHTML = ''; thumbs.length = 0;
-    count.textContent = `${codexFound()}/${CODEX.length} found${unlockAll() ? ' · judge mode' : ''}`;
+    count.textContent = `${codexFound()}/${CODEX.length} found${unlockAll() && !cinema.on ? ' · judge mode' : ''}`;
     for (const c of CODEX_CATS) {
       if (cat !== 'all' && cat !== c.id) continue;
       grid.appendChild(h('h3', { class: 'codex-cat display' }, `${c.icon} ${c.name}`));
@@ -273,6 +274,7 @@ export function codexScreen(root: HTMLElement, nav: Nav): () => void {
   });
 
   renderTabs(); renderGrid();
+  if (cinema.on && cinema.insert) { const ie = CODEX.find((x) => x.id === cinema.insert); if (ie) openDetail(ie); }
   const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !document.querySelector('.modal-back')) nav.go('title'); };
   window.addEventListener('keydown', onKey);
   return () => { stopThumbs(); window.removeEventListener('keydown', onKey); voiceTimers.forEach(clearTimeout); };
@@ -285,7 +287,12 @@ function openDetail(e: CodexEntry): void {
   if (e.view === 'blanket') st.blanket = 1;
   if (e.view === 'lights') st.light = 1;
   const poses = poseList(e);
-  const W = 420, H = 280, dpr = Math.min(2, devicePixelRatio || 1);
+  const W = 420, H = 280;
+  // ?cinema=1&insert=<id>: this entry's live animation (or &part=sphere: its Bloch sphere) full-frame, no chrome
+  const insert = cinema.on && cinema.insert === e.id;
+  const insertSphere = insert && cinema.part === 'sphere';
+  const insertCss = insert ? Math.min(innerWidth / W, innerHeight / H) : 1;
+  const dpr = insert ? insertCss * (devicePixelRatio || 1) : Math.min(2, devicePixelRatio || 1);
   let stop = () => {};
   // 3D Bloch sphere (designer widget): drives the live Qubble render for the qubble + dream elements
   let sphere: Bloch3D | null = null;
@@ -298,7 +305,7 @@ function openDetail(e: CodexEntry): void {
       return r < 0.3 ? 'entangled: the arrow shrinks to the centre (no dream of its own)' : Math.abs(b.z) < 0.35 ? 'on the equator: a swirl (superposition)' : Math.hypot(b.x, b.y) > 0.3 ? (b.z > 0 ? 'mostly Sunny, a bit swirly' : 'mostly Moony, a bit swirly') : b.z > 0 ? 'near the top: Sunny |0⟩' : 'near the bottom: Moony |1⟩';
     };
     sphere = createBloch3D({
-      size: 240, rotatable: true, labels: 'both', initial: init,
+      size: insertSphere ? Math.round(Math.min(innerWidth, innerHeight) * 0.92) : 240, rotatable: true, labels: 'both', initial: init,
       interactive: e.view !== 'silk', measure: e.view === 'qubble',
       onChange: (b) => {
         if (e.view === 'swirl') { // keep it on the equator
@@ -358,13 +365,13 @@ function openDetail(e: CodexEntry): void {
     }
     controls.append(h('ul', { class: 'guide-tips' }, ...CARD_GUIDE[e.op!].tips.slice(0, 3).map((x) => h('li', null, x))));
   } else {
-    const cv = h('canvas', { class: 'cd-canvas', width: W * dpr, height: H * dpr, style: `width:${W}px;height:${H}px`, tabindex: 0, role: 'button', 'aria-label': `${e.name}: ${e.play} (Enter or Space)` }) as HTMLCanvasElement;
+    const cv = h('canvas', { class: 'cd-canvas', width: Math.round(W * dpr), height: Math.round(H * dpr), style: `width:${W * insertCss}px;height:${H * insertCss}px`, tabindex: 0, role: 'button', 'aria-label': `${e.name}: ${e.play} (Enter or Space)` }) as HTMLCanvasElement;
     live = h('div', { class: `cd-live${sphere ? ' with-sphere' : ''}` }, cv, sphere ? h('div', { class: 'cd-sphere' }, sphere.el, sphereCap) : null);
     const g = cv.getContext('2d')!;
     stop = onFrame((t) => {
       g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
       g.fillStyle = st.night && (e.view === 'bed') ? '#2a2b4a' : '#f7f4ec'; g.fillRect(0, 0, W, H);
-      drawView(g, W, H, e, st, t, 1.15);
+      drawView(g, W, H, e, st, t, insert ? cinema.izoom : 1.15);
     });
     cv.addEventListener('click', act);
     cv.addEventListener('keydown', (k) => { if (k.key === 'Enter' || k.key === ' ') { k.preventDefault(); act(); } });
@@ -392,6 +399,11 @@ function openDetail(e: CodexEntry): void {
     h('div', { class: 'cd-real' }, h('b', null, 'In real life: '), ...linkify(e.real)),
   );
   syncPose();
+  if (insert) {
+    const host = h('div', { class: 'cinema-insert-host' }, insertSphere && sphere ? sphere.el : (live.querySelector('canvas') ?? live));
+    document.body.appendChild(host);
+    return;
+  }
   modal(body, { cls: `codex-modal${sphere ? ' wide' : ''}`, onClose: () => { stop(); sphere?.destroy(); voiceTimers.forEach(clearTimeout); } });
   setTimeout(() => (live.querySelector('canvas,[tabindex]') as HTMLElement | null ?? live).focus?.(), 50);
 }

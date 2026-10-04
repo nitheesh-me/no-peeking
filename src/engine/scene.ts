@@ -2,6 +2,7 @@
  * Isometric scene renderer. Draws the daycare for one level from a "view" that the Playback
  * controller updates every frame (snapshot blend, the current event animation, x-ray, night).
  */
+import { cinema } from './cinema';
 import type { LevelDef, Snapshot, QubitId, TraceEvent, Bloch, IsoFn, QubbleVisual, BotVisual, DialogueLine, ErrorEvent, CaretakerVisual, SchrodiActorVisual } from '../core/contracts';
 import { isBot, isQubble } from '../core/contracts';
 import { art, artExtra } from './deps';
@@ -122,10 +123,11 @@ export class Scene {
       const m = 0.3, c = this.cols, rw = this.rows, WALL = 150;
       const minX = -(rw + m) * 48, maxX = (c + m) * 48;
       const minY = -m * 24 - WALL, maxY = (c + rw + m) * 24 + 22;
-      this.s = clamp(Math.min((this.w * 1.04) / (maxX - minX), (this.h - 6) / (maxY - minY)), 0.35, 1.8);
+      this.s = clamp(Math.min((this.w * 1.04) / (maxX - minX), (this.h - 6) / (maxY - minY)), 0.35, cinema.on ? 8 : 1.8);
       this.TW = 96 * this.s; this.TH = 48 * this.s;
       this.ox = this.w / 2 - this.s * (minX + maxX) / 2;
       this.oy = this.h - 6 - this.s * maxY;
+      if (cinema.on && cinema.camera.zoom !== 1) this.cinemaZoom();
       this.ctAt = null;
       return;
     }
@@ -138,6 +140,19 @@ export class Scene {
     this.ox = this.w / 2 - this.s * (minX + maxX) / 2;
     this.oy = this.h / 2 - this.s * (minY + maxY) / 2;
     this.ctAt = null;
+  }
+
+  /** ?cinema=1&camera=…: zoom the room in-engine around a viewport focus point (vector art, so no upscaling). */
+  private cinemaZoom(): void {
+    const { zoom, fx, fy, on } = cinema.camera, px = this.w * fx, py = this.h * fy;
+    const c = on ? [...this.level.qubbles, ...this.level.bots].find((p) => p.id === on) : undefined;
+    const obj = on === 'door' || on === 'window' || on === 'clock' ? this.objectCentre(on) : null; // at the unzoomed framing
+    this.s *= zoom; this.TW = 96 * this.s; this.TH = 48 * this.s;
+    if (obj) { this.ox = px + (this.ox - obj.x) * zoom; this.oy = py + (this.oy - obj.y) * zoom; }
+    else if (c) { // put the creature's body (a little above its tile centre) at (px, py)
+      const gx = c.x + 0.5, gy = c.y + 0.5, gz = 0.55;
+      this.ox = px - (gx - gy) * this.TW / 2; this.oy = py - (gx + gy) * this.TH / 2 + gz * this.TH;
+    } else { this.ox = px + (this.ox - px) * zoom; this.oy = py + (this.oy - py) * zoom; }
   }
 
   /** Screen position (CSS px) of a creature's ground point. */

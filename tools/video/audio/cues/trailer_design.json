@@ -1,0 +1,252 @@
+{
+ "_doc": "Trailer sound-design layer, anchored to the cue sheet (videos/music/cue_sheet.json named_hits / sections), not to frames, so it re-times itself if the sheet changes. 'at' is a fallback chain: hit:<name> | section:<name>[.end] with optional +Nb/-Nb (beats at the sheet's BPM) or +Nf (frames). 'until' crops/loops the asset. 'group' dedupes against EDL clip cues of the same group (the EDL wins). featured=true cues must clear the music by >= 6 LU. only_with: used only when the bed path contains that string (e.g. the original-score alternate). v2: the BEEP is the tuned beep_tuned_C5 (cue sheet beep_pitch); the payoff slam carries level_win_big (re-orchestrated, replaces any in-game level_win within 0.5 s); the song already has its reversed cymbal into f3026, the Twinkle score gets revcymbal_1bar from the score itself. Sound milestone (Critic): one section per device (heartbeat = cold open, ticking = build, reversed cymbal = 2 beats into f434 + Lights Out, braam once), shards via the EDL shatter (-10 dB, +3 f), song payoff = level_win_fpow (F power chords), public payoff = level_win_big (C major), room tone starts where the bed reaches digital zero.",
+ "cues": [
+  {
+   "asset": "zone:sfx_gain",
+   "at": [
+    "section:proof",
+    "hit:proof_start"
+   ],
+   "until": [
+    "section:montage",
+    "hit:montage_filter_open"
+   ],
+   "gain_db": 3.0,
+   "_why": "Director: the proof bed is submerged (-8.5 dB); the proof SFX carry the energy (peak ~ -14 LUFS short-term)",
+   "floor_lufs": -16.0
+  },
+  {
+   "asset": "room_tone_30s",
+   "at": [
+    "section:cold_open"
+   ],
+   "until": [
+    "section:silence.end"
+   ],
+   "gain_db": 0,
+   "stem": "design"
+  },
+  {
+   "asset": "heartbeat_sub_4bar",
+   "at": [
+    "section:cold_open"
+   ],
+   "until": [
+    "hit:peek_collapse",
+    "section:peek"
+   ],
+   "gain_db": -2,
+   "stem": "design"
+  },
+  {
+   "asset": "revcym_2beat",
+   "at": [
+    "hit:peek_collapse",
+    "section:peek"
+   ],
+   "gain_db": -3,
+   "stem": "design",
+   "group": "peek_riser"
+  },
+  {
+   "asset": "sig_a_coldopen_impact",
+   "at": [
+    "hit:peek_collapse",
+    "section:peek"
+   ],
+   "featured": true,
+   "stem": "design",
+   "group": "peek_collapse_impact"
+  },
+  {
+   "asset": "shatter_shards",
+   "at": [
+    "hit:peek_collapse+3f",
+    "section:peek+3f"
+   ],
+   "gain_db": -10,
+   "stem": "design",
+   "group": "shatter",
+   "_why": "shard tail, -10 dB, 3 frames after the collapse transient (Critic sound #3); skipped if the EDL has its own shatter"
+  },
+  {
+   "asset": "sig_b_title_phrase",
+   "at": [
+    "hit:title_letters",
+    "section:peek+3b"
+   ],
+   "featured": true,
+   "stem": "design",
+   "group": "title_letters_pitched"
+  },
+  {
+   "asset": "night_ambience_30s",
+   "at": [
+    "section:build"
+   ],
+   "until": [
+    "section:silence"
+   ],
+   "gain_db": -4,
+   "stem": "design"
+  },
+  {
+   "asset": "tick_8ths_4bar",
+   "at": [
+    "hit:build_lift",
+    "section:build+3b"
+   ],
+   "until": [
+    "hit:pre_drop_riser",
+    "section:silence-6b"
+   ],
+   "gain_db": -8,
+   "stem": "design",
+   "only_with": "trailer_edit",
+   "_why": "ticking in the build only; the public score has its own wood-block clock there"
+  },
+  {
+   "asset": "braam_1bar",
+   "at": [
+    "hit:build_lift",
+    "section:build+3b"
+   ],
+   "gain_db": -6,
+   "stem": "design",
+   "align": "start",
+   "_why": "braam once, at the build lift"
+  },
+  {
+   "asset": "riser_drop_2bar",
+   "at": [
+    "section:silence"
+   ],
+   "gain_db": -8,
+   "stem": "design",
+   "group": "drop_riser",
+   "only_with": "trailer_edit"
+  },
+  {
+   "asset": "riser_drop_2bar",
+   "at": [
+    "section:silence"
+   ],
+   "gain_db": 0,
+   "stem": "design",
+   "group": "drop_riser_alt",
+   "only_with": "score_alt"
+  },
+  {
+   "asset": "gate:music",
+   "at": [
+    "section:silence"
+   ],
+   "until": [
+    "section:drop",
+    "section:silence.end"
+   ],
+   "group": "silence"
+  },
+  {
+   "asset": "beep_tuned_C5",
+   "at": [
+    "hit:bot_beep",
+    "hit:beep",
+    "section:silence+2b"
+   ],
+   "featured": true,
+   "stem": "design",
+   "group": "bot_beep_dry"
+  },
+  {
+   "asset": "impact_logo",
+   "at": [
+    "hit:drop",
+    "section:drop"
+   ],
+   "featured": true,
+   "stem": "design",
+   "group": "drop_impact"
+  },
+  {
+   "asset": "snare_roll_2beat",
+   "at": [
+    "hit:payoff_slam",
+    "section:payoff"
+   ],
+   "gain_db": -12,
+   "stem": "design",
+   "_why": "Lights Out stays empty: only the last 2 beats, -6 dB lower"
+  },
+  {
+   "asset": "level_win_big",
+   "at": [
+    "hit:payoff_slam",
+    "hit:payoff_stars",
+    "section:payoff"
+   ],
+   "featured": true,
+   "stem": "design",
+   "group": "level_win",
+   "suppress_game": "level_win",
+   "only_with": "score_alt"
+  },
+  {
+   "asset": "level_win_fpow",
+   "at": [
+    "hit:payoff_slam",
+    "hit:payoff_stars",
+    "section:payoff"
+   ],
+   "featured": true,
+   "stem": "design",
+   "group": "level_win",
+   "only_with": "trailer_edit",
+   "_why": "the song's payoff is F minor: power chords, no 3rd"
+  },
+  {
+   "asset": "room_tone_30s",
+   "at": [
+    "hit:closing_silence"
+   ],
+   "until": [
+    "hit:snap_circuit_reveal",
+    "hit:snap"
+   ],
+   "gain_db": 0,
+   "stem": "design",
+   "music_zero_start": true
+  },
+  {
+   "asset": "sig_c_snap",
+   "at": [
+    "hit:snap_circuit_reveal",
+    "hit:snap",
+    "section:snap_circuit_reveal",
+    "section:closing+9b"
+   ],
+   "featured": true,
+   "stem": "design",
+   "group": "snap"
+  },
+  {
+   "asset": "sub_tail",
+   "at": [
+    "hit:snap_circuit_reveal",
+    "section:snap_circuit_reveal",
+    "section:end_card"
+   ],
+   "gain_db": -4,
+   "stem": "design"
+  },
+  {
+   "asset": "trailer/qubble_snore",
+   "at": [
+    "hit:last_snore",
+    "section:end_card+8b"
+   ],
+   "gain_db": -6,
+   "stem": "sfx"
+  }
+ ]
+}

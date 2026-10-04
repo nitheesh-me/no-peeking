@@ -1,0 +1,51 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- Fallback caption template (Editor). The Motion Designer's template replaces it when present:
+     any template must define window.renderCaption({text, style, position, mode, W, H}) and resolve when laid out.
+     mode: "full" (what is composited), "mask" (glyph fill only, white on transparent: for the contrast gate),
+     "strip" (the empty paper strip, composited under every strip caption). -->
+<style>
+@font-face { font-family: Quicksand; src: url(../../../public/fonts/Quicksand.woff2) format('woff2'); font-weight: 300 700; }
+@font-face { font-family: Quantum; src: url(../../../public/fonts/Quantum.woff2) format('woff2'); }
+:root { --paper: #f2f0eb; --ink: #0e0e0e; }
+html, body { margin: 0; background: transparent; overflow: hidden; }
+#stage { position: absolute; inset: 0; }
+.strip { position: absolute; left: 0; right: 0; bottom: 0; height: 12%; background: var(--paper);
+  box-shadow: 0 -1px 0 rgba(14,14,14,.85), 0 -10px 24px rgba(0,0,0,.18); }
+.strip::before { content: ''; position: absolute; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent 0 23px, rgba(108,99,255,.06) 23px 24px); }
+.line { position: absolute; left: 6%; right: 6%; text-align: center; font-family: Quicksand; font-weight: 700;
+  letter-spacing: .005em; line-height: 1.12; }
+.pos-strip { bottom: 0; height: 12%; display: flex; align-items: center; justify-content: center; color: var(--ink); }
+.pos-top_third { top: 15%; }
+.pos-center, .pos-card { top: 50%; transform: translateY(-50%); }
+.st-night { color: var(--paper); -webkit-text-stroke: 0; paint-order: stroke fill;
+  text-shadow: 0 0 2px var(--ink), 0 0 2px var(--ink), 0 0 2px var(--ink), 0 0 20px rgba(0,0,0,.85), 0 0 40px rgba(0,0,0,.6); }
+.st-day span { color: var(--ink); background: var(--paper); padding: .12em .5em .18em; border-radius: .18em;
+  box-shadow: 0 2px 0 var(--ink), 0 6px 18px rgba(0,0,0,.25); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.mask .line, .mask .line span { color: #fff !important; text-shadow: none !important; background: none !important; box-shadow: none !important; }
+</style></head>
+<body><div id="stage"></div>
+<script>
+window.renderCaption = async ({ text, style, position, mode, W, H }) => {
+  const st = document.getElementById('stage');
+  st.className = mode === 'mask' ? 'mask' : '';
+  st.innerHTML = '';
+  if (mode === 'strip') { st.innerHTML = '<div class="strip"></div>'; await document.fonts.ready; return {}; }
+  const el = document.createElement('div');
+  const strip = position === 'strip';
+  el.className = `line pos-${position} st-${strip ? 'strip' : style}`;
+  // sizes from the Critic (§4.3): lines >= 52 px at 1080; strip captions sit in a 130 px band
+  const px = (strip ? 46 : 66) * H / 1080;
+  el.style.fontSize = px + 'px';
+  const span = document.createElement('span');
+  span.textContent = text;
+  el.appendChild(span);
+  st.appendChild(el);
+  await document.fonts.ready;
+  // shrink to fit one/two lines in the strip
+  if (strip) { let s = px; while (span.getBoundingClientRect().height > px * 2.4 && s > 30) { s -= 2; el.style.fontSize = s + 'px'; } }
+  const r = span.getBoundingClientRect();
+  return { rect: [r.left, r.top, r.width, r.height].map(Math.round), fontPx: parseFloat(el.style.fontSize) };
+};
+</script></body></html>

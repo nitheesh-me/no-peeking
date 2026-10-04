@@ -897,6 +897,13 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     np.scene = scene; np.pb = () => pb; np.editor = () => editor;
     np.screenPos = (id: QubitId) => { const p = scene.posOf(id); const r = canvas.getBoundingClientRect(); return p ? { x: r.left + p.x, y: r.top + p.y } : null; };
     np.runNight = (input?: InputState, errors?: ErrorEvent[], paused?: boolean) => startRun(input, errors, paused);
+    np.testAll = () => testAll();
+    np.setXray = (on: boolean) => setXray(on);
+    np.openInspector = (id: QubitId) => openInspector(id);
+    np.closeInspector = () => closeInspector();
+    np.replay = (pick?: (n: NightX) => boolean) => { const n = (pick && report?.nights.find(pick)) ?? report?.nights.find((x) => x.errors.length) ?? report?.nights[0]; if (n) replay(n); return !!n; };
+    np.closeDialogue = () => dialogue.close(false);
+    np.report = () => report;
   }
   syncNerd(); syncControls();
   audio.setScene(lab ? 'lab' : level.lightsOut ? 'lightsout' : 'build');

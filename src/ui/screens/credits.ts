@@ -4,6 +4,7 @@
  * caretaker finally goes to bed. Chunky cards roll over the stage, each section synced to its stage moment.
  * Post-credits: lights out, one Qubble peeks at the camera… "...".
  */
+import { cinema } from '../../engine/cinema';
 import '../../styles/credits.css';
 import { art, audio, CHAPTERS } from '../../engine/deps';
 import { onFrame } from '../../engine/loop';
@@ -154,7 +155,7 @@ export function creditsScreen(root: HTMLElement, nav: Nav): () => void {
     const aw = W - rollW - 24, ah = narrow ? H * 0.52 : H - 90;
     // room bounds in tile-width units (TW=1): x ∈ [-(ROWS+0.84)/2, (COLS+0.84)/2], y ∈ [-0.21-1.4, (COLS+ROWS+0.84)/4 + 0.25]
     const bw = (COLS + ROWS + 2.08) / 2 + 0.25, top = 0.21 + 1.42, bot = (COLS + ROWS + 0.84) / 4 + 0.3;
-    const TW = Math.min(aw / bw, ah / (top + bot), 150);
+    const TW = Math.min(aw / bw, ah / (top + bot), cinema.on ? 400 : 150);
     const ox = 12 + aw / 2 + ((ROWS + 1.04) - (COLS + 1.04)) / 4 * TW;
     const oy = (narrow ? 20 : 40) + (ah - (top + bot) * TW) / 2 + top * TW;
     return { TW, ox, oy, s: TW / 96 };
