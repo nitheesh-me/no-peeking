@@ -82,7 +82,7 @@ export function createNerdNotebook(host: HTMLElement, o: NerdNotebookOpts): Nerd
   const grip = h('div', { class: 'nb-grip', role: 'separator', 'aria-orientation': 'vertical', 'aria-label': 'Resize notebook', tabindex: '0', title: 'Drag to resize' });
   const pin = h('button', { class: 'nb-pin', title: 'Pin wide / narrow', 'aria-pressed': 'false' }, '📌');
   root.append(book, grip, spine);
-  const maxW = () => Math.max(300, host.clientWidth * (cinema.on && cinema.nb ? 1 : 0.6));
+  const maxW = () => Math.max(300, cinema.on && cinema.nb ? window.innerWidth : host.clientWidth * 0.6);
   let width = Math.max(300, Number(lsGet(LS.w)) || 360);
   const applyW = (w: number, save = true) => { width = Math.max(300, Math.min(maxW(), w)); book.style.width = width + 'px'; pin.setAttribute('aria-pressed', String(width > 420)); if (save) lsSet(LS.w, String(Math.round(width))); };
   applyW(width, false);
@@ -361,9 +361,16 @@ export function createNerdNotebook(host: HTMLElement, o: NerdNotebookOpts): Nerd
     const scroller = h('div', { class: 'nb-cscroll', html: svg });
     requestAnimationFrame(() => { scroller.scrollLeft = prevScroll; });
     requestAnimationFrame(() => { if (cur >= 0 && scroller.scrollWidth > scroller.clientWidth) { const cx = L + cur * CW + CW / 2; if (cx < scroller.scrollLeft + 20 || cx > scroller.scrollLeft + scroller.clientWidth - 20) scroller.scrollLeft = Math.max(0, cx - scroller.clientWidth * 0.6); } });
+    const labBox = h('div', { html: labSvg });
+    // ?cinema=1&nb=1: the circuit SVG is stretched to the drawer width; scale the wire-label column to match
+    if (cinema.on && cinema.nb) {
+      // iterate: widening the label column narrows (and so shortens) the stretched circuit; converges in a few frames
+      const fit = (k: number) => requestAnimationFrame(() => { const sv = scroller.querySelector('svg'), lab = labBox.querySelector('svg'); if (sv && lab) { lab.style.height = sv.getBoundingClientRect().height + 'px'; lab.style.width = 'auto'; } if (k > 0) fit(k - 1); });
+      fit(4);
+    }
     const legend = h('div', { class: 'nb-clegend' }, ...[['BOOP', 'X'], ['SHUSH', 'Z'], ['SPIN', 'H'], ['HIGHFIVE', 'CNOT'], ['LISTEN', 'meter'], ['PEEK', 'meter'], ['RESET', '|0⟩'], ['IF BEEP', '═ control']].map(([a, b]) => h('span', null, h('b', null, a), ' = ', b)),
       ...(u.xray ? [h('span', { class: 'err' }, h('b', null, 'red'), ' = gremlin (X-ray)')] : []));
-    return h('div', null, h('p', { class: 'nb-big' }, 'Your Bot Code is a quantum circuit.'), h('div', { class: 'nb-cwrap' }, h('div', { html: labSvg }), scroller), legend);
+    return h('div', null, h('p', { class: 'nb-big' }, 'Your Bot Code is a quantum circuit.'), h('div', { class: 'nb-cwrap' }, labBox, scroller), legend);
   }
   const condLines = (x: number, yg: number, cond: QubitId[], y: (q: QubitId) => number) => cond.map((q) => {
     const yb = y(q);

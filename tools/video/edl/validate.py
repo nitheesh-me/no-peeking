@@ -14,11 +14,16 @@ import edl as E  # noqa: E402
 
 TARGET_S = {'trailer': (60, 80), 'mechanic': (140, 160), 'showcase': (225, 255)}
 READ_BASE_S, READ_PER_CHAR_S = 1.6, 0.040
-CAPTION_POS = {'trailer': {'top_third', 'center', 'card'}, 'mechanic': {'strip'}, 'showcase': {'strip'}}
-TRANS_FRAMES = {'shatter': (10, 14), 'glitch': (4, 8), 'blanket-wipe': (16, 20)}
+CAPTION_POS = {'trailer': {'top_third', 'center', 'card', 'baked'}, 'mechanic': {'strip', 'baked'}, 'showcase': {'strip', 'baked'}}
+TRANS_FRAMES = {'shatter': (10, 14), 'glitch': (4, 8), 'blanket-wipe': (16, 20)}  # baked-in Motion transitions are clip content
 
 
-def reading_frames(text, fps=60):
+def reading_frames(text, fps=60, video=None):
+    """Strip captions (mechanic/showcase): 1.6 s + 40 ms/char (bible). Trailer cards: the Critic's
+    max(1.2 s, 0.3 s/word + 0.4 s) (docs/VIDEO_CRITIQUE.md §7.5, which the music/motion timings were built on).
+    Both counted from full legibility."""
+    if video == 'trailer':
+        return int(round(max(1.2, 0.3 * len(text.split()) + 0.4) * fps))
     return int(round((READ_BASE_S + READ_PER_CHAR_S * len(text)) * fps))
 
 
@@ -104,20 +109,34 @@ def validate(e, strict=False, check_sources=True):
             elif check_sources:
                 w, h, n, sfps = E.probe(src)
                 if c['out'] > n:
-                    err.append(f'{cid}: out {c["out"]} beyond source length {n} ({src})')
+                    (warn if 'capture_placeholder' in src else err).append(
+                        f'{cid}: out {c["out"]} beyond source length {n} ({src})' + (' [stale placeholder]' if 'capture_placeholder' in src else ''))
                 if abs(sfps - fps) > 0.01:
                     err.append(f'{cid}: source fps {sfps} != {fps}')
                 for out in e['outputs']:
                     cap = out.get('zoom_cap', e.get('zoom_cap', 1.8))
                     aw, ah = E.game_area(e, out['size'])[2:]
+                    master = out is not e['outputs'][0]
+                    waived = c.get('punch_native') and master
                     for k in c['camera']:
                         z = k.get('z', 1.0)
                         x0, y0, x1, y1 = E.view_box(w, h, aw, ah, z, k.get('cx', .5), k.get('cy', .5))
                         eff = (x1 - x0) / aw
                         if eff < 0.999:
-                            err.append(f'{cid}: UPSCALE at f{k["f"]} z={z} for {out["name"]}: {x1-x0:.0f}px source -> {aw}px ({eff:.2f}x)')
-                    if E.max_zoom(c) > cap + 1e-6:
+                            (warn if waived else err).append(f'{cid}: UPSCALE at f{k["f"]} z={z} for {out["name"]}: {x1-x0:.0f}px source -> {aw}px ({eff:.2f}x)'
+                                                             + (' [punch_native waiver: master only]' if waived else ''))
+                    for win in c.get('windows') or []:
+                        box, (dx, dy, dw, dh) = E.window_boxes(win, w, h, out['size'][0])
+                        eff = (box[2] - box[0]) / dw
+                        if eff < 0.999:  # same master-only waiver as the punch-ins: the 1080p delivery must stay native
+                            (warn if waived else err).append(f'{cid}: UPSCALE in split window dst {win["dst"]} for {out["name"]}: {box[2]-box[0]:.0f}px source -> {dw}px ({eff:.2f}x)'
+                                                             + (' [punch_native waiver: master only]' if waived else ''))
+                    if c.get('windows'):
+                        continue
+                    if E.max_zoom(c) > cap + 1e-6 and not c.get('punch_native'):
                         err.append(f'{cid}: push-in {E.max_zoom(c)}x exceeds the {cap}x cap for {out["name"]}')
+                    elif E.max_zoom(c) > cap + 1e-6:
+                        warn.append(f'{cid}: punch_native {E.max_zoom(c)}x over the {cap}x cap for {out["name"]} (Critic fix 4; 1080p stays native)')
                 if 'placeholder' in src:
                     warn.append(f'{cid}: PLACEHOLDER source {src}')
         if any(k.get('z', 1) < 1 for k in c['camera']):
@@ -128,6 +147,27 @@ def validate(e, strict=False, check_sources=True):
             if not (c['start'] <= cue.get('frame', -1) < c['end'] + 30):
                 warn.append(f'{cid}: cue {cue.get("name")} at {cue.get("frame")} outside the clip')
 
+    if e.get('program_visible'):
+        # REVISED 2: whenever the room acts, the program is on screen: the capture's .editor box must stay inside the view
+        for c in clips:
+            lj = c.get('layout_json')
+            if c['src'].startswith('@') or not lj or not os.path.exists(E.rel(lj)) or not os.path.exists(E.rel(c['src'])):
+                continue
+            segs = [g for g in E.load_json(lj).get('segments', []) if g['sel'] == '.editor']
+            if not segs:
+                continue
+            sw, sh, _, _ = E.probe(c['src'])
+            k = sw / 1920
+            aw, ah = E.game_area(e)[2:]
+            x, y, w, hh = [v * k for v in segs[0]['rects'][0]]
+            worst = 1.0
+            for f in range(0, c['dur'], 15):
+                z, cx, cy = E.camera_at(c['camera'], f)
+                x0, y0, x1, y1 = E.view_box(sw, sh, aw, ah, z, cx, cy)
+                ix = max(0, min(x + w, x1) - max(x, x0)) * max(0, min(y + hh, y1) - max(y, y0))
+                worst = min(worst, ix / (w * hh))
+            if worst < 0.98:
+                err.append(f'{c["id"]}: the editor is only {worst:.0%} in view ({c["shot"]}); REVISED 2 needs the program visible')
     for t, n in ONCE_LIMITS(vid).items():
         if once.get(t, 0) > n:
             err.append(f'{t} used {once[t]}x; allowed {n}x (REVISED #3)')
@@ -184,8 +224,15 @@ def validate(e, strict=False, check_sources=True):
 
     # captions
     caps = sorted(e['captions'], key=lambda c: c['start'])
-    if vid == 'trailer' and len(caps) > 7:
-        err.append(f'{len(caps)} text events in the trailer (max 7)')
+    labels = [c for c in caps if c.get('label')]  # HUD-style tags (e.g. "X-ray · simulator view"): exempt below
+    caps = [c for c in caps if not c.get('label')]
+    # Critic §4.3 set 7; the Critic's song-cut review (fix 3) added 3 rule-stating hook captions -> 10
+    tmax = 7 + sum(1 for c in caps if c.get('hook'))
+    if vid == 'trailer' and len(caps) > tmax:
+        err.append(f'{len(caps)} text events in the trailer (max {tmax})')
+    for lb in labels:
+        if lb['end'] <= lb['start']:
+            err.append(f'{lb.get("id")}: label end <= start')
     for k, cap in enumerate(caps):
         cid = cap.get('id', f'cap{k}')
         if cap['end'] <= cap['start']:
@@ -193,10 +240,12 @@ def validate(e, strict=False, check_sources=True):
         lf = cap.get('legible_from', cap['start'])
         if not (cap['start'] <= lf < cap['end']):
             err.append(f'{cid}: legible_from outside the caption')
-        need = reading_frames(cap['text'], fps)
+        need = reading_frames(cap['text'], fps, vid)
         have = cap['end'] - lf
+        if vid == 'trailer' and have < reading_frames(cap['text'], fps):
+            warn.append(f'{cid}: "{cap["text"][:30]}" readable {have/fps:.2f}s: meets the Critic trailer rule, not the bible 1.6 s + 40 ms/char ({reading_frames(cap["text"], fps)/fps:.2f}s)')
         if have < need:
-            err.append(f'{cid}: "{cap["text"][:40]}" readable for {have/fps:.2f}s, needs {need/fps:.2f}s (1.6s + 40ms/char from full legibility)')
+            err.append(f'{cid}: "{cap["text"][:40]}" readable for {have/fps:.2f}s, needs {need/fps:.2f}s (from full legibility)')
         if cap.get('position') not in CAPTION_POS[vid]:
             err.append(f'{cid}: position {cap.get("position")} not allowed in the {vid}')
         if vid == 'trailer' and len(cap['text'].split()) > 7 and k != len(caps) - 1 and not cap.get('closing_line'):
@@ -206,8 +255,9 @@ def validate(e, strict=False, check_sources=True):
         if cap['end'] > e['duration']:
             err.append(f'{cid}: runs past the end')
     for o in e['overlays']:
-        if not os.path.exists(E.rel(o['src'])) and not o['src'].startswith('@'):
-            (err if strict else warn).append(f'overlay {o.get("id")}: source missing: {o["src"]}')
+        for k in ('src', 'fill', 'matte'):
+            if o.get(k) and not o[k].startswith('@') and not os.path.exists(E.rel(o[k])):
+                (err if strict else warn).append(f'overlay {o.get("id")}: {k} missing: {o[k]}')
         if o['start'] + o['dur'] > e['duration']:
             err.append(f'overlay {o.get("id")}: runs past the end')
     for m in e['marks']:

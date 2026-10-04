@@ -1,0 +1,53 @@
+{
+ "_doc": "ALTERNATIVE plan: as trailer_score.json, but the coding groove briefly REPLACES the bed for the montage's last two bars (the 32-frame beat cuts, f2642-2834, mostly programming), then the bed returns for Lights Out. Use with --score tools/video/audio/cues/trailer_score_replace.json.",
+ "sources": {
+  "groove_light": "videos/audio2/groove/groove_light.wav",
+  "groove_perc": "videos/audio2/groove/groove_perc.wav",
+  "groove_type": "videos/audio2/groove/groove_type.wav",
+  "groove_full": "videos/audio2/groove/groove_full.wav",
+  "song": "videos/music/trailer_edit.wav",
+  "public": "videos/audio2/score_alt/score_alt.wav"
+ },
+ "segments": [
+  {
+   "source": "groove_perc",
+   "from": "section:proof",
+   "to": "section:montage",
+   "mode": "layer",
+   "gain_db": -12,
+   "xfade_frames": 6,
+   "_why": "a quiet programming pulse under the split screen; the proof bed stays submerged (the bed dips 0.8 dB under it, so the proof section keeps its energy and the loudness-curve gate is unaffected)",
+   "bed_db": -0.8
+  },
+  {
+   "source": "groove_type",
+   "from": "section:proof",
+   "to": "section:montage",
+   "mode": "layer",
+   "gain_db": -10,
+   "xfade_frames": 6
+  },
+  {
+   "source": "groove_light",
+   "clips": "programming",
+   "section": "montage",
+   "mode": "layer",
+   "gain_db": -4,
+   "xfade_frames": 6,
+   "_why": "under each programming cut of the montage",
+   "within": [
+    "section:montage",
+    "section:montage+15b"
+   ]
+  },
+  {
+   "source": "groove_full",
+   "from": "section:montage+15b",
+   "to": "section:lights_out",
+   "mode": "replace",
+   "gain_db": -1.5,
+   "xfade_frames": 6,
+   "_why": "2 bars where the program is the music: the game's own groove takes over, then the bed returns on the Lights Out downbeat"
+  }
+ ]
+}

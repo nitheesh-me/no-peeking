@@ -59,39 +59,73 @@ Validator rules: contiguous timeline (overlap only for declared transitions); tr
 | cuts | scdet on the proxy vs EDL edits ±1 (flashes, blacks, in-engine dissolves and relights are exempt; missed cuts are a warning); on_beat vs the grid ±1, on the EDL *and* on the rendered cut; hard-on-beat ratio; shots under 12 frames |
 | av_sync | mixreport cue frames vs the EDL-mapped capture-event frames ±1; design cues present ±1 |
 | every_event | every visible capture event on screen has a sound (speed-up thinning is listed separately) |
-| captions | caption rect vs layout.json UI boxes mapped through camera and placement (no overlap); reading time; **WCAG contrast on the rendered frames**: the template's glyph mask vs the worst 10% of a 2–10 px ring around the glyphs, ≥ 4.5:1 at three moments per caption |
+| captions | caption rect (for Motion cards: the matte's real bbox at full legibility, with its `offset`) vs layout.json UI boxes mapped through the clip's actual transform: camera + placement, or for split-screen clips each window's cover-crop (`E.window_boxes`, the renderer's own function); `.stage-canvas-wrap` is the picture, not UI. No overlap; reading time; **WCAG contrast on the rendered frames**: the template's glyph mask vs the worst 10% of a 2–10 px ring around the glyphs, ≥ 4.5:1 at three moments per caption |
 | picture | blackdetect / freezedetect on the proxy vs the intentional marks and the capture-declared holds; first 3 s not black |
 | sharpness | median Laplacian variance vs the old cut (`videos/mechanic.mp4`) |
 | banding | night shots: the fraction of pixels on perfectly flat 5×5 plateaus inside smooth gradient blocks (< 0.25), plus unique luma levels per block |
 | clean | NCC template match (STAGE watermark, judge-mode badge, debug bar; `tools/video/qa/templates/`) every second; trailer footage must come from `?cinema=1` (capture meta) |
-| loudness | ebur128 −14 ±0.5 LUFS, TP ≤ −1 dBTP; featured cues ≥ 6 LU over the music (mixreport) |
-| proof_sfx | Director: proof-section SFX short-term peak about −14 LUFS (−16..−12) on the sfx stem |
+| loudness | ebur128 on the delivered file: −14 ±0.5 LUFS integrated, TP ≤ −1.5 dBTP for the music-first trailer mix (−1.0 otherwise). Featured cues: **each inside its own window** from the mixreport (`window_lu` vs achieved `margin_lu`, ±0.5 LU measurement tolerance). Cues without a numeric window (the QUIET answer, the BEEP in true silence) are judged by the mixer's rule and listed as documented exceptions. The ducking presets (mechanic/showcase) carry no windows and keep ≥ 6 LU |
+| proof_sfx | every featured cue in the proof section (f1586–2162) is inside its window (proof cues +3..+5 LU over the music, card accents −6..+4) **and audible**: ≥ +3 LU over the music at its moment, or its window's floor when lower; QUIET under its BEEP. The mix's short-term peak is reported for information |
 | reencode | 8 Mbps x264 (YouTube-like): sharpness retained ≥ 85%, banding still passes |
 | human | fresh-eyes "what do you do?", muted, audio-only and phone-speaker passes: PENDING, with the Critic as proxy |
 
-## The cuts
-**Trailer** (cue sheet v2, 112.5 BPM 3/4, beat k = frame 50 + 32k, 4240 frames = 70.67 s). Section edges are the cue sheet's exact frames, and every interior cut is on the grid (or a baked Motion effect whose hit is on the grid).
+## The cuts (real assets, cue sheet v2)
+**Trailer** (`tools/video/edl/trailer.edl.json`, 4240 frames = 70.67 s; 112.5 BPM 3/4, beat k = frame 50 + 32k). Every frame comes from the cue sheet (sections, named_hits, cut_rules), the Motion Designer's markers, or the capture marks. Two deliveries share one picture: **song** (`trailer.mp4`, `trailer_master_1440p.mp4`; personal cut) and **public** (`*_public.mp4`, the original Twinkle score), made with `alt_audio.py`.
 
-| section | frames | picture |
+| frames | picture | sync |
 |---|---|---|
-| cold_open | 0–434 | moonlit blanket (push 1.0→1.15) under the Motion alpha card "Every Qubble dreams two dreams at once." · the **Motion `title_peek`** from k9 (f338): cursor to the P, the collapse and its **spiral shatter on f434** (its one use, baked) |
-| peek | 434–722 | the shards run out to black (continuous) · true black under the reverb tail · in-place **relight** day→night (k15) |
-| build | 722–1298 | Motion **`card_gremlins`** (Flipper zaps a Sunny Qubble: a real bit flip) · **`card_ghosts`** (Phasey mirrors a swirl: a real phase flip) · the dark room under the alpha card "You can't look." (each 6 beats; a silhouette fills in while the cards are 96 frames) |
-| silence | 1298–1394 | 2 beats of true black · the antenna on the dry BEEP (f1362) · the Motion **`logo_reveal`** starts at f1388, so its baked **glitch tear** (its one use) hits the impact at clip f6 = **f1394** |
-| drop | 1394–1586 | the logo settles |
-| proof | 1586–2162 | one room, 1/2/1/2 bars: flip f1586 · bots ask f1682 · BOOP f1874 · X-ray (in-engine) f1970 |
-| montage | 2162–2834 | 12 shots exactly on `cut_rules.montage_cut_frames` (96 → 64 hemiola → 32): checklist, test strip, dream map / highfive, listen, Bloch inspector / Codex sphere, Codex inserts, clone glitch, Shor-9 |
-| lights_out | 2834–3026 | black; the syndrome chord twice |
-| payoff | 3026–3410 | "Morning check: perfect!" on the slam · curtain call (push-out) |
-| closing_musicbox + silence | 3410–3698 | still morning under the Motion alpha card "It's just a game…", **held continuously until the snap** |
-| snap / circuit | 3698–3986 | **snap** to `circuit_morph` · "…where you accidentally learned quantum error correction." |
-| end_card | 3986–4240 | `end_card` |
+| 0–338 | `tr_cold_blanket`, push 1.0→1.15; `card_dreams_alpha` over it (f30–318, legible f71) | capture hold |
+| 338–454 | `title_peek` (Motion): cursor to the P, collapse, **spiral shatter on f434** (its one use) then black | impact marker 96 → f434 |
+| 454–530 | black: the reverb tail (a continuous join, not an edit) | — |
+| 530–722 | `tr_title_peek`: letters collapse every 16 f, first on f546 | mark hit-N |
+| 722–818 | `tr_relight` at 2× (in-engine day→night) | mark relight |
+| 818–1010 / 1010–1202 | `card_gremlins_192` / `card_ghosts_192` (Motion design, re-rendered at 192 f for reading time): a real bit flip / phase flip | prop_hit → SFX cue |
+| 1202–1298 | `tr_dark_room`; "You can't look." (`card_cantlook_alpha_160`) hangs on into the silence until the BEEP | — |
+| 1298–1362 | true black (silence) | cue sheet |
+| 1362–1388 | `tr_bot_antenna`: the antenna lights on the BEEP | mark beep → f1362 |
+| 1388–1586 | `logo_reveal`: its baked glitch tear (the one glitch) → **impact f1394** | impact marker 6 |
+| 1586 / 1682 / 1874 / 1970 | `tr_proof` steps 1/2/1/2 bars: flip, bots ask (BEEP / quiet), BOOP q2 blind, in-engine X-ray | marks flip, beep-a, boop, xray |
+| 2162…2834 | montage on the cue sheet's 12 cut frames (96/64/32): checklist, test strip, dream map / highfive, listen, Bloch / Codex insert (4K, camera crop removes the chrome), Flipper, Schrödi, Qubble, clone glitch, Shor-9 | marks |
+| 2834–3026 | Lights Out, black: the single chord capture is used twice (f2850, f2946) | mark chord-1 |
+| 3026–3410 | `tr_morning_check` (push 1.2→1.4 into the small win card; 1.4 is the 1440p cap) → `tr_curtain_call` push-out | mark win |
+| 3410–3698 | `card_justagame_288`: held through the silence until the snap | — |
+| 3698–3986 | `mo_circuit_morph`: snap, cards → gates, the closing line (legible f3824) | snap marker 0 |
+| 3986–4240 | `mo_end_card` | — |
 
-6 text events (cap 7): the REVISED list. Dropped against the Critic's §2.5: "Look, and one dream is gone." (the Motion title_peek leaves 76 frames of black, too short to read it) and the proof labels. Both are open questions for the Critic.
+Six text events (≤ 7). Reading time in the trailer uses the Critic's rule, max(1.2 s, 0.3 s/word + 0.4 s) from full legibility (§7.5), which the music and Motion timings were built on. Strip captions use the bible's 1.6 s + 40 ms/char. The validator also reports where a trailer card meets only the Critic's rule. Today that is the closing line: 2.7 s readable vs 3.88 s under the bible rule, because the end card is pinned at f3986.
 
-**Mechanic** (157 s; Critic §5 table): cold open → rule (1-1 PEEK, X-ray) → threat → can't copy (encoding) → ask, don't look (2-1 at 10 s + the 4-row syndrome graphic) → repair (2-3 night + Test all) → proof (X-ray replay + Bloch) → twist (3-1 SPIN sandwich) → under the hood (circuit morph + Qiskit stamp) → close (the staged closing line) → end card. Strip captions are "= real term" glosses only; Schrödi's lines are the narration.
+**Mechanic** (`mechanic.edl.json`, 149.2 s, Critic §5 re-timed to the capture marks): cold open (6 s) → the rule, 1-1 PEEK → collapse, then the X-ray replay of the lost half ("Looking changes it." `= measurement`) → the threat → can't copy (`= encoding`) → 2-1 in 10 s (`= parity check`) + `mo_syndrome_table` 15 s (`= syndrome`) → 2-3 night + Test all (`= error correction`) → the X-ray replay → 3-1 twist (`= phase-flip code`) → `card_justagame` → the circuit morph (closing line) → the Qiskit stamp → end card. Captions are the Motion Designer's caption scene (line + "= real term" chips), one per slot; the paper strip is that scene's empty frame.
 
-**Showcase** (226 s; Critic §6): 4×4 all-levels grid → title peek → dream map → chapters 1–4 behind blanket wipes, with hero levels at 1→4× speed ramps (1-1, 2-3, 3-1, 3-3 Wobbles, 4-1 Shor-9), the 11 others as 0.6 s 6× strobes, wow beats (clone glitch, map flip, Lights Out by ear) → Gremlin Lab + threshold → Codex + Card Guide → Notebook → QoL 2×2 quick-fire → save-data joke → curtain call → closing → end card.
+**Showcase** (`showcase.edl.json`, 226.3 s): `sc_grid16` (precomposed 4×4 of every level's Test-all → win; 1-3 and 4-2 tiles use their meta-beat captures) → title peek → dream map → chapters behind Motion blanket wipes: five hero levels with 1→v→1 speed ramps (v fitted to each capture), the 11 others as 36-frame strobes on their win cards, plus wow beats (clone glitch, map flip, Lights Out by ear) → Gremlin Lab → threshold → Codex tour + Card Guide → Notebook → QoL → the save-data joke → curtain call → `card_justagame` → circuit morph → end card. Captures are 1080p normal layout, so push-ins are at most 1.136× (the upscale guard).
+
+Editor-rendered assets (`videos/final/work/`): `motion_ext/card_*` (the Motion Designer's jobs with only `frames` changed), `motion_ext/captions_*` (strip caption tracks), `precomp/sc_grid16.mkv`.
 
 ## Shot sources
 `plans.py` resolves each shot id in order: `tools/video/edl/shot_sources.json` (aliases to real files) → `videos/capture/<id>.*` → `videos/motion/<id>.*` → `videos/final/work/precomp/<id>.*` → placeholder. `python3 tools/video/edl/plans.py --registry` prints every shot with what it must show. That list is the request list for the Capture Engineer and the Motion Designer.
+
+## REVISED 2 (programming visible, Wobbles): EDL changes, validated, not yet rendered
+**Trailer** (cue sheet v2, unchanged section frames). New/changed shots:
+| frames | k | shot | what |
+|---|---|---|---|
+| 722–818 | 21 | tr_relight | night falls (in-engine relight, 1 bar) under the start of "Gremlins flip bits." |
+| 818–914 | 24 | tr_gremlin_flipper | the real Flipper strikes (+24 f); card_gremlins_alpha "Gremlins flip bits." (f738–914) |
+| 914–1106 | 27 | tr_gremlin_phasey | the real Phasey (strike on beat 2); card_ghosts_alpha "Ghosts flip phases." |
+| 1106–1298 | 33 | tr_gremlin_wobbles | Wobbles (strike f63 on beat 2; the take is 213 f, so the clip starts at its frame 0); card_wobbles_alpha "Wobbles flips… halfway." |
+| 1388–1490 | (drop 1394) | logo_reveal | shortened to 1.7 s after the impact |
+| 1490–1586 | 45 | pg_drag_closeup | hard cut to the editor; **card_program_alpha_long** (192 f) "You don't play it. You program it." f1490–1688 (legible f1508 → 3.0 s readable, meets 1.6 s + 40 ms/char) |
+| 1586–2162 | 48/51/57/60 | pg_split_23 ×4 | split screen + the split_frame overlay; steps aligned to the marks drop / highfive / boop / xray |
+| 2162–2834 | ladder | 6 programming + 6 world | pg_drag_closeup · checklist · pg_if_anatomy · highfive · pg_test_strip · dream map · pg_step_scrub · mn_codex_wobbles · pg_snippets_doodle · mn_notebook_circuit · pg_export_qiskit · Shor-9 |
+Removed: the dark room and "You can't look." (the text cap is 7, and the three gremlin cards fill the build).
+
+**Split screen (`clips[].windows`)**: each window is `{src: [x, y, w, h] normalised, dst: [x, y, w, h] in 1080p units, anchor_y}`. The source rect is cover-cropped to the destination aspect (centred; the Bot Code column is top-anchored) and resized in one lanczos pass into a paper canvas; then the Motion `split_frame` fill+matte is merged on top. Windows come from `split_frame.json` (left 28,28 1124×1024 = the room; right 1196,104 696×948 = the Bot Code column). Source rects come from the capture's own `layout.json`: room = left of `.editor`, between `.topbar` and `.timeline` (the timeline strip is kept out); Bot Code = `.editor`. The validator applies the upscale guard per window and per output. Checked on a real 4K full-UI frame (me_23_night): 1.41× / 1.34× downscale at the 1440p master, so a 4K capture is required (a 1080p capture would upscale the room window at 1440p).
+
+**Audio contract, `audio.score_segments`** (for mix.py): `[{name, src, start, end, src_in, layer: under_song|replace, gain_db, fade_in, fade_out, downbeats}]`. The trailer has one segment, `coding_groove` (`videos/audio2/score_segments/coding_groove.wav`), from f1586 to f2834 (k48→k87, both downbeats), under the song for the whole split-screen proof and the montage. One continuous span is used because per-cut toggling would put music changes on beats 2/3 of the ladder. The card UI sounds come from each capture's events.
+
+**Mechanic:** `program_visible: true`. Every capture clip uses a right/bottom-anchored push of ≤ 1.06× (the editor fills the right column at full height, so a centred push crops it). The validator fails any clip whose `.editor` box is < 98% in view. New beat: `me_23_drag` (the 2-3 decoder written card by card, 5 s, strip "Write the fix: IF a BEEP and b QUIET, BOOP #1. = decoder"). The video is now 151.5 s.
+
+**Validator additions:** the editor-in-view rule above; source overruns on placeholders are warnings (stale placeholders), but errors on real files.
+
+## Gate changes, 2026-10-05 (Director's ruling on the 23:54 QA)
+- **loudness / proof_sfx: retired the SFX-first thresholds.** The 23:54 failures ("42/43 featured cues under 6 LU", "proof min −21.8 LUFS-M < −16") tested rules the Director deliberately replaced in the Sound brief. The trailer is now a music-first mix (docs/VIDEO_SOUND.md): featured cues are held in per-type windows (+3…+7 LU, proof +3…+5, card accents −6…+4, and so on), and the absolute −16 LUFS-M floor was explicitly allowed to go. The gates now read each cue's own `window_lu` / `margin_lu` / `window_rule` from mixreport.json (there is no separate `level_rep` block; the per-cue rows carry the windows). Result on the current mix: 43/43 featured cues in window (one documented exception, the BEEP in true silence, judged absolute); proof cues +4.0…+4.2 LU.
+- **captions: fixed the measurement, not the captions.** The 22 "UI overlaps" were cap08/cap09 over the proof split screen: the gate mapped pg_split_23's full-UI layout boxes through a plain camera view, but those clips show only two cover-cropped windows, and `.stage-canvas-wrap` is the room picture itself. The gate now uses the renderer's exact window transform and the cards' real matte bbox and offset. Real overlap count: 0. The two contrast fails were cap06 (X-ray tag) and cap07 ("You don't play it. You program it."), on the 23:47 render. cap07's chunk was re-composited at 00:06 (render "fix3", only chunk [1200,1800) re-rendered). On the current render, every caption is ≥ 8.2:1 (cap06 8.2, cap07 ink-on-plate about 17:1).
+- **mix_analysis freshness: content-based.** An EDL saved after the mix (the cap07 caption edit) no longer fails the gate by mtime alone. The mix counts as current when its duration equals the EDL's and av_sync + every_event pass on the current EDL. A timing change still marks it stale. (00:16 fix: the first version of this check shadowed the mixreport dict with its path and could not evaluate; corrected, and the 00:2x QA run confirms `mix_matches_current_timeline: true`.)

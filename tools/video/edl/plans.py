@@ -46,9 +46,11 @@ shot('tr_peek_beam', 'Flashlight (PEEK) beam creeps across the floor to the blan
 shot('tr_title_peek', 'Title screen: the cursor sweeps the letter-Qubbles, each collapses (pitched peek on 8ths)', 'day', ph=6,
      ev=[(0.5 + i * 0.3125, 'sfx', 'peek_collapse') for i in range(8)])
 shot('tr_relight', 'Daycare wide, same framing: in-place relight day -> night, the moon rises', 'night', ph=6)
-shot('tr_gremlin_flipper', 'Flipper as a silhouette in the doorway (night)', 'night', ph=3, ev=[(0.4, 'sfx', 'gremlin_sneak')])
+shot('tr_gremlin_flipper', 'REAL Flipper (not a silhouette) strikes a blanket in the dark room; mark "strike" (cinema 4K)', 'night', ph=4,
+     ev=[(0.4, 'sfx', 'gremlin_sneak'), (1.0, 'mark', 'strike'), (1.0, 'sfx', 'gremlin_flip')])
 shot('tr_gremlin_wobbles', 'Wobbles silhouette (night)', 'night', ph=3, ev=[(0.4, 'sfx', 'wobble')])
-shot('tr_gremlin_phasey', 'Phasey silhouette, ghost shimmer (night)', 'night', ph=3, ev=[(0.4, 'sfx', 'ghost_phase')])
+shot('tr_gremlin_phasey', 'REAL Phasey drifts in and twists a dream (phase flip); mark "strike" (cinema 4K)', 'night', ph=5,
+     ev=[(1.0, 'mark', 'strike'), (1.0, 'sfx', 'ghost_phase')])
 shot('tr_door_empty', 'The empty doorway (night)', 'night', ph=3)
 shot('tr_dark_room', 'The dark room, blankets only, nothing moves but breathing (night)', 'night', ph=8)
 shot('tr_bot_antenna', 'Bot antenna flashes red, full frame (the BEEP)', 'night', ph=3, ev=[(0.3, 'botNote', 'beep')])
@@ -69,6 +71,31 @@ shot('mn_codex_schrodi', 'Codex hero insert: the Schrodi actor (isolated)', 'day
 shot('mn_codex_qubble', 'Codex hero insert: a Qubble collapses (isolated)', 'day', ph=2, ev=[(0.1, 'sfx', 'peek_collapse')])
 shot('mn_clone_glitch', 'The 1-3 clone glitch (photocopier), cinema', 'day', ph=2, ev=[(0.1, 'sfx', 'glitch')])
 shot('mn_shor9', 'The Shor-9 room (4-1), nine Qubbles, cinema wide', 'night', ph=2)
+# REVISED 2: the programming must be visible (requests to the Capture Engineer; marks are what the cut aligns on)
+shot('mn_codex_wobbles', 'Codex hero insert: Wobbles (isolated, chrome cropped); mark "act"', 'day', ph=2, ev=[(0.1, 'mark', 'act'), (0.1, 'sfx', 'wobble')])
+shot('mn_notebook_circuit', 'Lab Notebook circuit page full-frame (cinema 4K, no debug bar / STAGE)', 'day', ph=3)
+shot('pg_split_23', 'SPLIT capture, one 4K frame: room left ~60%, Bot Code column right ~40%; current card lit in sync. Marks: '
+     '"drop" (cursor drops BOOP into the column), "flip", "highfive", "listen-a" (BEEP), "listen-b" (quiet), "if-jump", "boop", "xray"',
+     'night', ph=14, ev=[(1.0, 'mark', 'drop'), (1.0, 'sfx', 'card_drop'), (2.2, 'sfx', 'gremlin_flip'), (2.2, 'mark', 'flip'),
+                         (3.4, 'mark', 'highfive'), (3.4, 'sfx', 'highfive'), (4.3, 'mark', 'listen-a'), (4.3, 'botNote', 'beep'),
+                         (5.0, 'mark', 'listen-b'), (5.0, 'botNote', 'quiet'), (6.6, 'mark', 'if-jump'), (7.6, 'mark', 'boop'),
+                         (7.6, 'sfx', 'boop'), (9.6, 'mark', 'xray'), (10.6, 'sfx', 'test_pass')])
+shot('pg_drag_closeup', 'Editor close-up: cards picked from the tray and dropped into the column, twice. Marks "pick", "drop", "pick-2", "drop-2"', 'day', ph=8,
+     ev=[(0.5, 'mark', 'pick'), (0.5, 'sfx', 'card_pick'), (1.3, 'mark', 'drop'), (1.3, 'sfx', 'card_drop'),
+         (4.0, 'mark', 'pick-2'), (4.0, 'sfx', 'card_pick'), (4.8, 'mark', 'drop-2'), (4.8, 'sfx', 'card_drop')])
+shot('pg_if_anatomy', 'Card Guide: the IF card anatomy opens; mark "open"', 'day', ph=4, ev=[(0.3, 'mark', 'open'), (0.3, 'sfx', 'ui_click')])
+shot('pg_test_strip', 'Test all: the strip fills with checks (editor visible); mark "test"', 'day', ph=5,
+     ev=[(0.3, 'mark', 'test'), (0.3, 'sfx', 'ui_click'), (1.0, 'sfx', 'test_pass')])
+shot('pg_step_scrub', 'Step mode / timeline scrub, the one-way measurement snap; mark "snap"', 'day', ph=4,
+     ev=[(1.0, 'mark', 'snap'), (1.0, 'sfx', 'snap_measure')])
+shot('pg_snippets_doodle', 'Snippet library insert + a doodle comment on the program; mark "snippet"', 'day', ph=4,
+     ev=[(0.5, 'mark', 'snippet'), (0.5, 'sfx', 'card_drop')])
+shot('pg_export_qiskit', 'Text view -> "Export to Qiskit" (the code is shown, legible); mark "export"', 'day', ph=4,
+     ev=[(0.5, 'mark', 'export'), (0.5, 'sfx', 'ui_click')])
+shot('me_23_drag', 'Mechanic: the 2-3 decoder written by drag-and-drop (IF a BEEP and b QUIET -> BOOP q1 ...), normal layout, '
+     'editor fully visible. Marks "pick", "drop" (last card), "done"', 'day', 'ui', ph=8,
+     ev=[(0.6, 'mark', 'pick'), (0.6, 'sfx', 'card_pick'), (1.6, 'sfx', 'card_drop'), (3.2, 'sfx', 'card_drop'), (4.6, 'mark', 'drop'),
+         (4.6, 'sfx', 'card_drop'), (5.4, 'mark', 'done')])
 shot('mn_lights_out', 'Lights Out: black screen, only the syndrome chord (played twice)', 'night', ph=4,
      ev=[(0.2, 'syndromeChord', 'chord'), (1.45, 'syndromeChord', 'chord')])
 shot('tr_test_all', 'Snap back to light: the Test strip runs all nights', 'day', ph=5, ev=[(0.5, 'sfx', 'test_pass')])
@@ -154,17 +181,19 @@ for _lv in ('0-1', '0-2', '1-1', '1-2', '1-3', '1-4', '2-1', '2-2', '2-3', '2-4'
 
 
 def resolve(sid):
-    for cand in REAL.get(sid, []) + [f'capture/{sid}', f'motion/{sid}', f'final/work/precomp/{sid}']:
+    """shot_sources.json (the registry: Capture Engineer + Director) first, then the legacy candidate names,
+    then videos/{capture,motion}/<id>, the Editor's motion_ext and precomp dirs, else the placeholder."""
+    al = _aliases().get(sid)
+    if al and os.path.exists(E.rel(al)):
+        return al, 'alias'
+    for cand in REAL.get(sid, []) + [f'capture/{sid}', f'motion/{sid}', f'final/work/motion_ext/{sid}', f'final/work/precomp/{sid}']:
         for ext in ('.mkv', '.mov', '.mp4'):
             p = f'videos/{cand}{ext}'
             if os.path.exists(E.rel(p)):
-                return p, cand.split('/')[0]
+                return p, cand.split('/')[0] if not cand.startswith('final') else cand.split('/')[2]
         fp = f'videos/{cand}_fill.mkv'
         if os.path.exists(E.rel(fp)):
             return fp, cand.split('/')[0]
-    al = _aliases().get(sid)  # manual stand-ins (e.g. capture samples) until the real shot lands
-    if al and os.path.exists(E.rel(al)):
-        return al, 'alias'
     return f'{PH_DIR}/{sid}.mkv', 'placeholder'
 
 
@@ -233,7 +262,7 @@ class Builder:
         self.n = 0
 
     def clip(self, sid, dur, align=None, in_s=0.0, speed=1, camera=None, transition='cut', tframes=None, flags=None,
-             section=None, cues=(), beat_frame=None, grade=None, exempt=None, note=None, continuous=False):
+             section=None, cues=(), beat_frame=None, grade=None, exempt=None, note=None, continuous=False, windows=None):
         """Append a clip of `dur` timeline frames. align=(event, offset_frames_in_clip)."""
         self.n += 1
         if sid.startswith('@'):
@@ -270,10 +299,6 @@ class Builder:
         c = dict(id=f'{self.e["video"][0].upper()}{self.n:03d}', shot=sid, src=src, src_kind=tag, start=start, dur=dur, **{'in': i0},
                  speed=sp, grade=grade or R.get(sid, {}).get('grade', 'none'), transition=tr,
                  flags={k: True for k in (flags or [])}, section=section, cues=list(cues))
-        if getattr(self, '_shot_cam', None):
-            c['camera'] = self._shot_cam
-            c['camera_from'] = 'capture camera.json (clamped to the push-in cap)'
-            self._shot_cam = None
         if camera == 'shot':
             camera = None
             cj = side(src, '.camera.json') if src[0] != '@' else None
@@ -296,6 +321,10 @@ class Builder:
                 if c_keys and c_keys[0]['f'] < 0:
                     c_keys = [dict(c_keys[0], f=0)]
                 self._shot_cam = c_keys
+        if getattr(self, '_shot_cam', None):
+            c['camera'] = self._shot_cam
+            c['camera_from'] = 'capture camera.json (clamped to the push-in cap)'
+            self._shot_cam = None
         if camera:
             c['camera'] = [dict(f=int(round(u * dur)), z=z, cx=cx, cy=cy, ease=es) for u, z, cx, cy, es in camera]
         if beat_frame is not None:
@@ -306,6 +335,9 @@ class Builder:
             c['note'] = note
         if continuous:
             c['continuous'] = True
+        if windows:
+            c['windows'] = windows
+            c['note'] = (c.get('note', '') + ' split screen: room + Bot Code windows (split_frame)').strip()
         if src[0] != '@':
             ev, lay = side(src, '.events.json'), side(src, '.layout.json')
             if ev:
@@ -374,286 +406,464 @@ def synthetic_cue_sheet(bpm=96):
 
 
 # ───────────────────────── trailer ─────────────────────────
-def build_trailer(cue):
-    """Cut to the song's cue sheet (REVISED #2). Section edges are the cue sheet's exact
-    frames; every interior cut sits on a grid beat. Beat counts below are for the
-    delivered edit (112.5 BPM 3/4, 32-frame beats); a fill item absorbs any change."""
+def motion_markers(name):
+    for d in ('videos/motion', 'videos/final/work/motion_ext'):
+        p = E.rel(f'{d}/{name}.json')
+        if os.path.exists(p):
+            return E.load_json(p).get('markers', {})
+    return {}
+
+
+def motion_frames(name, default):
+    for d in ('videos/motion', 'videos/final/work/motion_ext'):
+        p = E.rel(f'{d}/{name}.json')
+        if os.path.exists(p):
+            return E.load_json(p).get('frames', default)
+    return default
+
+
+SPLIT_FRAME_DEFAULT = {'left': [28, 28, 1124, 1024], 'right': [1196, 104, 696, 948]}
+
+
+def split_windows(sid):
+    """Split-screen windows for a full-UI capture: the ROOM (left of the editor, between the top bar and the
+    controls) into split_frame's left window, the Bot Code column (.editor) into its right window, top-anchored.
+    Rects come from the capture's own layout.json (CSS px of a 1920x1080 page); defaults are the normal layout's
+    measured boxes (sample-23-night: topbar 0-64, editor x1300 w620, controls from y1026) until the capture lands."""
+    m = motion_markers('split_frame')
+    L = m.get('left_window_xywh_1080', SPLIT_FRAME_DEFAULT['left'])
+    Rr = m.get('right_window_xywh_1080', SPLIT_FRAME_DEFAULT['right'])
+    top, ctl, ed = 64, 1002, [1300, 64, 620, 1016]  # 1002 = the timeline strip's top
+    src, _ = resolve(sid)
+    lj = side(src, '.layout.json') if not src.startswith('@') else None
+    if lj:
+        segs = E.load_json(lj).get('segments', [])
+        first = lambda sel: next((g['rects'][0] for g in segs if g['sel'] == sel and g.get('rects')), None)
+        ed = first('.editor') or ed
+        tb, ct, tl = first('.topbar'), first('.controls'), first('.timeline')
+        top = tb[1] + tb[3] if tb else top
+        ctl = ct[1] if ct else ctl
+        if tl and top < tl[1] < ctl:  # keep the game's timeline strip out of the room window
+            ctl = tl[1]
+    n = lambda x, y, w, h: [x / 1920, y / 1080, w / 1920, h / 1080]
+    return [dict(name='room', src=n(0, top, ed[0], ctl - top), dst=L),
+            dict(name='bot_code', src=n(*ed), dst=Rr, anchor_y=0.0)]
+
+
+def build_trailer(cue, music_key='song'):
+    """The trailer on cue sheet v2 (112.5 BPM 3/4, beat k = 50 + 32k). Every frame below comes from the cue
+    sheet's sections/named_hits/cut_rules, the Motion Designer's impact markers and the capture marks; the
+    validator re-checks the grid, the waltz rules and the montage cut frames."""
     cs = E.load_cue_sheet(cue, FPS)
-    beats = cs['beats']
-    hits = cs['hits'] if isinstance(cs['hits'], dict) else {}
+    H_ = cs['hits']
+    S_ = cs['sections']
     B = Builder('trailer', 'cinema', (2560, 1440), [
         dict(name='trailer_1080p', size=[1920, 1080], path='videos/final/trailer.mp4', zoom_cap=1.8),
         dict(name='trailer_master_1440p', size=[2560, 1440], path='videos/final/trailer_master_1440p.mp4', zoom_cap=1.4)], cue)
     B.e['audio']['music'] = cs['raw'].get('file')
-    bi = lambda f: min(range(len(beats)), key=lambda i: abs(beats[i] - f))
+    B.e['sections'] = [dict(name=k, start=v[0], end=v[1]) for k, v in S_.items()]
+    beat = lambda k: 50 + 32 * k
 
-    def bf(i):
-        k = int(i)
-        if k + 1 >= len(beats):
-            return beats[-1] + int(round((i - len(beats) + 1) * (beats[-1] - beats[-2])))
-        return beats[k] if i == k else int(round(beats[k] + (beats[k + 1] - beats[k]) * (i - k)))
+    def put(sid, a, b, align=None, in_f=0, **o):
+        assert B.t == a, f'{sid}: timeline at {B.t}, wanted {a}'
+        al = (align[0], align[1] - a) if align else None  # (mark/event, timeline frame it must land on)
+        on = o.pop('on_beat', True)
+        flags = set(o.pop('flags', [])) | ({'on_beat'} if on and B.e['clips'] else set())
+        return B.clip(sid, b - a, align=al, in_s=in_f / FPS, flags=flags, beat_frame=o.pop('beat_frame', a) if B.e['clips'] else None, **o)
 
-    def section(name, items, through=None):
-        a, _ = cs['sections'][name]
-        _, b = cs['sections'][through or name]
-        assert B.t == a, f'{name}: timeline at {B.t}, section starts {a}'
-        B.e.setdefault('sections', []).append(dict(name=name, start=a, end=b))
-        ia = bi(a) if abs(beats[bi(a)] - a) <= 1 else None  # None: section starts off-grid (cold open)
-        ib = bi(b) if abs(beats[bi(b)] - b) <= 1 else None
-        # beat positions of the inner cut points
-        if ia is None:
-            ia = bi(a) - (1 if beats[bi(a)] > a else 0)  # virtual beat index before the first beat
-        end_beats = (ib if ib is not None else bi(b) + (1 if beats[bi(b)] < b else 0)) - ia
-        total = sum(it[1] for it in items)
-        if total != end_beats:
-            fi = next((k for k, it in enumerate(items) if it[2].get('fill')), len(items) - 1)
-            items[fi] = (items[fi][0], items[fi][1] + end_beats - total, items[fi][2])
-            B.e['notes'].append(f'{name}: song gives {end_beats} beats, plan had {total}; "{items[fi][0]}" absorbs {end_beats - total:+d}')
-        pos = ia
-        for j, (sid, nb, o) in enumerate(items):
-            o = dict(o)
-            o.pop('fill', None)
-            tr = o.pop('transition', 'cut')
-            a_f = a if j == 0 else bf(pos)
-            z_f = b if j == len(items) - 1 else bf(pos + nb)
-            flags = set(o.pop('flags', []))
-            on_grid = any(abs(x - a_f) <= 1 for x in beats)
-            if B.e['clips'] and on_grid:
-                flags.add('on_beat')
-            al = o.pop('align', None)
-            if al:  # (event, beat offset within the clip)
-                al = (al[0], bf(pos + al[1]) - a_f if j or al[1] else 0) + tuple(al[2:])
-            bfr = o.pop('beat_frame', a_f if B.e['clips'] else None)
-            if bfr is not None and bfr != a_f and any(abs(x - bfr) <= 1 for x in beats):
-                flags.add('on_beat')
-            B.clip(sid, z_f - a_f, align=al, transition=tr, flags=flags, section=name, beat_frame=bfr, **o)
-            pos += nb
-        return ia
+    def cap_motion(text, clip_or_src, start, end, legible, position='top_third', overlay=None, style='night'):
+        c = dict(text=text, start=int(start), end=int(end), legible_from=int(legible), position=position, style=style)
+        c['render'] = dict(overlay) if overlay else {'baked': clip_or_src}
+        c['id'] = f'cap{len(B.e["captions"]) + 1:02d}'
+        B.e['captions'].append(c)
 
-    push = lambda z0, z1, cy0=0.5, cy1=0.5: [(0, z0, 0.5, cy0, 'linear'), (1, z1, 0.5, cy1, 'inout')]
-    S_ = cs['sections']
+    def hook_card(name, text, start, end, offset=None):
+        """Critic fix 3: the rule in words. Motion 'card' scene (same letter-collapse look as the other cards),
+        rendered by tools/video/assemble/hook_cards.sh into videos/final/work/motion_ext/<name>_{fill,matte}.mkv."""
+        mk = motion_markers(name)
+        ov = {'fill': f'videos/final/work/motion_ext/{name}_fill.mkv', 'matte': f'videos/final/work/motion_ext/{name}_matte.mkv',
+              'in': 0, 'frames': motion_frames(name, end - start), 'hold': True, 'shadow': {'sigma': 24, 'gain': 2.5, 'opacity': 0.8}}
+        if offset:
+            ov['offset'] = offset
+        cap_motion(text, None, start, end, start + mk.get('text_legible', 18), position='top_third', overlay=ov)
+        B.e['captions'][-1]['hook'] = True
 
-    def card_caption(text, clip, name, position='top_third', style='night', hold_to=None):
-        """Caption entry for a Motion card: baked into a clip (opaque card) or an alpha overlay (fill+matte)."""
-        mc = motion_card(name)
-        if clip is not None:  # opaque card clip: the text is in the picture
-            j = E.rel(f'videos/motion/{os.path.basename(os.path.splitext(clip["src"])[0])}.json')
-            mk = json.load(open(j)).get('markers', {}) if os.path.exists(j) else {}
-            st = clip['start'] + mk.get('text_start', 4) - clip['in']
-            B.cap(text, max(clip['start'], st), clip['start'] + clip['dur'], position, style=style,
-                  legible=max(1, mk.get('text_legible', 28) - mk.get('text_start', 4)), render={'baked': clip['id'], 'motion': name})
-            return
-        start, end = hold_to
-        if mc:
-            spec, frames, leg = mc
-            B.cap(text, start, end, position, style=style, legible=leg, render=dict(spec, frames=frames, motion=name))
-        else:
-            B.cap(text, start, end, position, style=style)
-
-    # cold_open (off-grid start): the moonlit blanket breathing; then the Motion title peek from k9 (f338), whose
-    # P-collapse + shatter lands on the peek hit (clip f96 = f434) and runs out to black by f454
-    tp_hit = find_event(resolve('tr_title_peek')[0], 'impact') or 96
-    pre = int(round(tp_hit / 32))  # beats of title_peek before the hit
-    ia = section('cold_open', [('tr_cold_blanket', 13 - pre, dict(camera=push(1.0, 1.15), fill=True, in_s=0.5)),
-                               ('tr_title_peek', pre, dict(grade='none', in_s=(tp_hit - pre * 32) / FPS))])
-    card_caption('Every Qubble dreams two dreams at once.', None, 'card_dreams_alpha', hold_to=(30, B.e['clips'][-1]['start'] - 2))
-    hit = hits.get('peek_collapse', S_['peek'][0])
-    tp_len = E.probe(resolve('tr_title_peek')[0])[2] if resolve('tr_title_peek')[1] != 'placeholder' else tp_hit + 20
-    tail = max(0, tp_len - tp_hit)  # shards + black after the hit, inside the Motion clip
-    B.e['clips'][-1]['cues'] = [dict(name='peek_collapse_impact', frame=hit, kind='design',
-                                     note='signature #1: sub drop + noise burst + layered peek_collapse, 1.25 s tail')]
-    B.e['clips'][-1]['scdet_exempt'] = [[hit - 2, hit + tail]]
-    # peek: the title clip runs out its shards (continuous), true black under the reverb tail, then the in-place relight
-    ia = section('peek', [('tr_title_peek', tail / 32, dict(grade='none', in_s=tp_hit / FPS, continuous=True)),
-                          ('@black', 3 - tail / 32, dict(flags=['intentional_black', 'intentional_hold'], continuous=True)),
-                          ('tr_relight', 6, dict(transition='relight', camera=push(1.0, 1.06), fill=True))])
-    B.mark('flash', hit, hit + 2, 'collapse white flash (in the Motion clip)')
-    B.mark('black', hit + tail - 8, bf(ia + 3), 'post-shatter black')
-    B.mark('hold', hit + tail - 8, bf(ia + 3), 'black under the reverb tail')
+    push = lambda z0, z1, cx=.5, cy=.5: [(0, z0, cx, cy, 'linear'), (1, z1, cx, cy, 'inout')]
+    hit = H_['peek_collapse']                       # 434
+    tp_imp = motion_markers('title_peek').get('impact', 96)
+    tp_a = hit - tp_imp                             # 338: title_peek placed so its shatter lands on the hit
+    # ── cold_open: moonlit blanket + the dreams card (alpha) ──
+    put('tr_cold_blanket', 0, tp_a, in_f=0, camera=push(1.0, 1.15), on_beat=False, section='cold_open')
+    dm = motion_markers('card_dreams_alpha')
+    d_a = 30
+    cap_motion('Every Qubble dreams two dreams at once.', None, d_a, d_a + 288, d_a + dm.get('text_legible', 41),
+               overlay={'fill': 'videos/motion/card_dreams_alpha_fill.mkv', 'matte': 'videos/motion/card_dreams_alpha_matte.mkv', 'in': 0})
+    # ── peek: title_peek (Motion: cursor -> P collapses -> spiral shatter on the hit -> black) ──
+    put('title_peek', tp_a, tp_a + 116, grade='none', section='peek',
+        cues=[dict(name='peek_collapse_impact', frame=hit, kind='design', note='signature #1')])
+    B.mark('flash', hit, hit + 2, 'shatter flash (baked in title_peek)')
+    B.mark('exempt', hit, tp_a + 116, 'baked spiral shatter')
+    sweep_a = beat(15)                              # 530: title letters collapse on 8ths (real capture)
+    put('@black', tp_a + 116, sweep_a, flags=['intentional_black', 'intentional_hold'], on_beat=False, continuous=True, section='peek')
+    B.mark('black', tp_a + 109, sweep_a, 'after the shatter: black + reverb tail')
+    put('tr_title_peek', sweep_a, S_['peek'][1], align=('hit-E4', sweep_a + 16), grade='day', section='peek',
+        cues=[dict(name='title_letters_pitched', frame=sweep_a + 16, kind='design', note='signature #2: one pitched peek per letter, every 16 f')])
+    hook_card('hook_look_alpha', 'Look… and it\'s gone.', tp_a + 116, tp_a + 256)   # f454-594 (Critic fix 3)
+    # ── build (REVISED 2): night falls (relight, 1 bar), then three gremlin beats, each the REAL gremlin with its alpha
+    #    card over it: Flipper (k24) · Phasey (k27, 2 bars) · Wobbles (k33, 2 bars). All cuts on downbeats. ──
+    put('tr_relight', S_['build'][0], beat(24), align=('relight', S_['build'][0] + 8), speed=2, grade='night', section='build',
+        transition='relight', camera=push(1.0, 1.06))
     rl = B.e['clips'][-1]
-    rl['scdet_exempt'] = [[rl['start'] + 4, rl['start'] + rl['dur']]]
-    B.mark('dissolve', rl['start'] + 4, rl['start'] + rl['dur'], 'in-place day->night relight')
-    # build: the Motion gremlin / ghost cards (each a real bit flip / phase flip), then the dark room under "You can't look."
-    gl = motion_card('card_gremlins')
-    g_frames = E.probe(resolve('mo_card_gremlins')[0])[2] if resolve('mo_card_gremlins')[1] != 'placeholder' else 192
-    h_frames = E.probe(resolve('mo_card_ghosts')[0])[2] if resolve('mo_card_ghosts')[1] != 'placeholder' else 192
-    gb, hb = min(6, g_frames // 32), min(6, h_frames // 32)
-    items = [('mo_card_gremlins', gb, dict(grade='none'))]
-    if gb < 6:
-        items.append(('tr_gremlin_wobbles', 6 - gb, dict(align=('wobble', 0.25))))
-    items.append(('mo_card_ghosts', hb, dict(grade='none')))
-    if hb < 6:
-        items.append(('tr_door_empty', 6 - hb, {}))
-    items.append(('tr_dark_room', 6, dict(camera=push(1.0, 1.08), fill=True)))
-    ia = section('build', items)
-    cl = {c['shot']: c for c in B.e['clips'] if c.get('section') == 'build'}
-    card_caption('Gremlins flip bits.', cl['mo_card_gremlins'], 'card_gremlins')
-    card_caption('Ghosts flip phases.', cl['mo_card_ghosts'], 'card_ghosts')
-    dr = cl['tr_dark_room']
-    card_caption("You can't look.", None, 'card_cantlook_alpha', hold_to=(dr['start'], dr['start'] + dr['dur']))
-    # silence: 2 beats of true black; the antenna lights on the single dry BEEP (f1362); the Motion logo reveal's
-    # own glitch tear starts 6 frames before the drop so that its impact (clip f6) lands on f1394
-    beep = hits.get('bot_beep', S_['silence'][0] + 64)
-    lg = find_event(resolve('mo_logo_reveal')[0], 'impact') or 6
-    ia = section('silence', [('@black', (beep - S_['silence'][0]) / 32, dict(flags=['intentional_black', 'intentional_hold'])),
-                             ('tr_bot_antenna', (S_['silence'][1] - lg - beep) / 32, dict(align=('beep', 0))),
-                             ('mo_logo_reveal', lg / 32, dict(grade='none', beat_frame=S_['drop'][0]))])
-    a, b = S_['silence'][0], beep
-    B.mark('black', a, b, 'true silence; the BEEP is the rescue')
-    B.mark('hold', a, b, 'silence')
-    B.e['clips'][-3]['cues'] = [dict(name='silence', frame=a, kind='design', note='music hard-stops; room tone -60 dBFS')]
-    B.e['clips'][-2]['cues'] = [dict(name='bot_beep_dry', frame=beep, kind='design', note="single dry BEEP: becomes the lead's first note")]
-    lgc = B.e['clips'][-1]
-    lgc['scdet_exempt'] = [[lgc['start'] - 1, lgc['start'] + lg + 12]]
-    lgc['note'] = 'glitch tear (its one use) is inside the Motion logo_reveal clip f0-5; impact clip f6 = the drop'
-    B.mark('flash', S_['drop'][0], S_['drop'][0] + 6, 'logo impact flash (Motion)')
-    section('drop', [('mo_logo_reveal', 6, dict(grade='none', in_s=lg / FPS, continuous=True, fill=True,
-                                                cues=[dict(name='drop_impact', frame=S_['drop'][0], kind='design')]))])
-    # proof (v2: 6 bars, steps of 1/2/1/2 bars): flip -> bots ask (BEEP / quiet) -> BOOP -> X-ray reveal + meter
-    section('proof', [
-        ('tr_proof', 3, dict(align=('gremlin_flip', 1))),
-        ('tr_proof', 6, dict(align=('beep', 2))),
-        ('tr_proof', 3, dict(align=('boop', 1))),
-        ('tr_proof', 6, dict(align=('xray_start', 0), transition='xray-dissolve', fill=True)),
-    ])
-    B.exempt_event(B.e['clips'][-1], 'xray_start', why='in-engine X-ray dissolve')
-    # montage (3/4 ladder, Critic): 3 downbeat cuts (96 f), 2 hemiola bars = 3 cuts every 2 beats (64 f), 2 bars of beat cuts (32 f)
-    has_lo = 'lights_out' in S_
-    ladder = [
-        ('mn_schrodi_checklist', 3, dict(align=('schrodi_meow', 0))),
-        ('mn_test_strip', 3, dict(align=('test_pass', 0))),
-        ('mn_dream_map', 3, dict(align=('gremlin_flip', 0))),
-        ('mn_highfive', 2, dict(align=('highfive', 0))),
-        ('mn_listen', 2, dict(align=('beep', 0))),
-        ('mn_bloch', 2, dict(in_s=0.5)),
-        ('mn_codex_hero', 1, dict(align=('card_pick', 0), camera='shot')),
-        ('mn_codex_flipper', 1, {}), ('mn_codex_schrodi', 1, {}), ('mn_codex_qubble', 1, {}),
-        ('mn_clone_glitch', 1, dict(align=('glitch', 0))), ('mn_shor9', 1, dict(fill=True)),
-    ]
-    if has_lo:
-        section('montage', ladder)
-        section('lights_out', [('mn_lights_out', 6, dict(align=('chord', 0), flags=['intentional_black'], fill=True))])
-    else:  # v1 cue sheet: Lights Out is the montage's last pocket
-        lo_a = hits.get('lights_out', S_['montage'][1] - 96)
-        section('montage', ladder + [('mn_lights_out', (S_['montage'][1] - lo_a) // 32, dict(align=('chord', 0), flags=['intentional_black']))])
-    lo = B.e['clips'][-1]
-    B.mark('black', lo['start'], lo['start'] + lo['dur'], 'Lights Out: the montage breath')
-    B.mark('hold', lo['start'], lo['start'] + lo['dur'], 'Lights Out')
-    # payoff: stars on the slam, then the curtain call
-    section('payoff', [('tr_morning_check', 6, dict(align=('level_win', 0))),
-                       ('tr_curtain_call', 6, dict(camera=[(0, 1.25, .5, .5, 'linear'), (1, 1.0, .5, .5, 'out')], fill=True))])
-    # closing: still morning under the music box, held through the silence; SNAP (signature #3) to the real
-    # circuit under the line; end card. One section span so the circuit can borrow end-card beats if needed.
-    cl_name = 'closing_musicbox' if 'closing_musicbox' in S_ else 'closing'
-    snap = hits.get('snap_circuit_reveal', S_[cl_name][1] - 192)
-    ec = S_['end_card'][0]
-    circ = max(9, (ec - snap) // 32)  # the line needs >= 3.9 s of reading time + its fade
-    ia = section(cl_name, [('tr_morning_still', (snap - S_[cl_name][0]) // 32, dict(in_s=0.5, camera=push(1.05, 1.1))),
-                           ('mo_circuit_morph', circ, dict(grade='none')),
-                           ('mo_end_card', 6, dict(grade='none', fill=True))], through='end_card')
-    sil = hits.get('closing_silence', snap - 96)
-    # Director: the card stays up continuously through the silence until the snap (no empty frame)
-    card_caption("It's just a game…", None, 'card_justagame_alpha', style='day', hold_to=(bf(ia), snap))
-    cm = B.e['clips'][-2]
-    B.cap('…where you accidentally learned quantum error correction.', snap + 6, cm['start'] + cm['dur'] - 6, 'top_third',
-          style='night', closing_line=True)
-    cm['cues'] = [dict(name='snap', frame=snap, kind='design', note='signature #3: dry snap = snap_measure + paper whip + peek transient')]
-    B.mark('hold', sil, snap, 'near-silent still morning before the snap')
+    rl['scdet_exempt'] = [[rl['start'], rl['start'] + rl['dur']]]
+    B.mark('dissolve', rl['start'], rl['start'] + rl['dur'], 'in-place day->night relight (in-engine)')
+    # strike offsets: Flipper on beat 1 of its bar (+24 f lead-in); Phasey on beat 2; Wobbles on beat 2 (+63: the delivered
+    # take is 213 f with the strike at f63, so the clip starts at its first frame)
+    gremlins = (('tr_gremlin_flipper', 'card_gremlins_alpha', 'Gremlins flip bits.', beat(24), beat(27), S_['build'][0] + 16, 24),
+                ('tr_gremlin_phasey', 'card_ghosts_alpha', 'Ghosts flip phases.', beat(27), beat(33), beat(27), 32),
+                ('tr_gremlin_wobbles', 'card_wobbles_alpha', 'Wobbles flips… halfway.', beat(33), S_['build'][1], beat(33), 63))
+    for sid, card, txt, a, b, cap_a, off in gremlins:
+        put(sid, a, b, align=('strike', a + off), grade='night', section='build', camera=push(1.0, 1.08),
+            note='REVISED 2: the real gremlin + its alpha card')
+        mk = motion_markers(card) or motion_markers(card.replace('_alpha', ''))
+        cap_motion(txt, None, cap_a, b, cap_a + mk.get('text_legible', 28),
+                   overlay={'fill': f'videos/motion/{card}_fill.mkv', 'matte': f'videos/motion/{card}_matte.mkv', 'in': 0,
+                            'frames': motion_frames(card, b - cap_a), 'shadow': {'sigma': 24, 'gain': 2.5, 'opacity': 0.8}})
+    # Honesty (Director): the gremlin beats are the game's X-ray replay with the HUD hidden; say so, small, top-right
+    xm = motion_markers('tag_xray_alpha')
+    x0, x1 = beat(24), S_['build'][1]                       # f818-1298, all three gremlin beats
+    cap_motion('X-ray · simulator view', None, x0, x1, x0 + xm.get('text_legible', 14), position='top_third',
+               overlay={'fill': 'videos/final/work/motion_ext/tag_xray_alpha_fill.mkv',
+                        'matte': 'videos/final/work/motion_ext/tag_xray_alpha_matte.mkv', 'in': 0,
+                        'frames': motion_frames('tag_xray_alpha', 96), 'hold': True, 'offset': [640, 0],
+                        'shadow': {'sigma': 12, 'gain': 2.5, 'opacity': 0.7}})
+    B.e['captions'][-1]['label'] = True  # a HUD-style tag: not a competing caption (validator)
+    beep = H_['bot_beep']
+    # ── silence: true black (two beats of true silence) -> the antenna lights on the BEEP ──
+    put('@black', S_['silence'][0], beep, flags=['intentional_black', 'intentional_hold'], section='silence',
+        cues=[dict(name='silence', frame=S_['silence'][0], kind='design', note='music hard-stops; room tone -60 dBFS')])
+    B.mark('black', S_['silence'][0], beep, 'true silence; the BEEP is the rescue')
+    B.mark('hold', S_['silence'][0], beep, 'silence')
+    lr = motion_markers('logo_reveal')
+    drop = H_['drop']
+    logo_a = drop - lr.get('impact', 6)             # 1388: the logo's own glitch tear runs into the impact on the drop
+    put('tr_bot_antenna', beep, logo_a, align=('beep', beep), grade='night', section='silence',
+        cues=[dict(name='bot_beep_dry', frame=beep, kind='design', note="single dry BEEP: the lead's first note")])
+    # ── drop: logo_reveal (glitch tear baked in = the trailer's one glitch; impact on the drop), then on the next
+    #    downbeat a HARD CUT to the editor (cards dragged into the column) under "You don't play it. You program it." ──
+    D0, D1 = S_['drop']
+    ed = beat(45)                                   # 1490: second downbeat of the drop
+    put('logo_reveal', logo_a, ed, grade='none', section='drop', beat_frame=drop,
+        cues=[dict(name='drop_impact', frame=drop, kind='design')])
+    B.e['clips'][-1]['baked_transition'] = 'glitch'
+    B.mark('exempt', logo_a, drop + 8, 'baked glitch tear + impact flash')
+    B.mark('flash', drop, drop + 6, 'logo impact flash')
+    put('pg_drag_closeup', ed, D1, align=('drop', ed + 64), grade='day', section='drop',
+        note='REVISED 2: the editor, a card dragged into the Bot Code column (drop on the beat)')
+    # Motion fix round 2 (Director): card_program_alpha_160 placed at f1426, fully gone by the proof (f1586).
+    # Falls back to the _long cut until the 160 render is registered.
+    pname = 'card_program_alpha_160' if os.path.exists(E.rel('videos/motion/card_program_alpha_160_fill.mkv')) else 'card_program_alpha_long'
+    pm = motion_markers(pname)
+    p_a = 1426 if pname.endswith('_160') else drop
+    pf = motion_frames(pname, S_['proof'][0] - p_a)
+    cap_motion("You don't play it. You program it.", None, p_a, S_['proof'][0], p_a + pm.get('text_legible', 18), position='card',
+               overlay={'fill': f'videos/motion/{pname}_fill.mkv', 'matte': f'videos/motion/{pname}_matte.mkv',
+                        # the _160 card is laid out in the lower third of its own frame (text y 790/920): no offset.
+                        # (+360 was for the old centred _long card; on _160 it pushed the plate off-screen.)
+                        'in': 0, 'frames': pf, 'offset': [0, 0] if pname.endswith('_160') else [0, 360],
+                        'shadow': {'sigma': 24, 'gain': 2.5, 'opacity': 0.8}})
+    B.e['captions'][-1]['motion_asset'] = pname
+    # ── proof (REVISED 2): SPLIT SCREEN, room left ~60% / Bot Code column right ~40% (one 4K capture, pg_split_23),
+    #    each card lit on its beat; steps 1/2/1/2 bars: the cursor drops BOOP into place (k48) -> HIGHFIVE, LISTEN a BEEP,
+    #    LISTEN b quiet (k51) -> IF a BEEP and b QUIET -> BOOP q2 (k57) -> X-ray (k60). split_frame (Motion) frames it. ──
+    P0, P1 = S_['proof']
+    # Motion fix round 2 (Director): SIX 96-frame segments of pg_split_23 so every morning action is on screen
+    # (BOOP drag · HIGHFIVE · LISTEN a · LISTEN b + IFs · BOOP q2 · X-ray intact). Crops in capture CSS px
+    # (1920x1080 page): the room window leaves out the toast and Schrodi's box; the code window follows the lit card.
+    po = {}
+    for d in ('videos/motion', 'videos/final/work/motion_ext'):
+        if os.path.exists(E.rel(f'{d}/proof_overlay.json')):
+            po = E.load_json(f'{d}/proof_overlay.json')
+            break
+    segs = po.get('segs_trailer') or [dict(start=P0 + 96 * i, dur=96, src_in=x) for i, x in enumerate((124, 980, 1300, 1420, 1600, 1749))]
+    segs = [dict(start=g.get('start', g.get('t')), dur=g.get('dur', 96), src_in=g.get('src_in', g.get('in'))) for g in segs]
+    room_css = po.get('room_window_src_css', [240, 124, 838, 763])
+    code_ys = [r[1] if isinstance(r, (list, tuple)) else r for r in (po.get('code_window_src_css_per_seg') or [565, 64, 160, 250, 565, 565])]
+    code_css = lambda y: [1570, y, 350, 476.7]
+    act = po.get('action_frames_trailer') or {}
+    n_ = lambda x, y, w, h: [x / 1920, y / 1080, w / 1920, h / 1080]
+    L_ = SPLIT_FRAME_DEFAULT['left']
+    R_ = SPLIT_FRAME_DEFAULT['right']
+    names = ('BOOP drag', 'HIGHFIVE', 'LISTEN a', 'LISTEN b + IFs', 'BOOP q2', 'X-ray, intact')
+    assert segs[0]['start'] == P0 and segs[-1]['start'] + segs[-1]['dur'] == P1, 'proof segments must tile f1586-2162'
+    for i, g in enumerate(segs):
+        wins = [dict(name='room', src=n_(*room_css), dst=L_), dict(name='bot_code', src=n_(*code_css(code_ys[i])), dst=R_, anchor_y=0.0)]
+        last = i == len(segs) - 1
+        put('pg_split_23', g['start'], g['start'] + g['dur'], in_f=g['src_in'], grade='night', section='proof', windows=wins,
+            transition='xray-dissolve' if last else 'cut', note=f'proof step {i + 1}/6: {names[i]}')
+        B.e['clips'][-1]['punch_native'] = True  # code window 700 px -> 696 px at 1080p (native); the 1440p master upscales it
+    B.exempt_event(B.e['clips'][-1], 'xray', before=4, after=72, why='in-engine X-ray dissolve')
+    # captions on the real action frames (Director decision): "It's #2." on the LISTEN-b BEEP·BEEP result,
+    # "Fix it. Never look." landing EXACTLY on the BOOP and held to the end of the proof. Never two texts at once:
+    # "It's #2." ends on the BOOP frame. Trailer reading rule: max(1.2 s, 0.3 s/word + 0.4 s) from full legibility.
+    beep_b = act.get('listen_b', 1913)
+    boop_t = act.get('boop_q2', 2010)
+    room_dx = -370  # centre the cards over split_frame's room window (x 28..1152 -> centre 590 vs frame centre 960)
+    w_a = beep_b + 2
+    hook_card('hook_its2_alpha', "It's #2.", w_a, boop_t, offset=[room_dx, 0])
+    B.e['captions'][-1]['note'] = f'on the BEEP·BEEP result ({beep_b}); ends on the BOOP ({boop_t}) so the cards never overlap'
+    hook_card('hook_fix_alpha', 'Fix it. Never look.', boop_t, P1 - 6, offset=[room_dx, 0])
+    B.e['captions'][-1]['note'] = f'lands exactly on the BOOP ({boop_t}), held to {P1 - 6}'
+    B.e['overlays'].append(dict(id='split_frame', fill='videos/motion/split_frame_fill.mkv', matte='videos/motion/split_frame_matte.mkv',
+                                start=P0, dur=P1 - P0, frames=motion_frames('split_frame', P1 - P0), note='REVISED 2: split-screen frame'))
+    B.e['overlays'].append(dict(id='proof_overlay', fill='videos/motion/proof_overlay_fill.mkv', matte='videos/motion/proof_overlay_matte.mkv',
+                                start=P0, dur=P1 - P0, frames=motion_frames('proof_overlay', 576),
+                                note='Motion fix round 2: card pop/glow/ring over the lit cards (above split_frame)'))
+    # ── montage (REVISED 2): the cue sheet's 12 cut frames (96 -> 64 -> 32), alternating PROGRAMMING / WORLD ──
+    cuts = (cs['raw'].get('cut_rules') or {}).get('montage_cut_frames') or [S_['montage'][0] + 96 * i for i in range(7)]
+    cuts = list(cuts) + [S_['montage'][1]]
+    # Critic fix 4: every programming cut punches in to 2.0x on its feature (native 1:1 from the 3840 capture for the
+    # 1080p delivery; regions measured on the captures' frames, CSS units of the 1920x1080 page).
+    punch = lambda z, cx, cy: [(0, z - 0.04, cx, cy, 'linear'), (1, z, cx, cy, 'linear')]
+    plan = [('pg_drag_closeup', 'pick-2', 24, 'day', punch(2.0, .75, .25)),      # P: the card dragged into the column
+            ('mn_schrodi_checklist', 'highfive-1', 32, 'day', None),             # W
+            ('pg_if_anatomy', 'open', 8, 'day', punch(2.0, .484, .352)),         # P: the IF anatomy diagram + callouts 1-3
+            ('mn_highfive', 'highfive', 8, 'day', None),                         # W
+            ('pg_test_strip', 'test', 8, 'day', punch(2.0, .507, .25)),          # P: the test strip row of checks
+            ('mn_dream_map', None, 90, 'day', None),                             # W
+            ('pg_step_scrub', 'snap', 8, 'day', punch(1.6, .458, .313)),         # P: "Snap! Measurements are a one-way door" + the BEEP
+            ('mn_codex_wobbles', 'act', 4, 'day', None),                         # W
+            ('pg_snippets_doodle', 'doodle-smile', 8, 'day', punch(2.0, .5, .5)),  # P: the doodle note (smiley being drawn)
+            ('mn_notebook_circuit', 'circuit', 4, 'day', punch(1.08, .5, .5)),   # W: the notebook's Circuit page (gates, red X)
+            ('pg_export_qiskit', 'qiskit-code', 4, 'day', punch(2.0, .25, .40)),  # P: the Qiskit code panel
+            ('mn_shor9', 'strike', 4, 'night', None)]                            # W
+    for (sid, mk, off, gr, cam), a, b in zip(plan, cuts, cuts[1:]):
+        kw = dict(grade=gr, section='montage')
+        if cam:
+            kw['camera'] = cam
+        if mk:
+            put(sid, a, b, align=(mk, a + off), **kw)
+        else:
+            put(sid, a, b, in_f=off, **kw)
+        B.e['clips'][-1]['montage_kind'] = 'programming' if sid.startswith('pg_') else 'world'
+        if cam and max(k[1] for k in cam) > 1.4:
+            B.e['clips'][-1]['punch_native'] = True  # validator: native 1:1 allowed for the 1080p delivery (Critic fix 4)
+    # ── audio (REVISED 2): the song carries the arc; the game's own coding groove is LAYERED under the split-screen proof
+    #    and the whole montage (one span, so every music change sits on a downbeat: k48 in, k87 out). The card UI sounds
+    #    (card_pick / card_drop / ui_click) come from each capture's events, frame-exact on the drags and drops. ──
+    B.e['audio']['score_segments'] = [dict(
+        name='coding_groove', src='videos/audio2/score_segments/coding_groove.wav', start=P0, end=S_['montage'][1], src_in=0,
+        layer='under_song', gain_db=-4.0, fade_in=0, fade_out=32, downbeats=[P0, S_['montage'][1]],
+        note='REVISED 2: the game build groove + card UI sounds under the programming; Sound Designer owns the asset and the levels')]
+    # ── lights_out: black, the syndrome chord twice (the capture has it once: repeat the moment) ──
+    L0, L1 = S_['lights_out']
+    put('mn_lights_out', L0, L0 + 96, align=('chord-1', L0 + 16), grade='night', flags=['intentional_black'], section='lights_out')
+    put('mn_lights_out', L0 + 96, L1, align=('chord-1', L0 + 112), grade='night', flags=['intentional_black'], section='lights_out',
+        continuous=True, note='repeat: the chord a second time')
+    B.mark('black', L0, L1, 'Lights Out: the montage breath')
+    B.mark('hold', L0, L1, 'Lights Out')
+    # ── payoff: stars on the slam (push into the small win card), then the curtain call ──
+    Y0, Y1 = S_['payoff']
+    put('tr_morning_check', Y0, Y0 + 192, align=('win', Y0), grade='day', section='payoff',
+        camera=[(0, 1.2, .5, .5, 'linear'), (1, 1.4, .5, .48, 'out')])
+    put('tr_curtain_call', Y0 + 192, Y1, in_f=120, grade='day', section='payoff', camera=[(0, 1.25, .5, .5, 'linear'), (1, 1.0, .5, .5, 'out')])
+    # ── closing: "It's just a game…" held through the silence until the snap ──
+    C0 = S_['closing_musicbox'][0] if 'closing_musicbox' in S_ else S_['closing'][0]
+    snap = H_['snap_circuit_reveal']
+    put('card_justagame_288', C0, snap, grade='none', section='closing')
+    jm = motion_markers('card_justagame_288') or motion_markers('card_justagame')
+    cap_motion("It's just a game…", 'card_justagame_288', C0, snap, C0 + jm.get('text_legible', 33), style='day')
+    sil = H_.get('closing_silence', snap - 96)
+    B.mark('hold', sil, snap, 'the held card in the silence before the snap')
+    # ── snap: the program becomes the real circuit, the closing line ──
+    E0 = S_['end_card'][0]
+    cm = motion_markers('mo_circuit_morph')
+    put('mo_circuit_morph', snap, E0, grade='none', section='snap_circuit_reveal',
+        cues=[dict(name='snap', frame=snap, kind='design', note='signature #3: dry snap = snap_measure + paper whip + peek transient')])
+    # Motion fix round 2: the morph is re-rendered 32 f earlier: the line starts ~3760, fully legible at 3790 (Director)
+    cap_motion('…where you accidentally learned quantum error correction.', 'mo_circuit_morph', snap + 62, E0, snap + 92)
+    B.e['captions'][-1]['note'] = 'start 3760 / legible 3790 per the Director (morph re-render 32 f earlier); recheck vs mo_circuit_morph.json'
+    B.e['captions'][-1]['closing_line'] = True
+    B.e['captions'][-1]['rect'] = [200, 745, 1520, 165]  # the line's band in mo_circuit_morph (1080p), measured from the render
+    put('mo_end_card', E0, S_['end_card'][1], grade='none', section='end_card')
     return B.done()
 
 
-# ───────────────────────── mechanic (Critic §5 table) ─────────────────────────
+# ───────────────────────── mechanic (Critic §5 table, re-timed to the capture marks) ─────────────────────────
 def S(x):
     return int(round(x * FPS))
 
 
+def mark(sid, name, n=0):
+    src, _ = resolve(sid)
+    f = find_event(src, name, n)
+    if f is None:
+        raise SystemExit(f'{sid}: mark {name} not found')
+    return f
+
+
+BLANKET = dict(matte='videos/motion/blanket_wipe_reveal.mkv',
+               overlay={'fill': 'videos/motion/blanket_wipe_fill.mkv', 'matte': 'videos/motion/blanket_wipe_matte.mkv'})
+
+
+def strip_cap(B, text, start, end, gloss=None, gloss2=None):
+    """A bottom-strip caption: Schrödi's in-game lines are the narration, so these are short lines and/or
+    '= real term' gloss chips (Motion Designer caption scene; tools/video/assemble/motion_captions.py renders them)."""
+    full = ' '.join(x for x in (text, gloss, gloss2) if x)
+    B.cap(full, start, end, 'strip')
+    B.e['captions'][-1].update(line=text, gloss=gloss, gloss2=gloss2, legible_from=int(start + 24))
+
+
 def build_mechanic():
     B = Builder('mechanic', 'strip', (1920, 1080), [dict(name='mechanic_1080p', size=[1920, 1080], path='videos/final/mechanic.mp4', zoom_cap=1.8)])
+    B.e['strip_overlay'] = True
     push = lambda z0, z1, cx=.5, cy=.5: [(0, z0, cx, cy, 'linear'), (1, z1, cx, cy, 'inout')]
-    B.clip('me_cold_blanket', S(6), in_s=0.5, camera=push(1.0, 1.12), section='cold_open')
-    B.cap('Every Qubble dreams two dreams at once.', S(0.4), S(5.9), 'strip')
-    B.clip('me_11_peek', S(18), align=('peek_collapse', S(6)), camera=push(1.0, 1.15), section='rule')
-    B.exempt_event(B.e['clips'][-1], 'xray_start', why='in-engine X-ray reveal')
-    B.cap('= measurement collapses a superposition', S(13), S(23), 'strip')
-    B.clip('me_threat', S(14), align=('gremlin_flip', S(5)), camera=push(1.0, 1.2, .5, .55), section='threat')
-    B.cap('One dream changed. Which one? You can\'t look.', S(25.5), S(37.5), 'strip')
-    B.clip('me_encode', S(12), align=('highfive', S(2.5)), section='cant_copy')
-    B.cap('= encoding (no copies allowed)', S(40), S(49.5), 'strip')
-    B.clip('me_21_listen', S(10), align=('highfive', S(2.5)), camera=push(1.0, 1.1), section='ask')
-    B.cap('= parity check', S(53), S(59.5), 'strip')
+    # REVISED 2: the program must stay visible whenever the room acts. The editor fills the right column at full height
+    # (css 1300..1920 x 64..1080), so the only safe push anchors right/bottom, <= 1080/1016 = 1.063x (crops the top bar
+    # and the room's left edge). The validator checks every program_visible clip against its layout.json .editor box.
+    prog = lambda z1=1.06: [(0, 1.0, 1.0, 1.0, 'linear'), (1, z1, 1.0, 1.0, 'inout')]
+    B.e['program_visible'] = True
+    # 0:00 cold open
+    B.clip('me_cold_blanket', S(6), in_s=0.5, camera=push(1.0, 1.12), section='cold_open', grade='night')
+    strip_cap(B, 'Every Qubble dreams two dreams at once.', S(0.4), S(5.9))
+    # 0:06 the rule: 1-1 PEEK -> collapse, then the X-ray replay shows the lost half
+    a = B.t
+    B.clip('me_11_peek', 625, in_s=230 / FPS, section='rule', camera=prog())
+    col = a + mark('me_11_peek', 'collapse') - 230
+    B.clip('me_11_peek', S(24) - B.t, in_s=1140 / FPS, section='rule', camera=prog())
+    B.exempt_event(B.e['clips'][-1], 'collapse-xray', before=30, after=60, why='in-engine X-ray replay')
+    strip_cap(B, 'Looking changes it.', col + 6, S(23.6), gloss='= measurement')
+    # 0:24 the threat
+    a = B.t
+    B.clip('me_threat', S(14), in_s=90 / FPS, section='threat', camera=prog())
+    fl = a + mark('me_threat', 'flip') - 90
+    strip_cap(B, "One dream changed. Which one? You can't look.", fl + 10, S(37.8))
+    # 0:38 can't copy: the checklist shares the dream across three Qubbles
+    a = B.t
+    B.clip('me_encode', S(12), in_s=90 / FPS, section='cant_copy', camera=prog())
+    strip_cap(B, "You can't copy a dream. You can share it.", a + mark('me_encode', 'highfive-1') - 90, S(49.8), gloss='= encoding')
+    # 0:50 ask, don't look: 2-1 in 10 s, then the 4-row syndrome table
+    a = B.t
+    B.clip('me_21_listen', S(10), in_s=340 / FPS, section='ask', camera=prog())
+    strip_cap(B, 'A bot asks: do these two match?', a + mark('me_21_listen', 'highfive') - 340, S(59.8), gloss='= parity check')
+    a = B.t
     B.clip('mo_syndrome_table', S(15), grade='none', section='ask')
-    B.cap('= syndrome: two answers point at one Qubble', S(61), S(74.5), 'strip')
-    B.clip('me_23_night', S(23), align=('gremlin_flip', S(2.5)), section='repair')
-    B.cap('= error correction, without ever measuring the dream', S(77), S(97.5), 'strip')
-    B.clip('me_23_xray', S(14), align=('xray_start', S(1)), section='proof')
-    B.exempt_event(B.e['clips'][-1], 'xray_start', why='in-engine X-ray replay')
-    B.cap('= the bots never learned the dream', S(100), S(111.5), 'strip')
-    B.clip('me_31_phase', S(16), align=('ghost_phase', S(2)), section='twist')
-    B.cap('= phase-flip code (Hadamard basis)', S(114), S(127.5), 'strip')
-    B.clip('mo_circuit_morph', S(10), grade='none', section='under_the_hood')
-    B.clip('mo_qiskit_stamp', S(4), grade='none', section='under_the_hood')
-    B.cap('= a real state-vector simulator, real gates', S(129), S(141.5), 'strip')
-    B.clip('sc_morning_still', S(4.5), in_s=0.5, section='close')
-    B.cap("It's just a game…", S(142.3), S(146.4), 'strip')
-    B.clip('mo_circuit_morph', S(5.5), grade='none', section='close', in_s=0.5,
-           cues=[dict(name='snap', frame=S(146.5), kind='design')])
-    B.cap('…where you accidentally learned quantum error correction.', S(146.6), S(151.9), 'strip')
-    B.clip('mo_end_card', S(5), grade='none', section='end_card')
+    strip_cap(B, 'Two bots, four answers: each points at one Qubble.', a + 60, S(74.8), gloss='= syndrome')
+    # 1:15 the repair: a full 2-3 night (flip, BEEP, the caretaker BOOPs q1), Test all fills the strip
+    # REVISED 2: first the decoder is WRITTEN, card by card (drag-and-drop), then the night runs it
+    a = B.t
+    B.clip('me_23_drag', 300, align=('drop', 240), section='repair', camera=prog())
+    strip_cap(B, 'Write the fix: IF a BEEP and b QUIET, BOOP #1.', a + 20, a + 296, gloss='= decoder')
+    a = B.t
+    B.clip('me_23_night', 960, in_s=640 / FPS, section='repair', camera=prog())
+    B.clip('me_23_night', 260, in_s=1850 / FPS, section='repair', camera=prog())
+    strip_cap(B, 'Fixed in the dark, without ever looking.', a + mark('me_23_night', 'boop') - 640, B.t - 12, gloss='= error correction')
+    D = B.t - S(98)                                  # the drag beat lengthens the video by D frames from here on
+    # 1:38 the proof: the X-ray replay + inspector
+    a = B.t
+    B.clip('me_23_xray', 540, in_s=100 / FPS, section='proof', camera=prog())
+    B.exempt_event(B.e['clips'][-1], 'xray-replay', before=10, after=60, why='in-engine X-ray')
+    B.clip('me_23_xray', S(112) + D - B.t, in_s=1290 / FPS, section='proof', camera=prog())
+    strip_cap(B, 'The dream survived. The bots never learned it.', a + 30, S(111.8) + D)
+    # 1:52 the twist: the phase ghost hides from bit checks; the SPIN sandwich
+    a = B.t
+    B.clip('me_31_phase', 400, in_s=0, section='twist', camera=prog())
+    B.clip('me_31_phase', 240, in_s=1240 / FPS, section='twist', camera=prog())
+    B.clip('me_31_phase', S(128) + D - B.t, in_s=2440 / FPS, section='twist', camera=prog())
+    strip_cap(B, 'Every bot is quiet, yet the dream is wrong.', a + 20, a + 600)
+    strip_cap(B, 'SPIN, fix, SPIN.', a + 620, S(127.8) + D, gloss='= phase-flip code')
+    # 2:08 close: "It's just a game…" -> the program becomes the real circuit -> Qiskit stamp -> end card
+    a = B.t
+    B.clip('card_justagame', 192, grade='none', section='close')
+    a = B.t
+    B.clip('mo_circuit_morph', 420, grade='none', section='close', cues=[dict(name='snap', frame=a, kind='design')])
+    B.clip('mo_qiskit_stamp', 300, grade='none', section='under_the_hood')
+    B.clip('mo_end_card', 360, grade='none', section='end_card')
+    # the Motion pieces' own texts, for the reading-time and contrast gates
+    for c in B.e['clips']:
+        if c['shot'] in ('card_justagame', 'mo_circuit_morph'):
+            mk = motion_markers(c['shot'])
+            lf = c['start'] + mk.get('text_legible', mk.get('line_legible', 30))
+            txt = "It's just a game…" if c['shot'] == 'card_justagame' else '…where you accidentally learned quantum error correction.'
+            B.e['captions'].append(dict(id=f'cap{len(B.e["captions"]) + 1:02d}', text=txt, start=c['start'] + (0 if 'card' in c['shot'] else 96),
+                                        end=c['start'] + c['dur'] if 'card' in c['shot'] else c['start'] + c['dur'] + 300,
+                                        legible_from=lf, position='baked', style='night', render={'baked': c['shot']}))
     return B.done()
 
 
-# ───────────────────────── showcase (Critic §6) ─────────────────────────
+# ───────────────────────── showcase (Critic §6; captures are 1080p normal layout) ─────────────────────────
+HEROES = {'1-1': 'Dont Wake Them', '2-3': 'Who Got Flipped?', '3-1': 'Somethings Off', '3-3': 'Wobbles', '4-1': 'Nesting Dolls'}
+
+
 def build_showcase():
     B = Builder('showcase', 'strip', (1920, 1080), [dict(name='showcase_1080p', size=[1920, 1080], path='videos/final/showcase.mp4', zoom_cap=1.8)])
+    B.e['strip_overlay'] = True
     W = 'blanket-wipe'
-    B.clip('sc_grid16', S(5), grade='none', section='open', note='4x4 money shot')
-    B.cap('16 levels. Every one verified.', S(0.4), S(4.9), 'strip')
-    B.clip('sc_title_peek', S(6), align=('peek_collapse', S(2)), section='open')
-    B.clip('sc_dream_map', S(6), align=('gremlin_flip', S(3)), section='open', camera=[(0, 1.0, .5, .5, 'linear'), (1, 1.2, .55, .5, 'inout')])
-    B.cap('The dream map', S(11.5), S(16), 'strip')
-    strobe = lambda lv, ch: B.clip(f'sc_lv_{lv}', 36, in_s=30.0, speed=6, section=ch, note='1-beat strobe')
 
-    def hero(lv, ch, secs, label, tr=W):
-        B.clip(f'sc_lv_{lv}', S(secs), in_s=2.0, speed={'keys': [[0, 1.0], [60, 4.0], [S(secs) - 90, 4.0], [S(secs) - 30, 1.0]]},
-               transition=tr, section=ch, note='hero level')
-        c = B.e['clips'][-1]
-        B.cap(label, c['start'] + 30, c['start'] + c['dur'] - 12, 'strip')
+    def wipe_clip(*a, **k):
+        c = B.clip(*a, transition=W, **k)
+        c['transition'].update(BLANKET)
+        return c
+    B.clip('sc_grid16', S(5), grade='none', section='open', note='4x4: all 16 levels solving at once (precomposed)')
+    strip_cap(B, 'Sixteen levels. Every solution verified.', S(0.3), S(4.9))
+    B.clip('sc_title_peek', S(6), in_s=50 / FPS, section='open')
+    a = B.t
+    B.clip('sc_dream_map', S(6), in_s=88 / FPS, section='open')
+    strip_cap(B, 'The dream map', a + 30, B.t - 10)
 
-    hero('1-1', 'ch1', 12, '1-1  Dont Wake Them  ·  = measurement')
-    B.clip('sc_clone_glitch', S(8), align=('glitch', S(2.5)), section='ch1')
-    B.cap('= you can\'t copy a dream (no-cloning)', B.t - S(8) + 20, B.t - 10, 'strip')
+    def hero(lv, ch, secs, gloss, first=True, in_f=20):
+        n = S(secs)
+        src_n = E.probe(resolve(f'sc_lv_{lv}')[0])[2] if os.path.exists(E.rel(resolve(f'sc_lv_{lv}')[0])) else 900
+        v = round(min(4.0, max(1.0, (src_n - in_f - 40) / n)), 3)
+        fn = wipe_clip if first else B.clip
+        c = fn(f'sc_lv_{lv}', n, in_s=in_f / FPS, speed=v, section=ch, note=f'hero level at {v}x')
+        strip_cap(B, f'{lv}  {HEROES[lv]}', c['start'] + 20, c['start'] + n - 12, gloss=gloss)
+
+    def strobe(lv, ch):
+        wc = mark(f'sc_lv_{lv}', 'win-card')
+        B.clip(f'sc_lv_{lv}', 36, in_s=(wc - 6) / FPS, section=ch, note='1-beat strobe: solved')
+
+    def wow(sid, secs, in_f, ch, text, gloss=None):
+        a = B.t
+        B.clip(sid, S(secs), in_s=in_f / FPS, section=ch)
+        strip_cap(B, text, a + 20, B.t - 10, gloss=gloss)
+    hero('1-1', 'ch1', 12, '= measurement')
+    wow('sc_clone_glitch', 8, 0, 'ch1', "You can't copy a dream.", '= no-cloning')
     for lv in ('0-1', '0-2', '1-2', '1-4'):
         strobe(lv, 'ch1')
-    hero('2-3', 'ch2', 14, '2-3  Who Got Flipped?  ·  = syndrome decoding')
-    B.clip('sc_map_flip', S(8), align=('gremlin_flip', S(2.5)), section='ch2')
-    B.cap('The map flips', B.t - S(8) + 20, B.t - S(3), 'strip')
+    hero('2-3', 'ch2', 14, '= syndrome decoding', in_f=30)
+    wow('sc_map_flip', 8, 60, 'ch2', 'The map flips')
     for lv in ('2-1', '2-2', '2-4', '2-5'):
         strobe(lv, 'ch2')
-    hero('3-1', 'ch3', 12, '3-1  Somethings Off  ·  = phase flips')
-    hero('3-3', 'ch3', 12, '3-3  Wobbles  ·  = small rotations get caught too', tr='cut')
+    hero('3-1', 'ch3', 12, '= phase flips')
+    hero('3-3', 'ch3', 12, '= small rotations get caught too', first=False)
     strobe('3-2', 'ch3')
-    hero('4-1', 'ch4', 12, '4-1  Nesting Dolls  ·  = the Shor 9-qubit code')
-    B.clip('sc_lights_out_ear', S(10), align=('chord', S(2)), section='ch4')
-    B.cap('4-2  Lights Out: solve it by ear', B.t - S(10) + 20, B.t - 10, 'strip')
-    B.clip('sc_gremlin_lab', S(14), transition=W, section='labs')
-    B.cap('Gremlin Lab & Night Shift: your code vs random gremlins', B.t - S(14) + 30, B.t - 10, 'strip')
-    B.clip('sc_threshold', S(12), section='labs')
-    B.cap('Codes only help when noise is rare: below p = ½', B.t - S(12) + 30, B.t - 10, 'strip')
-    B.clip('sc_codex_tour', S(18), transition=W, section='codex')
-    B.cap('The Codex: everything you meet, collected', B.t - S(18) + 30, B.t - S(9), 'strip')
-    B.clip('sc_card_guide', S(8), section='codex')
-    B.cap('Card Guide: every card explained', B.t - S(8) + 20, B.t - 10, 'strip')
-    B.clip('sc_notebook', S(16), section='notebook')
-    B.cap("Schrödi's Lab Notebook: the real maths behind each night", B.t - S(16) + 30, B.t - 10, 'strip')
-    B.clip('sc_qol_grid', S(15), grade='none', transition=W, section='qol')
-    B.cap('Snippets · doodle comments · help slot · step mode', B.t - S(15) + 30, B.t - 10, 'strip')
-    B.clip('sc_save_joke', S(3), section='qol')
-    B.clip('sc_curtain_call', S(14), transition=W, section='credits')
-    B.clip('sc_morning_still', S(5), section='close')
-    B.cap("It's just a game…", B.t - S(5) + 20, B.t - 10, 'strip')
-    B.clip('mo_circuit_morph', S(6), grade='none', section='close', cues=[dict(name='snap', frame=B.t, kind='design')])
-    B.cap('…where you accidentally learned quantum error correction.', B.t - S(6) + 6, B.t - 6, 'strip')
-    B.clip('mo_end_card', S(5), grade='none', section='end_card')
+    hero('4-1', 'ch4', 12, '= the Shor 9-qubit code', in_f=40)
+    wow('sc_lights_out_ear', 10, 1830, 'ch4', 'Lights Out: solve it by ear')
+    a = B.t
+    wipe_clip('sc_gremlin_lab', S(14), in_s=60 / FPS, section='labs')
+    strip_cap(B, 'Gremlin Lab and Night Shift: your code against random gremlins', a + 30, B.t - 10)
+    wow('sc_threshold', 12, 90, 'labs', 'Codes only help when noise is rare: below p = ½', '= threshold')
+    a = B.t
+    wipe_clip('sc_codex_tour', S(18), in_s=80 / FPS, section='codex')
+    strip_cap(B, 'The Codex: everything you meet, collected', a + 30, B.t - 10)
+    wow('sc_card_guide', 8, 70, 'codex', 'Card Guide: every card explained')
+    a = B.t
+    wipe_clip('sc_notebook', S(16), in_s=380 / FPS, section='notebook')
+    strip_cap(B, "Schrödi's Lab Notebook: the real maths behind each night", a + 30, B.t - 10)
+    wow('sc_qol_grid', 15, 80, 'qol', 'Snippets · help slot · step mode · timeline')
+    wow('sc_save_joke', 4.5, 0, 'qol', 'Your save data has a 3-qubit repetition code ✓')
+    wipe_clip('sc_curtain_call', S(14), in_s=40 / FPS, section='credits')
+    B.clip('card_justagame', 192, grade='none', section='close')
+    a = B.t
+    B.clip('mo_circuit_morph', 372, grade='none', section='close', cues=[dict(name='snap', frame=a, kind='design')])
+    B.clip('mo_end_card', 300, grade='none', section='end_card')
+    for c in B.e['clips']:
+        if c['shot'] in ('card_justagame', 'mo_circuit_morph'):
+            mk = motion_markers(c['shot'])
+            lf = c['start'] + mk.get('text_legible', mk.get('line_legible', 30))
+            txt = "It's just a game…" if c['shot'] == 'card_justagame' else '…where you accidentally learned quantum error correction.'
+            B.e['captions'].append(dict(id=f'cap{len(B.e["captions"]) + 1:02d}', text=txt, start=c['start'] + (0 if 'card' in c['shot'] else 96),
+                                        end=c['start'] + c['dur'], legible_from=lf, position='baked', style='night', render={'baked': c['shot']}))
     return B.done()
 
 

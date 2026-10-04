@@ -11,6 +11,7 @@
  *
  * See docs/VIDEO_CAPTURE.md for the full DSL.
  */
+import { Progress } from '../progress/progress.mjs';
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -323,6 +324,21 @@ export class Shot {
     await this.wait(opts.after ?? 0.12);
     return r;
   }
+  /** Draw a stroke through points [{x,y}…] (press at the first, glide through the rest, release). opts: { dur } */
+  async stroke(points, { dur = 1.0, pre = 0.4 } = {}) {
+    await this.cursorTo(points[0], { dur: pre });
+    this.mouse.down = true; await this.page.mouse.down(); this.expect.downs++;
+    const segs = points.length - 1, n = Math.max(segs, this.frames(dur));
+    for (let i = 1; i <= n; i++) {
+      const u = (i / n) * segs, k = Math.min(segs - 1, Math.floor(u)), f = u - k;
+      await this.moveMouse(points[k].x + (points[k + 1].x - points[k].x) * f, points[k].y + (points[k + 1].y - points[k].y) * f);
+      await this.tick();
+    }
+    this.mouse.down = false; await this.page.mouse.up(); this.expect.ups++;
+    await this.wait(0.08);
+  }
+  /** Hold a modifier key (Shift/Control) while fn runs. */
+  async withKey(key, fn) { await this.page.keyboard.down(key); this.expect.keys++; try { await fn(); } finally { await this.page.keyboard.up(key); } }
   /** Press-move-release. a/b: selector | {x,y}. opts: { dur=0.8, ease, pre=0.5 (glide to a), hold=0.12 } */
   async drag(a, b, opts = {}) {
     const { dur = 0.8, pre = 0.5, hold = 0.12 } = opts;
@@ -331,7 +347,7 @@ export class Shot {
     this.mouse.down = true;
     await this.page.mouse.down(); this.expect.downs++;
     await this.wait(hold);
-    await this.cursorTo(b, { dur, ease: opts.ease ?? 'inOut', arc: opts.arc ?? 0.06 });
+    await this.cursorTo(b, { dur, ease: opts.ease ?? 'inOut', arc: opts.arc ?? 0.06, ax: opts.ax, ay: opts.ay, dx: opts.dx, dy: opts.dy });
     await this.wait(hold);
     this.mouse.down = false;
     await this.page.mouse.up(); this.expect.ups++;
@@ -438,11 +454,12 @@ export class Shot {
 
 // ───────────────────────── post-processing ─────────────────────────
 function summariseEvents(events) {
-  const dialogue = new Map(), toasts = [];
+  const dialogue = new Map(), toasts = [], cards = [];
   for (const e of events) {
     if (e.type === 'dialogue_show') dialogue.set(e.id, { id: e.id, who: e.who, name: e.name, show: e.frame, showVt: e.vt });
     else if (e.type === 'dialogue_typed') { const d = dialogue.get(e.id); if (d) { d.typed = e.frame; d.text = e.text; } }
     else if (e.type === 'dialogue_hide') { const d = dialogue.get(e.id); if (d) { d.hide = e.frame; d.text = d.text || e.text; } }
+    else if (e.type === 'card_current') cards.push({ frame: e.frame, op: e.op, line: e.line, phase: e.phase, text: e.text });
     else if (e.type === 'toast_show') toasts.push({ text: e.text, cls: e.cls, show: e.frame });
     else if (e.type === 'toast_hide') { const t = toasts.find((x) => x.text === e.text && x.hide === undefined); if (t) t.hide = e.frame; }
   }
@@ -453,7 +470,7 @@ function summariseEvents(events) {
     if (e.i === 0 || !cur || cur.who !== e.who) { cur = { who: e.who, first: e.frame, last: e.frame, chars: e.n, firstVt: e.vt }; voiceLines.push(cur); }
     cur.last = e.frame;
   }
-  return { dialogue: [...dialogue.values()], toasts, voiceLines };
+  return { dialogue: [...dialogue.values()], toasts, voiceLines, cardHighlights: cards };
 }
 
 // ───────────────────────── runner ─────────────────────────
@@ -549,7 +566,12 @@ async function runOne(browser, def, opts, wi) {
   const s = new Shot(def, env);
   const t0 = Date.now();
   let lastLog = t0;
+  // live progress (tools/video/progress/status.html); total = the last capture's length when known (an estimate)
+  let estTotal = null;
+  try { estTotal = JSON.parse(fs.readFileSync(path.join(opts.outDir, `${def.name}.meta.json`), 'utf8')).frames ?? null; } catch { /* new shot */ }
+  const prog = new Progress(`capture:${def.name}`, { title: `Capture ${def.name}`, unit: 'frames', total: estTotal, resume: opts.part > 0, agent: process.env.NP_AGENT ?? 'capture' });
   env.onFrame = (sh) => {
+    prog.tick(sh.frame, { stage: opts.part != null ? `chunk ${opts.part}` : '' });
     if (Date.now() - lastLog > 5000) { lastLog = Date.now(); console.log(`  [w${wi}] ${def.name}: ${sh.frame} frames, ${(sh.frame / ((Date.now() - t0) / 1000)).toFixed(2)} fps`); }
   };
   console.log(`[w${wi}] ▶ ${def.name}`);

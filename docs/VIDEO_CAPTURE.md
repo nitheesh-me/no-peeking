@@ -75,7 +75,8 @@ All durations are **virtual seconds**.
 | `s.cursorTo(sel \| {x,y} \| fn, {dur, ease, arc, dx, dy, ax, ay})` | glide the drawn cursor on a gentle arc; easings `linear in out inOut inOutSine outBack` |
 | `s.click([target], {dur, hold, after})` | press (cursor squash + ripple) and release with real input |
 | `s.tap(target, pageFn, opts)` | the same click *visually*, without input; then runs `pageFn` in the page (force an outcome behind a real-looking click) |
-| `s.drag(a, b, {dur, pre, hold})`, `s.type(text, {cps})`, `s.key('Escape')`, `s.scrollWheel(dy)` | input |
+| `s.drag(a, b, {dur, pre, hold, ax, ay})`, `s.type(text, {cps})`, `s.key('Escape')`, `s.scrollWheel(dy)` | input (`ax/ay` = drop point inside `b`, 0..1) |
+| `s.stroke([{x,y}…], {dur})`, `s.withKey('Shift', fn)` | draw a pen stroke (doodles); hold a modifier during clicks (shift-select) |
 | `s.placeCursor(t)`, `s.showCursor(on)` | teleport / fade the cursor |
 | `s.loadProgram({bedtime, morning}, {onCamera, typing})` | the Text modal flow (`Text` → fill → `Load`), visibly or not |
 | `s.solution(id)` | the level's reference solution as text |
@@ -109,11 +110,12 @@ Timing parameters come from `shots/params.mjs`: `P('shot.key', default)`, overri
 |---|---|
 | `.mkv` | FFV1 lossless, 3840×2160 (or 1920×1080 for `scale: 1` shots), 60 fps CFR |
 | `.meta.json` | frames, duration, size, seed, URL, `marks` (named frames and holds), timing per frame, clock audit (`vtStep`), page errors |
-| `.events.json` | `events[]`: every audio call (`sfx` + opts, `botNote`, `syndromeChord`, `voice` per character, `setScene/Tension/Harmony`), routes, dialogue (`dialogue_show/typed/hide`), toasts, modals, win card — each with `frame` (clip frame; `null` = off camera) and `vt`. Plus summaries: `dialogue[]` (who, text, show/typed/hide frames), `toasts[]`, `voiceLines[]` |
+| `.events.json` | `events[]`: every audio call (`sfx` + opts, `botNote`, `syndromeChord`, `voice` per character, `setScene/Tension/Harmony`), routes, dialogue (`dialogue_show/typed/hide`), toasts, modals, win card — each with `frame` (clip frame; `null` = off camera) and `vt`. Also `card_current` (a Bot Code card lighting up as it executes: op, line, phase, text). Plus summaries: `dialogue[]` (who, text, show/typed/hide frames), `toasts[]`, `voiceLines[]`, `cardHighlights[]` |
 | `.layout.json` | run-length segments `{ sel, from, to, rects:[[x,y,w,h]…] }` for `.dialogue .editor .controls .toast .modal .win-card .popover .topbar .timeline .nb-drawer .inspector .cd-controls .title-menu`, CSS px in 1920×1080 (×2 for capture pixels); only visible boxes |
 | `.camera.json` | camera keyframes, when the shot sets any |
 
 ## Shot lists
+`shots/programming.mjs`: the REVISED 2 programming shots (`pg_*`, normal UI at 4K, card highlights logged).
 The production lists follow `videos/final/work/shot_todo.json` (ids = the Editor's shot ids):
 `shots/todo_trailer.mjs` (21 trailer shots + `tr_title_peek`, `mn_bloch`; cinema, 4K), `shots/todo_mechanic.mjs`
 (`me_*` classic layout at 4K with Schrödi's dialogue as narration, plus `me_cold_blanket`, `sc_morning_still` in
@@ -132,6 +134,12 @@ Exploratory/alternate takes: `shots/samples.mjs` (self-test), `shots/trailer.mjs
 - Sharpness (variance of the Laplacian at 1080p): the old cut (`videos/mechanic.mp4`, 30 fps screen recording) has a
   median of ~2500 over busy UI frames; see the verify report for the new samples (comparable content scores
   higher; the title screen is mostly soft sky, so its absolute value is lower and not comparable).
+
+## `?cinema` off = no change (regression proof, 2026-10-04 21:48)
+`tools/video/capture/cinema-off-check.sh` (run under `safe-run.sh --heavy`) builds the pre-cinema commit (a265667) and
+the working tree, renders 10 deterministic scenes from each without the flag (title, map, 2-3 build, 2-3 mid-night with a
+flip, 1-3, 4-2 Lights Out, Codex grid, Codex Qubble detail, credits at 12 s, 2-3 with nerd mode + Lab Notebook circuit)
+and compares pixels: **all 10 identical**. `tsc --noEmit` clean; `vitest run`: 110 passed, 1 skipped.
 
 ## Known limits (things that resist determinism)
 - **Hover transitions** while the cursor glides over DOM cards: Chrome updates `:hover` partly from real-time

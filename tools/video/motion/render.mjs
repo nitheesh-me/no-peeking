@@ -13,6 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright';
 import { JOBS } from './jobs.mjs';
+import { Progress, contactSheet } from '../progress/progress.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '../../..');
@@ -115,6 +116,7 @@ for (const jobName of jobs) {
   }
   await probe.close();
   const n = info.frames;
+  const prog = new Progress(`motion:${name}`, { title: `Motion ${name}`, total: n, unit: 'frames', agent: process.env.NP_AGENT ?? 'motion' });
   // Chunk rule (docs/VIDEO_RESOURCES.md): long clips render as ≤ 300-frame segments; each finished segment is
   // kept (with a .done marker) so a killed run resumes where it stopped. Segments are concatenated losslessly.
   const SEG = 300;
@@ -124,7 +126,7 @@ for (const jobName of jobs) {
   for (let s0 = 0; s0 < n; s0 += SEG) {
     const s1 = Math.min(n, s0 + SEG);
     const segTag = `seg${String(s0).padStart(5, '0')}`;
-    if (fs.existsSync(path.join(tmp, `${segTag}.done`))) { doneFrames += s1 - s0; console.log(`${name}: ${segTag} already rendered, skipping`); continue; }
+    if (fs.existsSync(path.join(tmp, `${segTag}.done`))) { doneFrames += s1 - s0; prog.tick(doneFrames); console.log(`${name}: ${segTag} already rendered, skipping`); continue; }
     for (const f of fs.readdirSync(tmp)) if (f.startsWith(segTag)) fs.rmSync(path.join(tmp, f));
     const len = s1 - s0;
     const W = Math.min(WORKERS, Math.max(1, Math.ceil(len / 20)));
@@ -147,6 +149,7 @@ for (const jobName of jobs) {
           }
           await write(ff.p.stdin, buf);
           doneFrames++;
+          prog.tick(doneFrames, { stage: `segment ${segTag}` });
           if (doneFrames % 30 === 0) process.stdout.write(`\r${name}: ${doneFrames}/${n} frames (${((Date.now() - t0) / doneFrames).toFixed(0)} ms/frame)   `);
         }
       } finally {
@@ -173,6 +176,10 @@ for (const jobName of jobs) {
     markers: info.markers, params: info.params, rendered: new Date().toISOString(),
   };
   fs.writeFileSync(`${outBase}.json`, JSON.stringify(meta, null, 2));
+  prog.stage('contact sheet');
+  const sheet = contactSheet(alpha ? `${outBase}_fill.mkv` : `${outBase}.mkv`, `motion_${name}`, n);
+  if (sheet) prog.output(sheet, 'contact sheet');
+  prog.done(`${n} frames in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
   console.log(`\n${name}: ${n} frames in ${((Date.now() - t0) / 1000).toFixed(1)} s → ${outBase}${alpha ? '_fill/_matte' : ''}.mkv`);
 }
 await browser.close();

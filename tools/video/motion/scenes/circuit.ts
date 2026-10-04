@@ -113,8 +113,8 @@ function drawCard(ctx: Ctx, c: Card, x: number, y: number, w: number, h: number,
 export const circuit: Scene<CircuitParams> = {
   resolve: (p) => ({
     // trailer (cue sheet v2): starts on the snap (f3698), 288 frames to the end card (f3986). beat = 32.
-    frames: 192, bg: 'notebook', morphStart: 18, stagger: 3, morphDur: 26,
-    line: '…where you accidentally learned quantum error correction.', lineAt: 96, lineReveal: 30, stamp: null, grain: 0.03, ...p,
+    frames: 192, bg: 'notebook', morphStart: 6, stagger: 2, morphDur: 26,
+    line: '…where you accidentally learned quantum error correction.', lineAt: 62, lineReveal: 30, stamp: null, grain: 0.03, ...p,
   }),
   frames: (p) => p.frames,
   markers: (p) => ({ snap: 0, morph_start: p.morphStart, morph_end: p.morphStart + p.stagger * (CARDS.length - 1) + p.morphDur, line_start: p.lineAt, line_legible: p.lineAt + p.lineReveal, ...(p.stamp != null ? { stamp: p.stamp } : {}) }),

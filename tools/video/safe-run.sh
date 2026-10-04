@@ -9,12 +9,12 @@
 #   - --mem is an optional per-job ceiling (default: none, the job may use whatever the pool has free).
 #   - Admission: if --mem is given and that much memory isn't available yet (beyond the 4 GB reserve),
 #     the job WAITS (polling, up to 30 min) instead of failing.
-#   - --heavy (REQUIRED for headless-Chromium renders and 4K ffmpeg encodes): takes one of 3 render slots, so at
-#     most 3 heavy renders run at once machine-wide (software GL is CPU-bound; more in parallel only starves the desktop).
-#   - The pool as a whole is capped at 16 of 22 cores with low CPU/IO priority; the desktop (session.slice) has
+#   - --heavy (REQUIRED for headless-Chromium renders and 4K ffmpeg encodes): takes one of 2 render slots, so at
+#     most 2 heavy renders run at once machine-wide (software GL is CPU-bound; more in parallel only starves the desktop).
+#   - The pool as a whole is capped at 10 of 22 cores with low CPU/IO priority; the desktop (session.slice) has
 #     3 GB of protected memory and top CPU priority.
 set -euo pipefail
-MEM=""; CPU="800%"; HEAVY=0
+MEM=""; CPU="600%"; HEAVY=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --heavy) HEAVY=1; shift;;
@@ -32,22 +32,43 @@ if [[ -n "$MEM" ]]; then
   for i in $(seq 1 900); do
     AVAIL=$(awk '/MemAvailable/ {print int($2/1024)}' /proc/meminfo)
     (( AVAIL - RESERVE_MB >= NEED )) && break
-    (( i == 1 )) && echo "safe-run: waiting for ${NEED} MB (available beyond reserve: $((AVAIL - RESERVE_MB)) MB)…" >&2
+    if (( i == 1 )); then
+      echo "safe-run: waiting for ${NEED} MB (available beyond reserve: $((AVAIL - RESERVE_MB)) MB)…" >&2
+      MQID="queue:mem-$(basename "${1:-job}")-$$"
+      python3 "$(dirname "$0")/progress/progress.py" queued "$MQID" "Queued: $(basename "${1:-job}")" "waiting for ${NEED} MB of free memory" $$ || true
+    fi
     sleep 2
   done
+  [[ -n "${MQID:-}" ]] && { python3 "$(dirname "$0")/progress/progress.py" clear "$MQID" || true; }
   PROPS=(-p MemoryMax="$MEM")
 else
   PROPS=()
 fi
-RUN=(systemd-run --user --scope -q --slice=npvideo.slice "${PROPS[@]}" -p CPUQuota="$CPU" -- nice -n 5 "$@")
+# Block suspend/idle-sleep while any job runs: crash #5 (17:40) was a resume-from-suspend hang mid-render.
+RUN=(systemd-inhibit --what=sleep:idle --who=npvideo --why="video job running" --mode=block
+     systemd-run --user --scope -q --slice=npvideo.slice "${PROPS[@]}" -p CPUQuota="$CPU" -- nice -n 5 "$@")
+if (( HEAVY )) && [[ -n "${NP_RENDER_SLOT:-}" ]]; then
+  HEAVY=0  # a parent job already holds a render slot; its children run inside it (no nested slot = no self-deadlock)
+fi
 if (( HEAVY )); then
-  # 3 render slots: try each slot lock without waiting; if all busy, wait on a random slot
+  # Render slots: take whichever frees first. A queued job shows on the progress board.
   DIR="$(dirname "$0")"
-  for slot in 1 2 3; do
-    exec 9>"$DIR/.render-slot-$slot.lock"
-    if flock -n 9; then exec "${RUN[@]}"; fi
-  done
-  echo "safe-run: all 3 render slots busy, waiting…" >&2
-  exec 9>"$DIR/.render-slot-$(( RANDOM % 3 + 1 )).lock"; flock 9; exec "${RUN[@]}"
+  # NP_RENDER_SLOTS (default 1 since crash #6 at 20:11, cause unknown; was 2) = heavy jobs allowed at once, machine-wide
+  try_slots() {
+    for slot in $(seq 1 "${NP_RENDER_SLOTS:-1}"); do
+      exec 9>"$DIR/.render-slot-$slot.lock"
+      if flock -n 9; then export NP_RENDER_SLOT=$slot; return 0; fi
+      exec 9>&-
+    done
+    return 1
+  }
+  if ! try_slots; then
+    echo "safe-run: both render slots busy, queued (shown on the progress board)…" >&2
+    QID="queue:$(basename "${1:-job}")-$$"
+    python3 "$DIR/progress/progress.py" queued "$QID" "Queued: $(basename "${1:-job}") ${*:2:3}" "waiting for a render slot (${NP_RENDER_SLOTS:-1} max)" $$ || true
+    until try_slots; do sleep 3; done
+    python3 "$DIR/progress/progress.py" clear "$QID" || true
+  fi
+  exec "${RUN[@]}"
 fi
 exec "${RUN[@]}"

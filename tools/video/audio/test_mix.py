@@ -65,6 +65,40 @@ def synthetic_trailer():
             'outputs': [], 'cue_sheet': 'videos/music/cue_sheet.json', 'clips': C, 'duration': 4240}
 
 
+def synthetic_trailer_r2():
+    """REVISED 2 (programming emphasised) on the v2 grid with real captures: Wobbles strike in the build,
+    the proof split screen (tr_proof), a 12-cut montage alternating programming / world (56 f each)."""
+    C = [clip('cold', 'tr_cold_blanket', 0, 0, 434),
+         clip('peek', 'tr_title_peek', 434, 80, 288, cues=[{'name': 'peek_collapse_impact', 'frame': 434}, {'name': 'title_letters_pitched', 'frame': 530}]),
+         clip('relight', 'tr_relight', 722, 44, 192, 1.5),
+         clip('wobbles', 'tr_gremlin_wobbles', 914, 0, 192),
+         clip('dark', 'tr_dark_room', 1106, 0, 192),
+         clip('silence', 'sample-cinema-sphere', 1298, 0, 64, audio={'mute': True}, cues=[{'name': 'silence', 'frame': 1298}]),
+         clip('antenna', 'tr_bot_antenna', 1362, 59, 32, cues=[{'name': 'bot_beep_dry', 'frame': 1362}]),
+         clip('drop', 'sample-cinema-title', 1394, 0, 192, cues=[{'name': 'drop_impact', 'frame': 1394}]),
+         clip('proof', 'tr_proof', 1586, 380, 576)]
+    C[-1]['section'] = 'proof'
+    # the cue sheet's montage ladder (96 -> 64 -> 32): cut_rules.montage_cut_frames, half programming / half world
+    cuts = [2162, 2258, 2354, 2450, 2514, 2578, 2642, 2674, 2706, 2738, 2770, 2802, 2834]
+    mont = [('sc_qol_grid', 200, True), ('mn_schrodi_checklist', 190, False), ('sc_card_guide', 120, True), ('mn_highfive', 70, False),
+            ('me_encode', 180, True), ('mn_listen', 90, False), ('sc_qol_grid', 595, True), ('mn_dream_map', 90, False),
+            ('mn_test_strip', 10, True), ('mn_schrodi_checklist', 320, False), ('sc_qol_grid', 655, True), ('sc_notebook', 1330, True)]
+    for i, (shot, inn, prog) in enumerate(mont):
+        c = clip(f'm{i + 1:02d}_{shot}', shot, cuts[i], inn, cuts[i + 1] - cuts[i])
+        c['programming'] = prog
+        c['section'] = 'montage'
+        C.append(c)
+    C += [clip('lights', 'mn_lights_out', 2834, 1600, 192),
+          clip('morning', 'tr_morning_check', 3026, 0, 192),
+          clip('curtain', 'tr_curtain_call', 3218, 100, 192),
+          clip('closing', 'sample-cinema-sphere', 3410, 0, 192),
+          clip('closing_silence', 'sample-cinema-sphere', 3602, 0, 96, audio={'mute': True}),
+          clip('circuit', 'sample-codex-bloch', 3698, 0, 288, cues=[{'name': 'snap', 'frame': 3698}]),
+          clip('end', 'sample-cinema-title', 3986, 0, 254, 0.78)]
+    return {'schema': 'np-edl/1', 'video': 'trailer', 'fps': 60, 'layout': 'cinema', 'work': [1920, 1080],
+            'outputs': [], 'cue_sheet': 'videos/music/cue_sheet.json', 'clips': C, 'duration': 4240}
+
+
 def synthetic_mechanic():
     """Mechanic-style: the 2-3 night at 1x (voices on, Schrödi's lines) + a 4x replay to stress thinning."""
     C = [
@@ -106,7 +140,8 @@ def check(edl_obj, rep, name, args_out):
             if (cid, sf) not in thinned:
                 missing.append((cid, sf))
             continue
-        if abs(r['frame'] - tf) > 1 or r['sample'] != r['frame'] * 800 and r['source'] and not r['source'].startswith('trailer'):
+        tol = 2 if r.get('quantised_from') is not None else 1  # card accents may be quantised to the 8th (<= 2 frames)
+        if abs(r['frame'] - tf) > tol:
             sync_err.append((cid, sf, r['frame'], tf))
         if r['sample'] != r['frame'] * 800:
             sync_err.append((cid, sf, 'sample', r['sample']))
@@ -124,7 +159,14 @@ def check(edl_obj, rep, name, args_out):
             if not (-1 / 60 <= d <= 1 / 60 + 0.006):
                 onset_err.append((r['id'], r['name'], round(d * 1000, 1)))
     L = rep['loudness']['ffmpeg_ebur128']
+    acc = [r for r in rep['cues'] if r.get('accent')]
+    wob = [r for r in rep['cues'] if r['name'] == 'wobble']
+    segs = rep.get('score_segments', [])
+    res_r2 = {'accents': len(acc), 'accents_pass': sum(bool(r.get('pass')) for r in acc), 'accents_quantised': sum(r.get('quantised_from') is not None for r in acc),
+              'wobble': [(r['frame'], r['featured'], r.get('margin_lu'), r.get('pass')) for r in wob],
+              'segments': len(segs), 'segments_on_downbeat': all(sg['on_downbeat'] for sg in segs)}
     res = {
+        **res_r2,
         'video': name, 'loudness_curve_bed_pass': (rep.get('loudness_curve', {}).get('bed') or {}).get('pass'),
         'proof_energy': rep.get('proof_energy'), 'events_expected': len(exp), 'placed': len(placed), 'thinned': len(rep['thinned']),
         'missing_not_thinned': missing, 'sync_errors_gt_1frame': sync_err, 'onset_errors': onset_err[:20],
@@ -144,12 +186,14 @@ def main():
     results = []
     runs = (('trailer_song', synthetic_trailer, ['--music', 'videos/music/trailer_edit.wav']),
             ('trailer_public', synthetic_trailer, ['--music', 'videos/audio2/score_alt/score_alt.wav']),
-            ('mechanic', synthetic_mechanic, []))
+            ('mechanic', synthetic_mechanic, []),
+            ('r2_song', synthetic_trailer_r2, ['--music', 'videos/music/trailer_edit.wav']),
+            ('r2_public', synthetic_trailer_r2, ['--music', 'videos/audio2/score_alt/score_alt.wav']))
     for name, fn, extra in runs:
-        if which not in ('all', name, name.split('_')[0]):
+        if which not in ('all', name, name.split('_')[0]) and not (which == 'r2' and name.startswith('r2')):
             continue
         edl_obj = fn()
-        p = OUT / f'synthetic_{name.split("_")[0]}.edl.json'
+        p = OUT / f'synthetic_{"trailer_r2" if name.startswith("r2") else name.split("_")[0]}.edl.json'
         p.write_text(json.dumps(edl_obj, indent=1))
         rep = mix.main([str(p.relative_to(ROOT)), '--out', f'videos/audio2/test/{name}'] + extra)
         r = check(edl_obj, rep, name, OUT / name)

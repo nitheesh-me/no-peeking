@@ -17,6 +17,7 @@
  *
  * Internal (child) flags: --range a:b --part k --result file.json
  */
+import { Progress, contactSheet } from '../progress/progress.mjs';
 import path from 'node:path';
 import fs from 'node:fs';
 import { spawn } from 'node:child_process';
@@ -102,6 +103,7 @@ async function doShot(d) {
     for (let attempt = 0; attempt < 30; attempt++) {
       code = await run(SAFE, ['--heavy', '--mem', process.env.CAP_MEM ?? '5G', '--', process.execPath, path.join(HERE, 'run.mjs'), ...files, '--only', d.name, '--range', `${a}:${b}`, '--part', String(k), '--result', rf, '--expect-hash', shotHash, ...pass]);
       if (code !== 75) break; // 75 = not enough free memory right now: wait and retry
+      new Progress(`capture:${d.name}`, { resume: true, title: `Capture ${d.name}`, unit: 'frames' }).queued('waiting for free memory (retry in 20 s)');
       console.log(`[${d.name}] waiting for memory (safe-run 75)…`); await new Promise((r) => setTimeout(r, 20000));
     }
     if (code === 3 && restarts++ < 3) { // the game or capture code changed mid-shot: start the shot over
@@ -114,7 +116,7 @@ async function doShot(d) {
     parts.push(path.join(outDir, `${d.name}.part${String(k).padStart(3, '0')}.mkv`));
     if (r.complete) total = r.frames;
   }
-  if (fail) { console.error(`[${d.name}] FAILED: ${fail}`); summary.push({ name: d.name, error: fail }); return; }
+  if (fail) { console.error(`[${d.name}] FAILED: ${fail}`); summary.push({ name: d.name, error: fail }); new Progress(`capture:${d.name}`, { resume: true, title: `Capture ${d.name}`, unit: 'frames' }).fail(fail); return; }
   const out = path.join(outDir, `${d.name}.mkv`);
   if (parts.length === 1) fs.renameSync(parts[0], out);
   else {
@@ -128,6 +130,11 @@ async function doShot(d) {
   const secs = (Date.now() - t0) / 1000;
   console.log(`[${d.name}] ✔ ${total} frames in ${parts.length} chunk(s), ${secs.toFixed(0)} s → ${(total / secs).toFixed(2)} fps overall`);
   summary.push({ name: d.name, frames: total, chunks: parts.length, seconds: secs });
+  const prog = new Progress(`capture:${d.name}`, { resume: true, title: `Capture ${d.name}`, unit: 'frames', total });
+  prog.stage('contact sheet');
+  const sheet = contactSheet(out, `capture_${d.name}`, total);
+  if (sheet) prog.output(sheet, 'contact sheet');
+  prog.done(`${total} frames, ${parts.length} chunk(s), ${(total / secs).toFixed(2)} fps`);
   // register for the Editor (tools/video/edl/shot_sources.json: id → path relative to the repo)
   if (!process.env.CAP_NO_REGISTER && outDir === path.join(ROOT, 'videos/capture')) {
     const reg = path.join(ROOT, 'tools/video/edl/shot_sources.json');

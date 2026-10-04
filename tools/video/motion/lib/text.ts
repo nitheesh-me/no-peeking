@@ -111,7 +111,7 @@ export function revealTiming(n: number, reveal: number) {
   return { stagger };
 }
 /** Frame (relative to start) at which the whole text is fully legible. */
-export function legibleAt(o: { reveal?: number }, n: number) { return o.reveal ?? defaultReveal(n); }
+export function legibleAt(o: { reveal?: number }, n: number) { const r = o.reveal ?? defaultReveal(n); return r - Math.min(LETTER_FRAMES, r) + LETTER_FRAMES; }
 export function defaultReveal(n: number) { return Math.round(clamp(LETTER_FRAMES + n * 0.55, 18, 34)); }
 
 export function drawCollapseText(ctx: Ctx, b: TextBlock, f: number, o: CollapseOpts) {

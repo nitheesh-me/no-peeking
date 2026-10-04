@@ -50,6 +50,8 @@ TRAILER = {
     'snap_measure': (60, 0.6, 4.0, 8, 0.08), 'spin': (52, 0.5, 3.0, 3, 0.15), 'shush': (55, 0.3, 2.0, 2, 0.15),
     'schrodi_meow': (52, 0.35, 3.0, 3, 0.15), 'qubble_snore': (40, 0.4, 2.5, 0, 0.15), 'gremlin_sneak': (45, 0.5, 3.0, 3, 0.2),
     'reset': (55, 0.5, 3.0, 4, 0.12), 'rewind': (50, 0.5, 3.0, 3, 0.15), 'qubble_giggle': (55, 0.3, 3.0, 3, 0.12),
+    # card UI as rhythmic accents (REVISED 2: the programming is heard): tight, woody, small sub tick
+    'card_pick': (60, 0.35, 4.0, 6, 0.06), 'card_drop': (55, 0.55, 3.5, 7, 0.06), 'ui_click': (58, 0.55, 4.5, 4, 0.14),
 }
 
 

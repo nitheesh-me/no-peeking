@@ -317,3 +317,53 @@ The *taste* layer, though, has four real problems: one harmonic clash, one weak 
 9. **Got right, keep:** the C5 BEEP (the tonic in the public score, the 5th in the song's F-minor drop), sig_b's 10 notes pitch-verified and resolving on C, Qubblese off in the trailer, the 2–5 kHz ducking, and the final snore.
 
 **Public vs song energy shape:** it is convincing in shape (the build rises bar by bar, the payoff is the loudest section, and the proof sits 7.5 dB down), but not in *weight* (item 6). Once the drop has mid and high energy, the public cut will stand on its own; until then, it is a cosy waltz with a loud sub.
+
+---
+
+## Milestone: trailer song cut (`videos/final/trailer.mp4`, 70.67 s)
+
+**What I reviewed:**
+- the contact sheet and the 10 stills;
+- my own frame grids: the title peek f330–460 every 16 frames, the build every 32, the Wobbles beat every 16, the proof every 24, the montage every 16, and full frames at f360, f725, f2900, f3700;
+- per-second ebur128 on the delivered AAC;
+- the EDL caption list.
+
+### Verdict: **FIX**
+The craft is now real: the picture is crisp, every cut is on the beat, the silences are true silences, and the end of the trailer is excellent. The closing (paper "It's just a game…" → the notebook cards → the circuit with "Flipper flips q2") is the best 15 seconds the team has made.
+
+But two of the user's four explicit asks fail on screen, and the hook still isn't communicated:
+- **Ask 1, Wobbles: FAIL.** In the build's Wobbles beat (f1106–1298), Wobbles is **not visible in a single frame**: lights out hides the gremlins, and the caption icon is a *Qubble*, not Wobbles. Flipper and Phasey have the same problem: three captions about gremlins over empty dark rooms. Wobbles appears only in the 32-frame Codex portrait (T024, 0.53 s).
+- **Ask 2, programming emphasised: PARTIAL.**
+  - The proof split-screen is legible at 1080p (still 08: card text cap height about 20 px), but the causal link is weak: a thin outline and a small red triangle in a 15-line column, about 1,000 px away from the actor.
+  - The six programming montage cuts are **full-UI wide shots that look like the same frame six times** (T017, T021, T023, T025, T027). Drag, IF anatomy, test strip, scrub, snippets/doodle and export are *present* but not *shown*.
+- **Ask 3, energy and beat-cutting: PARTIAL.** Every hard cut is on the beat, and the shot ladder is 96 → 64 → 32 frames. But the **full mix inverts the anticipation**:
+  - the title-letters section is the loudest moment of the first half (short-term −11.0 LUFS at 12 s, momentary −10.8);
+  - the build sits at short-term −13 to −15;
+  - the drop at f1394 only reaches short-term −16 to −13.
+
+  The music-bed gate passes, but the *mix* curve is what people hear.
+- **Ask 4, closing line: PASS.** It is staged exactly as intended.
+- **The hook:** nothing in the trailer says *you can't look* or *you fix it without looking*. "One rule" and "Look, and one dream is gone" were cut, and the proof has no labels. Only the title "NO PEEKING!" carries the rule.
+
+### Ranked fixes
+| # | Timecode | Owner | Exact fix |
+|---|---|---|---|
+| 1 | build f722–1298 (T005–T008) | **Capture Engineer → Editor** | Recapture the three gremlin beats so that **the gremlin is on screen**: use the X-ray replay of that night (the bible: "in the X-ray replay you see exactly what they did"), punched in 1.5× on the gremlin and its target Qubble. Flipper flipping a dream, Phasey's swirl twist, **Wobbles' jelly wobble tipping the Qubble's swirl halfway**. Start each clip *after* lights out, so the room doesn't pump day→night three times (currently each beat re-plays the relight). Replace each caption icon with **that gremlin's sprite** (the Codex art). |
+| 2 | f1586–2162 (proof) | **Motion Designer + Editor** | Make "card → action" unmissable. (a) Scroll-follow window: crop the program column to the 6–7 cards around the current line at 1.4× (from the 4K capture, so no upscale). (b) On each event-log action, the current card pops to 1.12× with a glow in its own colour (6 frames), and **a ring of the same colour pulses on the acting character** in the room on the same frame; for the first two actions only, add a thin animated connector from card to actor. (c) Hide the in-game Schrödi dialogue box (visible bottom-left from about f1990). (d) **Clear cap05 "You don't play it. You program it." by f1586**: it currently covers the room until about f1700. |
+| 3 | f1586–2162 + T003/T004 | **Editor (captions)** | Put the hook in words, using 3 short captions in the top third. "**Look… and it's gone.**" on T003/T004 (f454–594). "**Something's wrong with #2.**" on the BEEP/BEEP result in the proof. "**Fix it. Never look.**" on the BOOP q2. Without these, the fresh-eyes check fails (below). |
+| 4 | montage f2162–2834 (T017, T019, T021, T023, T025, T027) | **Editor** (camera keyframes); Capture Engineer only if a source was captured at DSF 1 | **Punch in to 2.0×** on the feature region of each programming cut (native from the 3840 capture): the hand dragging the card into the slot; the IF anatomy diagram (numbered callouts); the ✓✓✓ test strip row; the timeline scrubber hitting the measurement "snap"; the snippet drawer + doodle; the Qiskit text. Replace T026's grey timeline view with the notebook's **Circuit page** (gates, the red X). Each cut must be recognisable in a 0.5 s thumbnail. |
+| 5 | f530–722 and f1394–1586 | **Sound Designer** | Fix the inverted mix arc: sig_b title letters −5 dB, the build's SFX stingers −3 dB, `impact_logo` +2 dB, and no ducking of the bed during the logo reveal. Add a full-mix gate: **max short-term over f1394–1646 ≥ max short-term before f1298 + 2 LU**, and the drop's momentary peak is the highest before the payoff. |
+| 6 | f2834–3026 (T029–T030) | **Capture Engineer** (or Editor mask) | The white **"the end. zzz"** sleep-talk bubble in the Lights Out black (concern e) reads as "THE END" at 47 s. Disable idle speech bubbles for that capture, or mask it. Only the two red bot lights may be visible. |
+| 7 | f330–434 (title_peek) | **Capture Engineer** | Concern (a): the cursor is not a stray, it *is* the peek (it reaches P at about f426), but it wanders up from the bottom-left for about 1.5 s like a forgotten system pointer. Start it near the letters, and give it one eased glide (≤ 40 frames) onto P, using the game's own cursor (or a 1.5× pointer). The P's collapse must be visible ≥ 8 frames before the shatter at f434. |
+| 8 | f3698–3986 | **Motion Designer** | Concern (c): 2.70 s passes my rule (0.3 s × 7 words + 0.4 = 2.5 s, counted from full legibility), so it is not a blocker. But it is the punchline: bring the card→circuit morph forward about 30 frames, so cap07 is fully legible by about f3790 and holds ≥ 3.2 s. |
+| 9 | whole mix | **Sound Designer** | Concern (d): −1.0 dBTP is in spec, but this is a lossy AAC that YouTube/Drive will re-encode (inter-sample overshoot). Set the limiter ceiling to **−1.5 dBTP** and re-measure the *encoded* file. |
+
+**Concern (f), sharpness: PASS.** The full frames (f725, still 08) are clean line art with no ringing and no mush. The Laplacian is low because the old cut was over-sharpened and these frames have large flat areas. Fidelity 0.99, and 88% retained after re-encode. Do not add sharpening.
+
+### The 4 human checks (my best judgement; the user should still do the phone check)
+1. **Fresh eyes ("what do you do in this game?"): FAIL as cut.** Predicted answer: "you program little robots to look after sleeping blobs; something quantum". "**Without looking**" is missing, because the rule is never stated, the gremlins are invisible, and the proof has no labels. Fixes 1–3 address it.
+2. **Muted: FAIL-ish.** The captions carry superposition, "program it" and the closing line, but they ask the viewer to believe in gremlins they can't see, and they never state the rule. Fixes 1 and 3.
+3. **Audio only: PASS after fix 5.** Music box → collapse → silence → lone BEEP → drop → Lights Out chord → payoff → silence → snap → chord tells the story. As cut, the title letters upstage the drop.
+4. **Phone speaker: probable PASS, unverified.** The SFX are presence-lifted, the BEEP (C5) and the letters sit at 400 Hz–3 kHz, and the song's drop keeps mid energy (44% below 120 Hz). The risks are the sub-only heartbeat (it has a 2nd harmonic) and the impacts. **The user must play it once on a phone** before sign-off.
+
+**Re-review scope:** after fixes 1–7, I only need a new contact sheet, the frame grids of f722–1298 and f1586–2834, a full frame at f2900, and the per-second loudness. Fixes 8–9 are polish.

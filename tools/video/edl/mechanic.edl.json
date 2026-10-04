@@ -24,8 +24,8 @@
   {
    "id": "M001",
    "shot": "me_cold_blanket",
-   "src": "videos/capture_placeholder/me_cold_blanket.mkv",
-   "src_kind": "placeholder",
+   "src": "videos/capture/me_cold_blanket.mkv",
+   "src_kind": "alias",
    "start": 0,
    "dur": 360,
    "in": 30,
@@ -52,16 +52,18 @@
      "cy": 0.5,
      "ease": "inout"
     }
-   ]
+   ],
+   "events": "videos/capture/me_cold_blanket.events.json",
+   "layout_json": "videos/capture/me_cold_blanket.layout.json"
   },
   {
    "id": "M002",
    "shot": "me_11_peek",
-   "src": "videos/capture_placeholder/me_11_peek.mkv",
-   "src_kind": "placeholder",
+   "src": "videos/capture/me_11_peek.mkv",
+   "src_kind": "alias",
    "start": 360,
-   "dur": 1080,
-   "in": 0,
+   "dur": 625,
+   "in": 230,
    "speed": 1,
    "grade": "day",
    "transition": {
@@ -74,35 +76,70 @@
     {
      "f": 0,
      "z": 1.0,
-     "cx": 0.5,
-     "cy": 0.5,
+     "cx": 1.0,
+     "cy": 1.0,
      "ease": "linear"
     },
     {
-     "f": 1080,
-     "z": 1.15,
-     "cx": 0.5,
-     "cy": 0.5,
+     "f": 625,
+     "z": 1.06,
+     "cx": 1.0,
+     "cy": 1.0,
      "ease": "inout"
     }
    ],
-   "events": "videos/capture_placeholder/me_11_peek.events.json",
-   "layout_json": "videos/capture_placeholder/me_11_peek.layout.json",
+   "events": "videos/capture/me_11_peek.events.json",
+   "layout_json": "videos/capture/me_11_peek.layout.json"
+  },
+  {
+   "id": "M003",
+   "shot": "me_11_peek",
+   "src": "videos/capture/me_11_peek.mkv",
+   "src_kind": "alias",
+   "start": 985,
+   "dur": 455,
+   "in": 1140,
+   "speed": 1,
+   "grade": "day",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "rule",
+   "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "linear"
+    },
+    {
+     "f": 455,
+     "z": 1.06,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "inout"
+    }
+   ],
+   "events": "videos/capture/me_11_peek.events.json",
+   "layout_json": "videos/capture/me_11_peek.layout.json",
    "scdet_exempt": [
     [
-     1014,
-     1080
+     1170,
+     1260
     ]
    ]
   },
   {
-   "id": "M003",
+   "id": "M004",
    "shot": "me_threat",
-   "src": "videos/capture_placeholder/me_threat.mkv",
-   "src_kind": "placeholder",
+   "src": "videos/capture/me_threat.mkv",
+   "src_kind": "alias",
    "start": 1440,
    "dur": 840,
-   "in": 0,
+   "in": 90,
    "speed": 1,
    "grade": "night",
    "transition": {
@@ -115,27 +152,29 @@
     {
      "f": 0,
      "z": 1.0,
-     "cx": 0.5,
-     "cy": 0.55,
+     "cx": 1.0,
+     "cy": 1.0,
      "ease": "linear"
     },
     {
      "f": 840,
-     "z": 1.2,
-     "cx": 0.5,
-     "cy": 0.55,
+     "z": 1.06,
+     "cx": 1.0,
+     "cy": 1.0,
      "ease": "inout"
     }
-   ]
+   ],
+   "events": "videos/capture/me_threat.events.json",
+   "layout_json": "videos/capture/me_threat.layout.json"
   },
   {
-   "id": "M004",
+   "id": "M005",
    "shot": "me_encode",
-   "src": "videos/capture_placeholder/me_encode.mkv",
-   "src_kind": "placeholder",
+   "src": "videos/capture/me_encode.mkv",
+   "src_kind": "alias",
    "start": 2280,
    "dur": 720,
-   "in": 0,
+   "in": 90,
    "speed": 1,
    "grade": "day",
    "transition": {
@@ -143,16 +182,34 @@
    },
    "flags": {},
    "section": "cant_copy",
-   "cues": []
+   "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "linear"
+    },
+    {
+     "f": 720,
+     "z": 1.06,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "inout"
+    }
+   ],
+   "events": "videos/capture/me_encode.events.json",
+   "layout_json": "videos/capture/me_encode.layout.json"
   },
   {
-   "id": "M005",
+   "id": "M006",
    "shot": "me_21_listen",
-   "src": "videos/capture_placeholder/me_21_listen.mkv",
-   "src_kind": "placeholder",
+   "src": "videos/capture/me_21_listen.mkv",
+   "src_kind": "alias",
    "start": 3000,
    "dur": 600,
-   "in": 0,
+   "in": 340,
    "speed": 1,
    "grade": "day",
    "transition": {
@@ -165,24 +222,26 @@
     {
      "f": 0,
      "z": 1.0,
-     "cx": 0.5,
-     "cy": 0.5,
+     "cx": 1.0,
+     "cy": 1.0,
      "ease": "linear"
     },
     {
      "f": 600,
-     "z": 1.1,
-     "cx": 0.5,
-     "cy": 0.5,
+     "z": 1.06,
+     "cx": 1.0,
+     "cy": 1.0,
      "ease": "inout"
     }
-   ]
+   ],
+   "events": "videos/capture/me_21_listen.events.json",
+   "layout_json": "videos/capture/me_21_listen.layout.json"
   },
   {
-   "id": "M006",
+   "id": "M007",
    "shot": "mo_syndrome_table",
-   "src": "videos/capture_placeholder/mo_syndrome_table.mkv",
-   "src_kind": "placeholder",
+   "src": "videos/motion/mo_syndrome_table.mkv",
+   "src_kind": "alias",
    "start": 3600,
    "dur": 900,
    "in": 0,
@@ -196,13 +255,46 @@
    "cues": []
   },
   {
-   "id": "M007",
-   "shot": "me_23_night",
-   "src": "videos/capture_placeholder/me_23_night.mkv",
+   "id": "M008",
+   "shot": "me_23_drag",
+   "src": "videos/capture_placeholder/me_23_drag.mkv",
    "src_kind": "placeholder",
    "start": 4500,
-   "dur": 1380,
+   "dur": 300,
    "in": 0,
+   "speed": 1,
+   "grade": "day",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "repair",
+   "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "linear"
+    },
+    {
+     "f": 300,
+     "z": 1.06,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "inout"
+    }
+   ]
+  },
+  {
+   "id": "M009",
+   "shot": "me_23_night",
+   "src": "videos/capture/me_23_night.mkv",
+   "src_kind": "alias",
+   "start": 4800,
+   "dur": 960,
+   "in": 640,
    "speed": 1,
    "grade": "night",
    "transition": {
@@ -210,16 +302,69 @@
    },
    "flags": {},
    "section": "repair",
-   "cues": []
+   "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "linear"
+    },
+    {
+     "f": 960,
+     "z": 1.06,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "inout"
+    }
+   ],
+   "events": "videos/capture/me_23_night.events.json",
+   "layout_json": "videos/capture/me_23_night.layout.json"
   },
   {
-   "id": "M008",
+   "id": "M010",
+   "shot": "me_23_night",
+   "src": "videos/capture/me_23_night.mkv",
+   "src_kind": "alias",
+   "start": 5760,
+   "dur": 260,
+   "in": 1850,
+   "speed": 1,
+   "grade": "night",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "repair",
+   "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "linear"
+    },
+    {
+     "f": 260,
+     "z": 1.06,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "inout"
+    }
+   ],
+   "events": "videos/capture/me_23_night.events.json",
+   "layout_json": "videos/capture/me_23_night.layout.json"
+  },
+  {
+   "id": "M011",
    "shot": "me_23_xray",
-   "src": "videos/capture_placeholder/me_23_xray.mkv",
-   "src_kind": "placeholder",
-   "start": 5880,
-   "dur": 840,
-   "in": 0,
+   "src": "videos/capture/me_23_xray.mkv",
+   "src_kind": "alias",
+   "start": 6020,
+   "dur": 540,
+   "in": 100,
    "speed": 1,
    "grade": "night",
    "transition": {
@@ -227,15 +372,74 @@
    },
    "flags": {},
    "section": "proof",
-   "cues": []
+   "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "linear"
+    },
+    {
+     "f": 540,
+     "z": 1.06,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "inout"
+    }
+   ],
+   "events": "videos/capture/me_23_xray.events.json",
+   "layout_json": "videos/capture/me_23_xray.layout.json",
+   "scdet_exempt": [
+    [
+     6030,
+     6100
+    ]
+   ]
   },
   {
-   "id": "M009",
+   "id": "M012",
+   "shot": "me_23_xray",
+   "src": "videos/capture/me_23_xray.mkv",
+   "src_kind": "alias",
+   "start": 6560,
+   "dur": 300,
+   "in": 1290,
+   "speed": 1,
+   "grade": "night",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "proof",
+   "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "linear"
+    },
+    {
+     "f": 300,
+     "z": 1.06,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "inout"
+    }
+   ],
+   "events": "videos/capture/me_23_xray.events.json",
+   "layout_json": "videos/capture/me_23_xray.layout.json"
+  },
+  {
+   "id": "M013",
    "shot": "me_31_phase",
-   "src": "videos/capture_placeholder/me_31_phase.mkv",
-   "src_kind": "placeholder",
-   "start": 6720,
-   "dur": 960,
+   "src": "videos/capture/me_31_phase.mkv",
+   "src_kind": "alias",
+   "start": 6860,
+   "dur": 400,
    "in": 0,
    "speed": 1,
    "grade": "night",
@@ -244,52 +448,106 @@
    },
    "flags": {},
    "section": "twist",
-   "cues": []
+   "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "linear"
+    },
+    {
+     "f": 400,
+     "z": 1.06,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "inout"
+    }
+   ],
+   "events": "videos/capture/me_31_phase.events.json",
+   "layout_json": "videos/capture/me_31_phase.layout.json"
   },
   {
-   "id": "M010",
-   "shot": "mo_circuit_morph",
-   "src": "videos/capture_placeholder/mo_circuit_morph.mkv",
-   "src_kind": "placeholder",
-   "start": 7680,
-   "dur": 600,
-   "in": 0,
-   "speed": 1,
-   "grade": "none",
-   "transition": {
-    "type": "cut"
-   },
-   "flags": {},
-   "section": "under_the_hood",
-   "cues": []
-  },
-  {
-   "id": "M011",
-   "shot": "mo_qiskit_stamp",
-   "src": "videos/capture_placeholder/mo_qiskit_stamp.mkv",
-   "src_kind": "placeholder",
-   "start": 8280,
+   "id": "M014",
+   "shot": "me_31_phase",
+   "src": "videos/capture/me_31_phase.mkv",
+   "src_kind": "alias",
+   "start": 7260,
    "dur": 240,
-   "in": 0,
+   "in": 1240,
    "speed": 1,
-   "grade": "none",
+   "grade": "night",
    "transition": {
     "type": "cut"
    },
    "flags": {},
-   "section": "under_the_hood",
-   "cues": []
+   "section": "twist",
+   "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "linear"
+    },
+    {
+     "f": 240,
+     "z": 1.06,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "inout"
+    }
+   ],
+   "events": "videos/capture/me_31_phase.events.json",
+   "layout_json": "videos/capture/me_31_phase.layout.json"
   },
   {
-   "id": "M012",
-   "shot": "sc_morning_still",
-   "src": "videos/capture_placeholder/sc_morning_still.mkv",
-   "src_kind": "placeholder",
-   "start": 8520,
-   "dur": 270,
-   "in": 30,
+   "id": "M015",
+   "shot": "me_31_phase",
+   "src": "videos/capture/me_31_phase.mkv",
+   "src_kind": "alias",
+   "start": 7500,
+   "dur": 320,
+   "in": 2440,
    "speed": 1,
-   "grade": "day",
+   "grade": "night",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "twist",
+   "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "linear"
+    },
+    {
+     "f": 320,
+     "z": 1.06,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "inout"
+    }
+   ],
+   "events": "videos/capture/me_31_phase.events.json",
+   "layout_json": "videos/capture/me_31_phase.layout.json"
+  },
+  {
+   "id": "M016",
+   "shot": "card_justagame",
+   "src": "videos/motion/card_justagame.mkv",
+   "src_kind": "motion",
+   "start": 7820,
+   "dur": 192,
+   "in": 0,
+   "speed": 1,
+   "grade": "none",
    "transition": {
     "type": "cut"
    },
@@ -298,13 +556,13 @@
    "cues": []
   },
   {
-   "id": "M013",
+   "id": "M017",
    "shot": "mo_circuit_morph",
-   "src": "videos/capture_placeholder/mo_circuit_morph.mkv",
-   "src_kind": "placeholder",
-   "start": 8790,
-   "dur": 330,
-   "in": 30,
+   "src": "videos/motion/mo_circuit_morph.mkv",
+   "src_kind": "alias",
+   "start": 8012,
+   "dur": 420,
+   "in": 0,
    "speed": 1,
    "grade": "none",
    "transition": {
@@ -315,18 +573,35 @@
    "cues": [
     {
      "name": "snap",
-     "frame": 8790,
+     "frame": 8012,
      "kind": "design"
     }
    ]
   },
   {
-   "id": "M014",
-   "shot": "mo_end_card",
-   "src": "videos/capture_placeholder/mo_end_card.mkv",
-   "src_kind": "placeholder",
-   "start": 9120,
+   "id": "M018",
+   "shot": "mo_qiskit_stamp",
+   "src": "videos/motion/mo_qiskit_stamp.mkv",
+   "src_kind": "alias",
+   "start": 8432,
    "dur": 300,
+   "in": 0,
+   "speed": 1,
+   "grade": "none",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "under_the_hood",
+   "cues": []
+  },
+  {
+   "id": "M019",
+   "shot": "mo_end_card",
+   "src": "videos/motion/mo_end_card.mkv",
+   "src_kind": "alias",
+   "start": 8732,
+   "dur": 360,
    "in": 0,
    "speed": 1,
    "grade": "none",
@@ -344,120 +619,167 @@
    "text": "Every Qubble dreams two dreams at once.",
    "start": 24,
    "end": 354,
-   "legible_from": 34,
+   "legible_from": 48,
    "position": "strip",
    "style": "strip",
-   "render": "template"
+   "render": "template",
+   "line": "Every Qubble dreams two dreams at once.",
+   "gloss": null,
+   "gloss2": null
   },
   {
    "id": "cap02",
-   "text": "= measurement collapses a superposition",
-   "start": 780,
-   "end": 1380,
-   "legible_from": 790,
+   "text": "Looking changes it. = measurement",
+   "start": 669,
+   "end": 1416,
+   "legible_from": 693,
    "position": "strip",
    "style": "strip",
-   "render": "template"
+   "render": "template",
+   "line": "Looking changes it.",
+   "gloss": "= measurement",
+   "gloss2": null
   },
   {
    "id": "cap03",
    "text": "One dream changed. Which one? You can't look.",
-   "start": 1530,
-   "end": 2250,
-   "legible_from": 1540,
+   "start": 1914,
+   "end": 2268,
+   "legible_from": 1938,
    "position": "strip",
    "style": "strip",
-   "render": "template"
+   "render": "template",
+   "line": "One dream changed. Which one? You can't look.",
+   "gloss": null,
+   "gloss2": null
   },
   {
    "id": "cap04",
-   "text": "= encoding (no copies allowed)",
-   "start": 2400,
-   "end": 2970,
-   "legible_from": 2410,
+   "text": "You can't copy a dream. You can share it. = encoding",
+   "start": 2546,
+   "end": 2988,
+   "legible_from": 2570,
    "position": "strip",
    "style": "strip",
-   "render": "template"
+   "render": "template",
+   "line": "You can't copy a dream. You can share it.",
+   "gloss": "= encoding",
+   "gloss2": null
   },
   {
    "id": "cap05",
-   "text": "= parity check",
-   "start": 3180,
-   "end": 3570,
-   "legible_from": 3190,
+   "text": "A bot asks: do these two match? = parity check",
+   "start": 3056,
+   "end": 3588,
+   "legible_from": 3080,
    "position": "strip",
    "style": "strip",
-   "render": "template"
+   "render": "template",
+   "line": "A bot asks: do these two match?",
+   "gloss": "= parity check",
+   "gloss2": null
   },
   {
    "id": "cap06",
-   "text": "= syndrome: two answers point at one Qubble",
+   "text": "Two bots, four answers: each points at one Qubble. = syndrome",
    "start": 3660,
-   "end": 4470,
-   "legible_from": 3670,
+   "end": 4488,
+   "legible_from": 3684,
    "position": "strip",
    "style": "strip",
-   "render": "template"
+   "render": "template",
+   "line": "Two bots, four answers: each points at one Qubble.",
+   "gloss": "= syndrome",
+   "gloss2": null
   },
   {
    "id": "cap07",
-   "text": "= error correction, without ever measuring the dream",
-   "start": 4620,
-   "end": 5850,
-   "legible_from": 4630,
+   "text": "Write the fix: IF a BEEP and b QUIET, BOOP #1. = decoder",
+   "start": 4520,
+   "end": 4796,
+   "legible_from": 4544,
    "position": "strip",
    "style": "strip",
-   "render": "template"
+   "render": "template",
+   "line": "Write the fix: IF a BEEP and b QUIET, BOOP #1.",
+   "gloss": "= decoder",
+   "gloss2": null
   },
   {
    "id": "cap08",
-   "text": "= the bots never learned the dream",
-   "start": 6000,
-   "end": 6690,
-   "legible_from": 6010,
+   "text": "Fixed in the dark, without ever looking. = error correction",
+   "start": 5619,
+   "end": 6008,
+   "legible_from": 5643,
    "position": "strip",
    "style": "strip",
-   "render": "template"
+   "render": "template",
+   "line": "Fixed in the dark, without ever looking.",
+   "gloss": "= error correction",
+   "gloss2": null
   },
   {
    "id": "cap09",
-   "text": "= phase-flip code (Hadamard basis)",
-   "start": 6840,
-   "end": 7650,
-   "legible_from": 6850,
+   "text": "The dream survived. The bots never learned it.",
+   "start": 6050,
+   "end": 6848,
+   "legible_from": 6074,
    "position": "strip",
    "style": "strip",
-   "render": "template"
+   "render": "template",
+   "line": "The dream survived. The bots never learned it.",
+   "gloss": null,
+   "gloss2": null
   },
   {
    "id": "cap10",
-   "text": "= a real state-vector simulator, real gates",
-   "start": 7740,
-   "end": 8490,
-   "legible_from": 7750,
+   "text": "Every bot is quiet, yet the dream is wrong.",
+   "start": 6880,
+   "end": 7460,
+   "legible_from": 6904,
    "position": "strip",
    "style": "strip",
-   "render": "template"
+   "render": "template",
+   "line": "Every bot is quiet, yet the dream is wrong.",
+   "gloss": null,
+   "gloss2": null
   },
   {
    "id": "cap11",
-   "text": "It's just a game\u2026",
-   "start": 8538,
-   "end": 8784,
-   "legible_from": 8548,
+   "text": "SPIN, fix, SPIN. = phase-flip code",
+   "start": 7480,
+   "end": 7808,
+   "legible_from": 7504,
    "position": "strip",
    "style": "strip",
-   "render": "template"
+   "render": "template",
+   "line": "SPIN, fix, SPIN.",
+   "gloss": "= phase-flip code",
+   "gloss2": null
   },
   {
    "id": "cap12",
+   "text": "It's just a game\u2026",
+   "start": 7820,
+   "end": 8012,
+   "legible_from": 7853,
+   "position": "baked",
+   "style": "night",
+   "render": {
+    "baked": "card_justagame"
+   }
+  },
+  {
+   "id": "cap13",
    "text": "\u2026where you accidentally learned quantum error correction.",
-   "start": 8796,
-   "end": 9114,
-   "legible_from": 8806,
-   "position": "strip",
-   "style": "strip",
-   "render": "template"
+   "start": 8108,
+   "end": 8732,
+   "legible_from": 8138,
+   "position": "baked",
+   "style": "night",
+   "render": {
+    "baked": "mo_circuit_morph"
+   }
   }
  ],
  "overlays": [],
@@ -465,9 +787,15 @@
  "marks": [
   {
    "type": "dissolve",
-   "start": 1014,
-   "end": 1080,
-   "why": "in-engine X-ray reveal"
+   "start": 1170,
+   "end": 1260,
+   "why": "in-engine X-ray replay"
+  },
+  {
+   "type": "dissolve",
+   "start": 6030,
+   "end": 6100,
+   "why": "in-engine X-ray"
   }
  ],
  "audio": {
@@ -476,12 +804,9 @@
   "stems": "videos/final/work/mechanic/stems"
  },
  "notes": [
-  "me_threat: align event gremlin_flip not found; using in_s",
-  "me_encode: align event highfive not found; using in_s",
-  "me_21_listen: align event highfive not found; using in_s",
-  "me_23_night: align event gremlin_flip not found; using in_s",
-  "me_23_xray: align event xray_start not found; using in_s",
-  "me_31_phase: align event ghost_phase not found; using in_s"
+  "me_23_drag: align event drop not found; using in_s"
  ],
- "duration": 9420
+ "strip_overlay": true,
+ "program_visible": true,
+ "duration": 9092
 }

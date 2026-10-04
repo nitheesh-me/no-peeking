@@ -18,21 +18,35 @@ shot('tr_cold_blanket', { save: judge(['2-2']), cinema: C('on:q2,2.8,0.5,0.6'), 
   await s.hold(sec(428) + 1.5, 'moonlit-breathing');
 });
 
-// peek: the title letter-Qubbles; first collapse exactly at clip frame 95 (the EDL's peek hit), then the rest on 8ths
-shot('tr_title_peek', { save: judge(), cinema: true }, async (s) => {
-  await s.placeCursor({ x: 330, y: 760 });
+// peek: the title letter-Qubbles (Critic Fix 7). The cursor is hidden until it makes ONE eased 40-frame glide onto
+// the P, arriving exactly as the P collapses at clip frame 95 (the EDL's peek hit); the cursor then rests on the P
+// for 30 frames (≥ 8 frames of the P collapsing before the shatter), then sweeps the remaining letters on 8ths
+// (the "title plays the theme" gag, usable separately).
+shot('tr_title_peek', { save: judge(), cinema: true, cursor: false }, async (s) => {
   await s.goto('#title', { settle: 0.3 });
-  const L = await s.eval(() => {
+  const letters = (await s.eval(() => {
     const W = innerWidth, Hh = innerHeight, text = 'NO PEEKING!', slot = Math.min(W / (text.length + 1), 400), k = slot / 78;
-    return [...text].map((ch, i) => ({ ch, x: W / 2 - (slot * text.length) / 2 + slot * (i + 0.5), y: Hh * 0.46 + Math.sin(i * 1.3) * slot * 0.08 - 30 * k, r: slot * 0.5 }));
-  });
-  const letters = L.filter((l) => l.ch !== ' ');
-  const yl = letters.reduce((a, l) => a + l.y, 0) / letters.length;
+    return [...text].map((ch, i) => ({ ch, i, x: W / 2 - (slot * text.length) / 2 + slot * (i + 0.5), y: Hh * 0.46 + Math.sin(i * 1.3) * slot * 0.08 - 30 * k, r: slot * 0.5 }));
+  })).filter((l) => l.ch !== ' ');
+  const P = letters.find((l) => l.ch === 'P');
+  // approach from lower-left; land just inside the P's hover radius so the collapse fires on the arrival frame
+  const dir = { x: -0.55, y: 0.835 };
+  const land = { x: P.x + dir.x * (P.r - 4), y: P.y + dir.y * (P.r - 4) };
+  const start = { x: land.x + dir.x * 300, y: land.y + dir.y * 300 };
+  await s.placeCursor(start);
+  const GLIDE = 40, HIT = 95;
+  await s.wait((HIT - GLIDE - s.frame) / 60);
+  await s.showCursor(true);
+  s.mark('glide-start');
+  await s.cursorTo(land, { dur: GLIDE / 60, ease: 'inOut', arc: 0.06 });
+  s.mark('hit-P');
+  await s.hold(30 / 60, 'P-collapsing');
+  // the rest of PEEKING! on 8ths, then N, O
+  const yl = P.y;
   const hit = (l) => ({ x: l.x - Math.sqrt(Math.max(0, l.r * l.r - (l.y - yl) ** 2)) + 2, y: yl });
-  await s.cursorTo({ x: hit(letters[0]).x - 70, y: yl + 6 }, { dur: 80 / 60, ease: 'out' });
-  for (const l of letters) { await s.cursorTo(hit(l), { dur: BEAT / 2, ease: 'linear', arc: 0 }); s.mark('hit-' + l.ch); }
+  for (const l of letters.filter((x) => x.i > P.i)) { await s.cursorTo(hit(l), { dur: BEAT / 2, ease: 'linear', arc: 0 }); s.mark('hit-' + l.ch + l.i); }
   await s.cursorTo({ x: letters.at(-1).x + 160, y: yl + 260 }, { dur: 0.8, ease: 'out' });
-  await s.hold(2.5, 'collapsed');
+  await s.hold(2.0, 'collapsed');
 });
 
 // peek → build: in-place day→night relight, same framing
@@ -41,16 +55,6 @@ shot('tr_relight', { save: judge(['2-2']), cinema: C('room'), cursor: false }, a
   await s.wait(1.0);
   await NIGHT_LIGHTS(s); s.mark('relight');
   await s.hold(sec(252) + 0.5, 'relight');
-});
-
-// build: Wobbles strikes in the dark
-shot('tr_gremlin_wobbles', { save: judge(), cinema: C('tight'), cursor: false }, async (s) => {
-  await prepLevel(s, '3-3', { progs: 'solution' });
-  const e = await s.np((np) => { const n = np.LEVELS.find((l) => l.id === '3-3').noise; return { kind: 'wobble', t: 'q2', axis: n.wobbleAxis ?? 'x', angle: (n.wobbleAngles ?? [Math.PI / 2])[0] }; });
-  await runNight(s, 'plus', [e]);
-  await s.offCamera(async () => { await waitDark(s, { timeout: 40 }); });
-  await waitSfx(s, 'wobble', { timeout: 40, mark: 'strike' });
-  await s.hold(2.5, 'after-strike');
 });
 
 // build: the empty door in the dark (a beat of nobody there)
@@ -157,6 +161,8 @@ shot('mn_shor9', { save: judge(), cinema: C('wide'), cursor: false }, async (s) 
 });
 shot('mn_lights_out', { save: judge(), cinema: C('wide'), cursor: false }, async (s) => {
   await prepLevel(s, '4-2', { progs: 'solution' });
+  // Critic Fix 6: the caretaker's "the end. zzz" think bubble reads as THE END in the black; drop only that caption
+  await s.np((np) => { const sc = np.scene, say = sc.say.bind(sc); sc.say = (text, ...a) => (/the end/i.test(String(text)) ? undefined : say(text, ...a)); });
   await runNight(s, 'plus', [{ kind: 'phase', t: 'q2' }]);
   await s.offCamera(async () => { await waitDark(s, { timeout: 60 }).catch(() => {}); });
   await waitSfx(s, 'syndromeChord', { timeout: 90, mark: 'chord-1' });
@@ -182,4 +188,55 @@ shot('tr_curtain_call', { save: judge(), cinema: true, cursor: false }, async (s
 shot('tr_morning_still', { save: judge(['2-2']), cinema: C('room'), cursor: false }, async (s) => {
   await prepLevel(s, '2-3', { progs: 'solution' });
   await s.hold(sec(378) + 1.5, 'cosy');
+});
+
+// build: the three gremlins ON SCREEN (Critic, trailer song cut, Fix 1). X-ray view (the game's simulator-only view;
+// its "X-RAY" pill is part of the hidden HUD) so the gremlin and the dream are visible at night; a ~1.5× punch-in on the
+// struck Qubble; on camera only after lights-out (the room snaps to full night off camera), so all three beats share
+// the same night look. Flipper: bit flip (Sunny→Moony). Phasey: phase flip of a swirl. Wobbles: a π/2 tip about x,
+// i.e. HALF of a flip (|0⟩ → the equator), physically a partial rotation. Mark 'strike' at the hit; ≥ 4.5 s.
+for (const [id, lvl, input, err, sfx] of [
+  ['tr_gremlin_flipper', '2-3', 'zero', { kind: 'flip', t: 'q2' }, 'gremlin_flip'],
+  ['tr_gremlin_phasey', '3-1', 'plus', { kind: 'phase', t: 'q2' }, 'ghost_phase'],
+  ['tr_gremlin_wobbles', '3-3', 'zero', { kind: 'wobble', t: 'q2', axis: 'x', angle: Math.PI / 2 }, 'wobble'],
+]) {
+  shot(id, { save: judge(), cinema: C('on:q2,1.5,0.42,0.6'), cursor: false }, async (s) => {
+    await prepLevel(s, lvl, { progs: 'solution', xray: true });
+    await runNight(s, input, [err]);
+    await s.offCamera(async () => {
+      await s.waitFor(() => window.__np?.scene?.nightTarget === 1, { timeout: 60 });
+      // lights already out when the clip starts, and they STAY out for the whole clip (the morning relight would
+      // otherwise start ~1.3 s after the strike): pin the scene's night level at 1
+      await s.np((np) => { np.scene.night = 1; Object.defineProperty(np.scene, 'nightTarget', { get: () => 1, set() {}, configurable: true }); });
+      await s.wait(0.05);
+    });
+    s.mark('on-camera');
+    await waitSfx(s, 'gremlin_sneak', { timeout: 40, mark: 'sneak' }).catch(() => {});
+    await waitSfx(s, sfx, { timeout: 40, mark: 'strike' });
+    await s.hold(3.0, 'after-strike');
+    if (s.frame < 270) await s.hold((270 - s.frame) / 60, 'tail');
+  });
+}
+
+// Codex insert: Wobbles alone on paper (jiggle idle, then a click → strike pose + wobble sfx), ~150+ frames
+shot('mn_codex_wobbles', { save: judge(), cinema: { insert: 'wobbles', izoom: 1.8 }, cursor: false }, async (s) => {
+  await s.placeCursor({ x: 960, y: 540 });
+  await s.goto('#codex', { settle: 0.4 });
+  await s.wait(0.8);
+  await s.click({ x: 960, y: 540 }, { dur: 0.05 }); s.mark('act');
+  await s.hold(2.0, 'insert');
+});
+
+// Lab Notebook circuit page full-frame (cinema, nb=1), X-ray on, during a 2-3 night: the cards → gates morph, then the
+// playback cursor walking the circuit
+shot('mn_notebook_circuit', {
+  save: judge(['2-2'], { settings: { nerd: true } }), cinema: C('wide', { nb: 1 }), cursor: false,
+  localStorage: { 'np.nb.open': '1', 'np.nb.page': 'circuit', 'np.nb.w': '1920' },
+}, async (s) => {
+  await prepLevel(s, '2-3', { progs: 'solution', xray: true });
+  await s.eval(() => localStorage.removeItem('np.nb.morphed'));
+  await s.wait(0.5);
+  await runNight(s, 'plus', [{ kind: 'flip', t: 'q2' }]); s.mark('morph');
+  await waitSfx(s, 'highfive', { timeout: 30, mark: 'playback' });
+  await s.hold(3.5, 'circuit');
 });

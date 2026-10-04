@@ -163,3 +163,109 @@ Measured on the Editor's `trailer.edl.json` mixes (`videos/audio2/test/editor_tr
   - trailer_song: 61/61, sync 0, onsets 0 errors, proof pass (min −15.5);
   - trailer_public: the same;
   - mechanic: 50/50, min 6.31 LU, voices rendered by the engine.
+
+## 10. REVISED 2: the programming is heard
+### Coding groove (`groove.py` + `score_groove.js` → `videos/audio2/groove/`)
+This is the game's own BUILD-scene groove recipe (soft kick, brushes, off-beat hats, roots bass, EP comp, sparse music-box head), re-cut for the song's context: **112.5 BPM, 3/4** (6 straight 8ths per bar), **F minor**. It is played by the game's instruments in the offline engine. The stems are timeline-aligned on the cue sheet's beat grid, full length (sample t = timeline t), and active f1490–2834 (one bar before the proof up to Lights Out). Levels are LUFS over the active span; `groove_full` = −16 LUFS, the song bed's reference.
+
+| Stem | Content | LUFS |
+|---|---|---|
+| `groove_perc.wav` | soft kick on 1 and 2-and, brushes on 2 and 3, hats with off-beat accents | −19.4 |
+| `groove_type.wav` | the game's wood-block clock on the off-8ths ("typing") | −24.4 |
+| `groove_bass.wav` | F/C pedal, **no 3rd** (safe under the song's F-minor drop) | −22.4 |
+| `groove_keys.wav` | EP comp Fm9–Dbmaj7–Bbm9–C7 + the sparse theme head (for *replace* segments) | −21.4 |
+| `groove_light.wav` | perc + type + bass: the default "under the song" layer | −18.3 |
+| `groove_full.wav` | all four | −16.0 |
+
+### Score segments in `mix.py` (`--score PLAN`, the EDL's `audio.score`, or the preset plan `cues/trailer_score.json`)
+- **Sources:** `song`, `public`, `groove_*` (or any path). Every source gets the bed's normalisation gain, so relative levels hold.
+- **Segment fields:** `{source, from, to | clips: "programming" (+ section, within), mode: layer|replace, gain_db, bed_db, xfade_frames}`.
+- **Downbeats:** entries and exits snap to cue-sheet downbeats. The equal-power fade-in **completes on** the entry downbeat; the fade-out **starts on** the exit downbeat.
+- **Modes:** `replace` crossfades the bed out under the segment. `bed_db` dips the bed under a layer.
+- **Programming runs use a bar-majority rule.** A bar (downbeat to downbeat) carries the groove when ≥ 50 % of its frames show programming clips. The 32- and 64-frame hemiola/beat cuts can't each land on a downbeat, so this is the honest compromise. A clip counts as programming if it has a `programming` flag, `audio.programming`, section `proof`, or a matching shot name (`pg_*`, editor, card guide, test strip, QoL, snippets, step mode, export…). The Lab Notebook circuit is a world cut.
+- **Reporting:** every segment is written to `mixreport.score_segments` with its requested/snapped frames, `on_downbeat`, gains, crossfade and bar coverage.
+
+**Default plan:**
+- `groove_perc` −12 dB with the bed −0.8 dB under it, plus `groove_type` −10 dB, under the proof split screen (f1586–2162). The bed dip keeps the proof section's energy unchanged, so the gate is unaffected.
+- `groove_light` −4 dB under the programming bars of the montage.
+
+**Alternative** (`cues/trailer_score_replace.json`): the same, but `groove_full` **replaces** the bed for the montage's last two bars (f2642–2834, the beat cuts), and the bed returns on the Lights Out downbeat.
+
+Measured on the beds, the groove sits 7–8 LU under the bed in the proof and about 6 LU under it in the montage: a percussive texture that never fights the song.
+
+### Card UI as rhythmic accents
+- **Which events:** in programming clips (trailer preset), `card_pick`, `card_drop` and `ui_click` from the capture logs are **featured**.
+- **Sound:** they use new trailer-weight versions (a woody body, a small sub tick, presence).
+- **Quantisation:** they are **quantised to the nearest 8th** (beat0 + 16 k frames) when within 2 frames, and the report keeps `quantised_from`. The A/V sync test allows those ±2 frames.
+- **Speed thinning:** they're exempt from the UI-at-≥2× drop.
+- **Levels:** they get a looser PLR (16 dB) and a boost cap of 12 dB, so a 60 ms click can clear the 6 LU rule.
+
+### Wobbles
+Every game `wobble` event is featured. In the trailer preset it uses `trailer/wobble`; an EDL cue named `wobble` (or any game SFX name) also resolves to the featured trailer-weight version.
+
+### Results (2026-10-04)
+| Run | Loudness (ffmpeg) | Featured ≥ 6 LU | Accents | Wobble | Segments (all on downbeats) | Bed curve: mont − proof / pay − mont | Proof gate |
+|---|---|---|---|---|---|---|---|
+| Editor `trailer.edl.json` (REVISED 2 `pg_*` shots), song | −14.1 / −1.1 dBTP | 36/36, min 6.97 | — (pg captures pending) | f1168 featured, margin 17.0 | proof perc+type, groove at f2162 / f2354 / f2642 | 7.36 / 4.20, pass | pass |
+| same, public score | −14.1 / −1.2 | 36/36, min 7.09 | — | f1168, margin 10.1 | same | 8.28 / 2.60, pass | pass |
+| synthetic REVISED 2, song | −14.2 / −1.2 | 61/61, min 6.99 | 9/9 pass (2 quantised) | f976, margin 18.3 | 5 | 6.81 / 4.06, pass | pass |
+| synthetic REVISED 2, public | −14.1 / −1.2 | 61/61, min 6.95 | 9/9 | f976, margin 13.9 | 5 | 7.69 / 2.51, pass | pass |
+| synthetic REVISED 2 + replace plan, song / public | −14.2 / −14.1 | 62/62 | 10/10 | ✓ | groove_full replaces f2642–2834 | 6.62 / 4.24 · 6.83 / 3.37, pass | pass |
+| earlier synthetic trailer (song / public), mechanic | −14.1 | 61/61, 61/61, 50/50 | — | — | proof layers only | pass | pass |
+
+The payoff stays the **loudest section** of the bed in every combination: song −15.6 dB against drop −16.3 and montage −19.5; public −13.2 against −14.7 and −15.6.
+
+## 11. Music-first trailer mix (after the user's "the audio mixing is all over the place")
+**Diagnosis of the 21:30 mix** (from `analyze_mix.py`): it was SFX-first. Every mixing rule pushed effects UP and nothing capped them: a per-cue "≥ 6 LU over the music" floor, a −16 LUFS-M proof floor, a +2–4 dB presence lift *and* 2–5 kHz ducking of the music. The energy curve followed SFX density, not the music.
+
+**The trailer preset is now `music_first`** (`tools/video/audio/mixfirst.py`, wired into `mix.py`; mechanic and showcase keep the ducking path).
+
+1. **Music automation.** The bed (song or public score, plus the groove segments) is ridden to per-section targets, measured exactly as `analyze_mix.py` measures: centred 3 s short-term, and for sections under 3.5 s the interior momentary median.
+   - Targets: cold_open −24 · peek −21 (ride) · build −22→−17 bar by bar · drop −8.5 · proof −15 · montage −12 · Lights Out −20 · payoff −8.5 · closing music box −22 (ride) · snap −13 · end card −15→−26.
+   - Momentary ceilings on the music before the drop: build −13.5, peek −14, cold_open −16. The song's own pre-drop riser can no longer out-shout the drop.
+   - Boundary ramps are ≥ 200 ms raised-cosine: rising ramps finish ON the downbeat, falling ramps start ON it.
+   - Polish: 0.5 s fade-in from black; a narrow, mono-safe reverb fill in the sparse sections (cold open, Lights Out pocket, closing music box); a gentle 2:1 on the cold-open music; a 4 s end fade.
+   - The whole stage runs 6 dB under its post-master targets for float headroom.
+2. **SFX windows instead of floors.** Each window is measured against the music's momentary level at the cue's own loudest 400 ms.
+
+   | Cue type | Window (LU over the music) | Aim |
+   |---|---|---|
+   | Featured hits | +3 to +7 | +5 |
+   | Hits before the silence | +3 to +7 | +3.5 |
+   | Proof cues | +3 to +5 | +4 |
+   | Drop co-hit (no ducking under the logo reveal) | 0 to +4 | +1.5 |
+   | Hits ON the song's payoff / final chord | 0 to +4 | +2.5 |
+   | Pitched title letters ("phrase") | 0 to +3 | +1 |
+   | Card accents | −6 to +4 | 0 |
+   | Lights Out pocket (SFX at most equal to the music) | −3 to +2 | −1 |
+   | QUIET answer | 4.5 LU under its BEEP | — |
+   | Non-featured cues | 8 dB under | — |
+   | Risers | peak 8 dB under | — |
+   | Beds | integrated 8 dB under (per-cue `under_db`) | — |
+   | Hits in true silence | absolute level | — |
+
+   - Room tone stays at −60 dBFS.
+   - Cues within 3 frames are levelled as one group; beds are levelled on their own.
+   - After the SFX bus, every group is re-measured and corrected (≤ 8 passes, correction capped at ±15 dB for featured groups and ±9 dB otherwise).
+   - Every tail fades over ≥ 20 ms; sig_a's tail is cropped at 2.2 s.
+3. **Tone.** The small presence lift on the trailer SFX stays; the music band-dip is gone, so there's no double emphasis. A per-section presence match (mono, the analyzer's metric) cuts the SFX's 2–5 kHz where SFX − music would exceed +4.5 dB: build −1.9 dB, proof −1.4 dB, Lights Out −2.1 dB.
+4. **SFX/design bus.** 3:1 compression (10/120 ms), 2 dB GR at the bus's p95 level (max 4 dB), then a transient limit at p99.5 + 4 dB.
+5. **Master.** 2:1 glue (30/150 ms; 1.56 dB mean GR in the loud sections), then the true-peak limiter at **−2.0 dBTP** (the −1.5 target minus 0.5 dB of codec headroom), with integrated loudness iterated to −14. Every mix is re-encoded to AAC 320k and re-measured (`aac_check`).
+6. **Phone simulation.** `videos/final/review/trailer_phone_sim.wav`: mono, HPF 250 Hz, LPF 7 kHz, a +5 dB resonance at 1.1 kHz, light saturation, played about 4 dB down.
+
+**QA gate `mix_analysis`** (`tools/video/audio/mix_gates.py <workdir>`, which runs `analyze_mix.py` and writes `<work>/mix_gates.json`):
+- the anticipation rules, plus the drop is the peak;
+- the music is the dominant stem (SFX may equal it in proof and Lights Out);
+- the silences are ≤ −35;
+- in-section spread ≤ 12 LU (designed fades exempt);
+- ≤ 3 spikes and ≤ 5 off-mark jumps;
+- 2–5 kHz SFX − music ≤ +6 dB;
+- integrated −14 ±0.5;
+- true peak ≤ −1.5 dBTP on the encoded AAC.
+
+**Measurement fixes in `analyze_mix.py`** (marked in the source):
+- **Short sections.** Sections under 3.5 s use the interior momentary median. A centred 3 s window over a 1.6 s silence reads its neighbours: the silences measured −15 even when empty.
+- **Jump tolerance.** The jump-to-mark tolerance is 20 frames (12 for the 400 ms window's half-width + 6 for the 200 ms difference + 2). Every designed step at a cut used to count as an off-mark jump.
+- **Double gain.** Stems written by `mix.py` already include the master gain (`stems_scaled_by_master_gain`). The analyzer scaled them a second time, inflating every per-stem level by the master gain (about +5 dB), the 21:30 diagnosis included. Relative comparisons were unaffected.
+
+It all re-runs on any EDL change: `mix.py <edl>` → `mix_gates.py <workdir>`.

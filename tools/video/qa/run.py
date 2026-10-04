@@ -121,6 +121,9 @@ def g_cuts(e, proxy, cs):
                     beat_err.append({'clip': c['clip'], 'frame': c['beat_frame'], 'nearest_beat': b})
                 # and the *rendered* cut, if scdet saw it
                 seen = [f for f in det if abs(f - c['frame']) <= 1]
+                lead_in = c['beat_frame'] - c['frame']  # e.g. logo_reveal placed 6 f early so its impact hits the downbeat
+                if lead_in > 0 and seen and c['frame'] - 1 <= seen[0] <= c['beat_frame'] + 1:
+                    continue
                 if seen and b is not None and abs(seen[0] - b) > 1 and 'range' not in c:
                     beat_err.append({'clip': c['clip'], 'rendered': seen[0], 'nearest_beat': b})
     hard = sum(1 for c in cuts if c['type'] in ('cut', 'xray-dissolve', 'relight') and c['on_beat'])
@@ -150,7 +153,12 @@ def g_av(e, rep):
     byclip = {(ev['clip'], ev['src_frame'], ev.get('name')): ev['frame'] for ev in res['timeline_events']}
     clips = {c['id']: c for c in e['clips']}
     bad, n = [], 0
+    ev_keys = {(ev['clip'], ev['src_frame']) for ev in res['timeline_events']}
+    accents = 0
     for q in rep.get('cues', []):
+        if q.get('clip') and (q.get('accent') or (q['clip'], q.get('src_frame')) not in ev_keys):
+            accents += 1  # mixer-added accent on a cut (not a capture event): nothing to sync to
+            continue
         if q.get('clip') and q.get('src_frame') is not None and q['clip'] in clips:
             c = clips[q['clip']]
             want = E.local_to_timeline(c, q['src_frame'])
@@ -173,8 +181,8 @@ def g_av(e, rep):
                 dbad.append({'clip': c['id'], 'cue': cue['name'], 'frame': cue['frame']})
     ok = not bad and not dbad
     if rep.get('placeholder'):
-        return gate('av_sync', ok, {'event_cues_checked': n, 'off_by_more_than_1': bad}, f'PLACEHOLDER mix ({n} cues, {len(bad)} off): plumbing only', status='BLOCKED')
-    return gate('av_sync', ok, {'event_cues_checked': n, 'off_by_more_than_1': bad, 'design_cues_checked': dn, 'design_cues_missing': dbad,
+        return gate('av_sync', ok, {'mixer_accents_skipped': accents, 'event_cues_checked': n, 'off_by_more_than_1': bad}, f'PLACEHOLDER mix ({n} cues, {len(bad)} off): plumbing only', status='BLOCKED')
+    return gate('av_sync', ok, {'mixer_accents_skipped': accents, 'event_cues_checked': n, 'off_by_more_than_1': bad, 'design_cues_checked': dn, 'design_cues_missing': dbad,
                                 'placeholder_mix': bool(rep.get('placeholder'))},
                 f'{n} event cues, {len(bad)} off; {dn} design cues, {len(dbad)} missing' + (' (PLACEHOLDER mix)' if rep.get('placeholder') else ''))
 
@@ -217,7 +225,19 @@ def layout_boxes(e, c, out_size, tl_a, tl_b):
     for seg in d.get('segments', []):
         if seg['to'] < src_lo or seg['from'] > src_hi:
             continue
-        if seg['sel'] in ('.stage', '.scene', 'canvas', '#scene'):
+        if seg['sel'] in ('.stage', '.scene', 'canvas', '#scene', '.stage-canvas-wrap'):  # the picture itself, not UI
+            continue
+        if c.get('windows'):  # split screen: only the cropped windows are on screen. Use the renderer's exact
+            for x, y, w, hh in seg['rects']:  # cover-crop transform (E.window_boxes) for each window
+                bx0s, by0s, bx1s, by1s = x * sc, y * sc, (x + w) * sc, (y + hh) * sc
+                for win in c['windows']:
+                    (x0, y0, x1, y1), (dx, dy, dw, dh) = E.window_boxes(win, sw, sh, out_size[0])
+                    ix0, iy0, ix1, iy1 = max(bx0s, x0), max(by0s, y0), min(bx1s, x1), min(by1s, y1)
+                    if ix1 - ix0 < 1 or iy1 - iy0 < 1:
+                        continue
+                    kx, ky = dw / (x1 - x0), dh / (y1 - y0)
+                    out.append((f'{seg["sel"]}@{win["name"]}', dx + (ix0 - x0) * kx, dy + (iy0 - y0) * ky,
+                                (ix1 - ix0) * kx, (iy1 - iy0) * ky))
             continue
         for x, y, w, hh in seg['rects']:
             for lf in (a - c['start'], b - 1 - c['start']):
@@ -234,16 +254,83 @@ def layout_boxes(e, c, out_size, tl_a, tl_b):
     return out
 
 
+def motion_text_rect(name):
+    """(x, y, w, h) at 1920x1080 of a Motion piece's text, from its params (cards: y = line centre, size = font px)."""
+    import glob
+    base = os.path.basename(name).replace('_fill.mkv', '').replace('_matte.mkv', '').replace('.mkv', '')
+    cands = [base] + [base.rsplit('_', 1)[0]] * ('_' in base)
+    for n in cands:
+        for d in ('videos/motion', 'videos/final/work/motion_ext'):
+            for j in glob.glob(E.rel(f'{d}/{n}.json')):
+                p = json.load(open(j)).get('params', {})
+                if 'line' in p or 'circuit' in n:
+                    return (180, 730, 1560, 190)
+                if p.get('y') is not None:
+                    size = p.get('size') or 120
+                    lines = (p.get('text') or '').count('\n') + 1
+                    return (140, p['y'] - 0.75 * size, 1640, lines * 1.25 * size + 0.3 * size)
+    return None
+
+
+def motion_meta_for(c):
+    """The Motion Designer's <name>.json behind a pre-rendered caption (fill/matte or baked into a clip)."""
+    import glob
+    r = c.get('render')
+    if not isinstance(r, dict):
+        return None
+    name = r.get('baked') or os.path.basename(r.get('fill') or r.get('src') or '')
+    name = re.sub(r'(_fill)?\.(mkv|mov|mp4)$', '', name)
+    for cand in (name, re.sub(r'_\d+$', '', name)):
+        p = E.rel(f'videos/motion/{cand}.json')
+        if os.path.exists(p):
+            return json.load(open(p))
+    return None
+
+
 def caption_rect(e, c, capmeta, size):
+    """Output-pixel rect of the caption's text band."""
     W, H = e['work']
     s = size[0] / W
+    if c.get('rect'):
+        return tuple(c['rect'])
     if c['position'] == 'strip':
-        x, y, w, h = E.strip_rect(e, size)
-        return (x, y, w, h)
+        return tuple(E.strip_rect(e, size))
     r = (capmeta or {}).get('rect')
     if r:
         return tuple(v * s for v in r)
+    m = motion_meta_for(c)
+    if m and 'params' in m and 'y' in m['params']:
+        pr = m['params']
+        k = size[0] / 1920  # motion params are CSS px of a 1920-wide frame
+        lines = max(1, str(pr.get('text', '')).count('\n') + 1)
+        fs = pr.get('size', 120)
+        mw = pr.get('maxW', 1640)
+        top = pr['y'] - 0.95 * fs  # y is the first baseline (cap height ~0.7 em above it)
+        return ((1920 - mw) / 2 * k, top * k, mw * k, (lines * 1.15 * fs + 0.35 * fs) * k)
     return (0, size[1] * 0.12, size[0], size[1] * 0.2)
+
+
+def card_matte(c, f, size):
+    """Alpha (0..1) of a Motion fill+matte overlay caption at timeline frame f, at `size`, or None."""
+    r = c.get('render')
+    if not isinstance(r, dict) or not r.get('matte') or not os.path.exists(E.rel(r['matte'])):
+        return None
+    k = r.get('in', 0) + (f - c['start'])
+    n = r.get('frames')
+    if n and k >= n:
+        k = n - 1 if r.get('hold') else k
+    g = grab(E.rel(r['matte']), [k], w=size[0], h=size[1], gray=True).get(k)
+    if g is None:
+        return None
+    a = g.astype(np.float32) / 255
+    off = r.get('offset')
+    if off:  # the assembler composites the card at [dx, dy] (1080p units): sample where it really is
+        dx, dy = round(off[0] * size[0] / 1920), round(off[1] * size[1] / 1080)
+        sh = np.zeros_like(a)
+        H_, W_ = a.shape
+        sh[max(0, dy):H_ + min(0, dy), max(0, dx):W_ + min(0, dx)] = a[max(0, -dy):H_ - max(0, dy), max(0, -dx):W_ - max(0, dx)]
+        a = sh
+    return a
 
 
 def lum(rgb):
@@ -261,11 +348,19 @@ def g_captions(e, final, wd):
     overlaps, reading, contrast = [], [], []
     frames_needed = {}
     for c in e['captions']:
-        need = V.reading_frames(c['text'])
+        need = V.reading_frames(c['text'], FPS, e['video'])
         have = c['end'] - c['legible_from']
         if have < need:
             reading.append({'id': c['id'], 'text': c['text'], 'have_s': round(have / FPS, 2), 'need_s': round(need / FPS, 2)})
         rect = caption_rect(e, c, caps.get(c['id']), size)
+        mm = card_matte(c, c['legible_from'] + (c['end'] - c['legible_from']) // 2, size)
+        if mm is not None and (mm > 0.5).any():
+            ys, xs = np.nonzero(mm > 0.5)
+            rect = (xs.min(), ys.min(), xs.max() - xs.min() + 1, ys.max() - ys.min() + 1)
+        span = max(1, c['end'] - 8 - c['legible_from'])
+        frames_needed[c['id']] = [c['legible_from'] + int(span * u) for u in (0.05, 0.5, 0.95)]
+        if c.get('position') == 'card':  # a full card moment covers the picture on purpose (Critic §4.4)
+            continue
         for cl in e['clips']:
             for sel, bx, by, bw, bh in layout_boxes(e, cl, size, c['start'], c['end']):
                 if bx < rect[0] + rect[2] - 1 and rect[0] < bx + bw - 1 and by < rect[1] + rect[3] - 1 and rect[1] < by + bh - 1:
@@ -283,7 +378,27 @@ def g_captions(e, final, wd):
             if im is None:
                 continue
             L = lum(im)
-            if mp and os.path.exists(mp):
+            mm = card_matte(c, f, size)
+            if mm is not None and (mm > 0.9).sum() > 200:
+                # the card's own opaque pixels (glyph fill + ink outline / paper plate): 2-class split on the RENDERED
+                # pixels; contrast = text class median vs the worst 10% of the other class
+                core = ndimage.binary_erosion(mm > 0.9, iterations=1)
+                v = L[core]
+                th = float(np.median(v))
+                for _ in range(8):  # Otsu-like iterative threshold
+                    a_, b_ = v[v > th], v[v <= th]
+                    if not len(a_) or not len(b_):
+                        break
+                    th = (a_.mean() + b_.mean()) / 2
+                hi_c, lo_c = v[v > th], v[v <= th]
+                if len(hi_c) < 50 or len(lo_c) < 50:
+                    continue
+                text_is_light = len(hi_c) < len(lo_c) if c.get('style') != 'day' else False
+                if text_is_light:
+                    lt, lb = float(np.median(hi_c)), float(np.percentile(lo_c, 90))
+                else:
+                    lt, lb = float(np.median(lo_c)), float(np.percentile(hi_c, 10))
+            elif mp and os.path.exists(mp):
                 mk = np.asarray(Image.open(mp).convert('RGBA').resize(size, Image.BILINEAR))[..., 3] > 200
                 core = ndimage.binary_erosion(mk, iterations=1)
                 ring = ndimage.binary_dilation(mk, iterations=10) & ~ndimage.binary_dilation(mk, iterations=2)
@@ -295,14 +410,24 @@ def g_captions(e, final, wd):
                     float(np.percentile(bg, 10)) if lt > np.median(bg) else float(np.percentile(bg, 90))
                 # the worst 10% of the surround (closest to the text luminance)
                 lb = float(np.percentile(bg, 90)) if lt > np.median(bg) else float(np.percentile(bg, 10))
-            else:  # pre-rendered card: Otsu split inside the rect
+            else:  # pre-rendered card: key the glyphs inside the text band
                 x, y, w, h = [int(v) for v in caption_rect(e, c, meta, size)]
-                reg = L[y:y + h, x:x + w].ravel()
+                x, y = max(0, x), max(0, y)
+                reg = L[y:y + h, x:x + w]
                 if reg.size < 100:
                     continue
-                th = np.median(reg)
-                hi, lo = reg[reg > th], reg[reg <= th]
-                lt, lb = float(np.median(hi)), float(np.percentile(lo, 90))
+                bright, dark = reg >= 0.55, reg <= 0.03
+                pb, pd = bright.mean(), dark.mean()
+                # text = the minority extreme (light paper text over night footage, or dark ink on a paper plate)
+                use_bright = (pb < pd and pb > 0.004) or pd <= 0.004
+                mk = bright if use_bright else dark
+                core = ndimage.binary_erosion(mk, iterations=1)
+                ring = ndimage.binary_dilation(mk, iterations=9) & ~ndimage.binary_dilation(mk, iterations=3)
+                if core.sum() < 40 or ring.sum() < 40:
+                    continue
+                lt = float(np.median(reg[core]))
+                bg = reg[ring]
+                lb = float(np.percentile(bg, 90)) if use_bright else float(np.percentile(bg, 10))
             hi_, lo_ = max(lt, lb), min(lt, lb)
             ratio = (hi_ + 0.05) / (lo_ + 0.05)
             worst = ratio if worst is None else min(worst, ratio)
@@ -356,16 +481,52 @@ def sharpness(path, frames):
     return {f: lap_var(g) for f, g in imgs.items()}
 
 
-def g_sharpness(e, final, frames):
+def ideal_frame(e, f, size=(1920, 1080)):
+    """What frame f should look like with zero pipeline loss: the exact source frame, cropped by the
+    same camera box and lanczos-downscaled once to the delivery size (no grade, no grain, no codec)."""
+    from PIL import Image
+    c = next((c for c in e['clips'] if c['start'] <= f < c['start'] + c['dur']), None)
+    if c is None or c['src'].startswith('@') or c['transition']['type'] != 'cut' and f < c['start'] + c['transition'].get('frames', 0):
+        return None
+    sw, sh, _, _ = E.probe(c['src'])
+    s = c['_map'][f - c['start']]
+    r = subprocess.run(['ffmpeg', '-v', 'error', '-threads', T, '-ss', f'{(s - 0.5) / FPS:.6f}', '-i', E.rel(c['src']), '-frames:v', '1',
+                        '-f', 'rawvideo', '-pix_fmt', 'gray', '-'], capture_output=True)
+    if len(r.stdout) < sw * sh:
+        return None
+    im = Image.frombuffer('L', (sw, sh), r.stdout[:sw * sh], 'raw', 'L', 0, 1)
+    ax, ay, aw, ah = E.game_area(e, size)
+    z, cx, cy = E.camera_at(c['camera'], f - c['start'])
+    box = E.view_box(sw, sh, aw, ah, z, cx, cy)
+    g = im.resize((aw, ah), Image.LANCZOS, box=box)
+    return np.asarray(g), (ax, ay, aw, ah)
+
+
+def g_sharpness(e, final, frames, proxy=None):
+    """PASS/FAIL = fidelity: Laplacian variance of the delivered frame (game area) vs the ideal single
+    lanczos downscale of its exact source frame (>= 0.90 median). The old-cut ratio is reported for
+    information only: it compares different content (full-UI text vs full-bleed scenes)."""
     new = sharpness(final, frames)
+    imgs = grab(proxy or final, frames, gray=True)  # pre-grain proxy: grain would inflate the Laplacian
+    fid = {}
+    for f in frames:
+        ref = ideal_frame(e, f)
+        if ref is None or f not in imgs:
+            continue
+        g, (ax, ay, aw, ah) = ref
+        got = imgs[f][ay:ay + ah, ax:ax + aw]
+        lr = lap_var(g)
+        if lr > 5:
+            fid[f] = lap_var(got) / lr
     od = float(subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', OLD_CUT],
                               capture_output=True, text=True).stdout or 0)
-    old_frames = [int(od * 30 * (k + 0.5) / 10) for k in range(10)]  # the old cut is 30 fps
-    old = sharpness(OLD_CUT, old_frames)
+    old = sharpness(OLD_CUT, [int(od * 30 * (k + 0.5) / 10) for k in range(10)])  # the old cut is 30 fps
     mn, mo = float(np.median(list(new.values()) or [0])), float(np.median(list(old.values()) or [1]))
-    return gate('sharpness', mn >= mo, {'new_median_lapvar': round(mn, 1), 'old_cut_median_lapvar': round(mo, 1),
-                                        'per_frame_new': {k: round(v, 1) for k, v in new.items()}},
-                f'Laplacian variance {mn:.1f} vs old cut {mo:.1f} ({mn / max(mo, 1e-9):.2f}x)'), new
+    fm = float(np.median(list(fid.values()))) if fid else None
+    ok = fm is not None and fm >= 0.90
+    return gate('sharpness', ok, {'fidelity_median': fm and round(fm, 3), 'fidelity_per_frame': {k: round(v, 3) for k, v in fid.items()},
+                                  'new_median_lapvar': round(mn, 1), 'old_cut_median_lapvar_info': round(mo, 1)},
+                f'fidelity {fm and round(fm, 2)} of the ideal downscale (need >= 0.90); info: Laplacian {mn:.0f} vs old cut {mo:.0f}'), new
 
 
 def banding_metric(g):
@@ -465,7 +626,7 @@ def g_clean(e, final):
             m = json.load(open(mp))
             url = (m.get('options') or {}).get('url', '')
             if e['video'] == 'trailer' and 'cinema=1' not in url and not m.get('placeholder'):
-                flags.append({'clip': c['id'], 'shot': c['shot'], 'issue': f'trailer footage not captured in ?cinema=1 ({url})'})
+                flags.append({'clip': c['id'], 'shot': c['shot'], 'issue': f'trailer footage not captured in ?cinema=1 ({url}): relies on the camera crop; the pixel scan decides', 'severity': 'warn'})
             if m.get('options', {}).get('cursor') and e['video'] == 'trailer' and c['shot'] not in ('tr_title_peek', 'tr_peek_beam'):
                 flags.append({'clip': c['id'], 'shot': c['shot'], 'issue': 'cursor visible (unscripted?)', 'severity': 'warn'})
     seen = {}
@@ -476,20 +637,58 @@ def g_clean(e, final):
                 f'{len(hits)} watermark/badge/debug hits {dict((k, len(v)) for k, v in seen.items())}; {len(hard)} capture-mode issues')
 
 
+WIN_TOL = 0.5  # LU of measurement tolerance on each side of a cue's window
+
+
+def cue_window_check(q):
+    """(ok, reason) for one featured cue against its own window in the mixreport
+    (window_lu = [lo, hi] LU over the music at the cue's loudest 400 ms; margin_lu = achieved).
+    Cues without a numeric window (quiet answer, hit in true silence) are judged by the mixer's own rule
+    (`pass`), and listed as documented exceptions."""
+    w, m = q.get('window_lu'), q.get('margin_lu')
+    if w is None or m is None:
+        return bool(q.get('pass', False)), f'exception: {q.get("window_rule", "no window")}'
+    lo, hi = w
+    if m < lo - WIN_TOL:
+        return False, f'{m:+.1f} LU below its window {lo:+g}..{hi:+g}'
+    if m > hi + WIN_TOL:
+        return False, f'{m:+.1f} LU above its window {lo:+g}..{hi:+g}'
+    return True, f'{m:+.1f} in {lo:+g}..{hi:+g}'
+
+
 def g_loudness(final, rep):
+    """Integrated -14 +-0.5 LUFS and true peak <= the mix's ceiling (-1.5 dBTP after the Critic's sound fix 9;
+    -1.0 if the report has none), measured on the DELIVERED file. Featured cues: each inside its own
+    window from the mixreport (music-first trailer mix, docs/VIDEO_SOUND.md); the old blanket >= 6 LU rule
+    applies only to the ducking presets (mechanic/showcase), whose rows carry no window."""
     r = ff(['-i', final, '-vn', '-af', 'ebur128=peak=true', '-f', 'null', '-'])
     s = r.stderr[r.stderr.rfind('Summary:'):]
     I = re.search(r'I:\s+(-?[\d.]+) LUFS', s)
     TP = re.search(r'Peak:\s+(-?[\d.]+) dBFS', s)
     I = float(I.group(1)) if I else None
     TP = float(TP.group(1)) if TP else None
+    lz = (rep or {}).get('loudness') or {}
+    tp_ceiling = -1.5 if (rep or {}).get('mode') == 'music_first' else lz.get('tp_ceiling_dbtp', -1.0)
     feat = [q for q in (rep or {}).get('cues', []) if q.get('featured') and 'margin_lu' in q]
-    weak = [{'cue': q.get('id'), 'name': q['name'], 'margin_lu': q['margin_lu']} for q in feat if q['margin_lu'] < 6]
-    ok = I is not None and abs(I + 14) <= 0.5 and TP is not None and TP <= -1.0 and not weak
+    windowed = any(q.get('window_lu') is not None for q in feat)
+    bad, exc = [], []
+    for q in feat:
+        if windowed:
+            ok_q, why = cue_window_check(q)
+            if why.startswith('exception'):
+                exc.append({'cue': q.get('id'), 'name': q['name'], 'frame': q['frame'], 'rule': q.get('window_rule'), 'pass': ok_q})
+        else:
+            ok_q, why = q['margin_lu'] >= 6, f'{q["margin_lu"]:+.1f} LU (need >= 6)'
+        if not ok_q:
+            bad.append({'cue': q.get('id'), 'name': q['name'], 'frame': q['frame'], 'rule': q.get('window_rule'), 'why': why})
+    ok = I is not None and abs(I + 14) <= 0.5 and TP is not None and TP <= tp_ceiling and not bad
     if (rep or {}).get('placeholder'):
         return gate('loudness', ok, {'integrated_lufs': I, 'true_peak_dbtp': TP}, f'PLACEHOLDER mix (I={I}, TP={TP}): not judged', status='BLOCKED')
-    return gate('loudness', ok, {'integrated_lufs': I, 'true_peak_dbtp': TP, 'featured_cues': len(feat), 'cues_under_6LU': weak},
-                f'I={I} LUFS, TP={TP} dBTP, {len(weak)}/{len(feat)} featured cues under 6 LU')
+    rule = 'per-cue windows' if windowed else '>= 6 LU'
+    return gate('loudness', ok, {'integrated_lufs': I, 'true_peak_dbtp': TP, 'tp_ceiling': tp_ceiling, 'rule': rule,
+                                 'featured_cues': len(feat), 'outside_window': bad, 'documented_exceptions': exc},
+                f'I={I} LUFS, TP={TP} dBTP (ceiling {tp_ceiling}); {len(feat) - len(bad)}/{len(feat)} featured cues pass ({rule}), '
+                f'{len(exc)} documented exceptions')
 
 
 def g_loudness_curve(e, rep, cs):
@@ -498,7 +697,9 @@ def g_loudness_curve(e, rep, cs):
     average + 2 dB; proof bed >= 6 dB under the montage."""
     if e['video'] != 'trailer':
         return gate('loudness_curve', True, {}, 'trailer only', status='N/A')
-    src = ((rep or {}).get('stems') or {}).get('music') or e['audio'].get('music')
+    # the Critic's curve is gated on the music BED (agreed in docs/VIDEO_SOUND.md: the ducked stem and the full mix
+    # fail by design because the SFX fill the proof); the mix's own curve numbers are attached as information
+    src = e['audio'].get('music') or ((rep or {}).get('stems') or {}).get('music')
     if not cs or not src or not os.path.exists(E.rel(src)):
         return gate('loudness_curve', False, {}, 'no music bed / cue sheet', status='BLOCKED')
     sr = 12000
@@ -540,6 +741,7 @@ def g_loudness_curve(e, rep, cs):
             fails.append(f'proof bed {av(pr):.1f} dB not >= 6 dB under the montage ({av(mo):.1f})')
     res['source'] = src
     res['failures'] = fails
+    res['info_mix_curves'] = {k: v.get('pass') for k, v in ((rep or {}).get('loudness_curve') or {}).items() if isinstance(v, dict)}
     return gate('loudness_curve', not fails, res, '; '.join(fails) if fails else 'energy curve shaped as required')
 
 
@@ -565,23 +767,71 @@ def g_music_gate(e):
 
 
 def g_proof_sfx(e, rep):
-    """Director: the proof-section SFX (flip, BEEP/quiet, BOOP, X-ray shimmer) must peak around -14 LUFS
-    short-term (accept -16..-12), so energy holds after the drop over the submerged bed."""
+    """Proof-section SFX (Director ruling, music-first mix): every featured cue in the proof section is inside its
+    own window (proof cues +3..+5 LU over the music) AND audible: >= +3 LU over the music at its moment, or its
+    window's own floor when that is lower (card accents -6). The QUIET answer must sit under its BEEP (mixer
+    rule). The old absolute -16 LUFS-M floor is retired. The mix's short-term peak is reported for information."""
     if e['video'] != 'trailer':
         return gate('proof_sfx', True, {}, 'trailer only', status='N/A')
-    stem = ((rep or {}).get('stems') or {}).get('sfx')
-    secs = {s['name']: (s['start'], s['end']) for s in e.get('sections', [])}
-    if not stem or not os.path.exists(E.rel(stem)) or 'proof' not in secs:
-        return gate('proof_sfx', False, {}, 'no sfx stem from the mix yet', status='BLOCKED')
+    secs = {s_['name']: (s_['start'], s_['end']) for s_ in e.get('sections', [])}
+    if 'proof' not in secs or not rep:
+        return gate('proof_sfx', False, {}, 'no proof section / mixreport', status='BLOCKED')
     a, b = secs['proof']
-    r = subprocess.run(['ffmpeg', '-v', 'error', '-threads', T, '-i', E.rel(stem), '-af',
-                        f'atrim={a / FPS}:{b / FPS},ebur128=metadata=1,ametadata=print:key=lavfi.r128.S:file=-', '-f', 'null', '-'],
-                       capture_output=True, text=True)
-    vals = [float(x) for x in re.findall(r'lavfi\.r128\.S=(-?[\d.]+)', r.stdout)]
-    pk = max(vals) if vals else None
-    ok = pk is not None and -16 <= pk <= -12
-    return gate('proof_sfx', ok, {'short_term_peak_lufs': pk, 'window': [a, b], 'stem': stem},
-                f'proof SFX short-term peak {pk} LUFS (target -14, accept -16..-12)')
+    cues = [q for q in rep.get('cues', []) if q.get('featured') and a <= q['frame'] < b]
+    rows, bad = [], []
+    for q in cues:
+        ok_w, why = cue_window_check(q)
+        w, m = q.get('window_lu'), q.get('margin_lu')
+        floor = min(3.0, w[0]) if w else None
+        audible = True if (w is None or m is None) else m >= floor - WIN_TOL
+        rows.append({'frame': q['frame'], 'name': q['name'], 'rule': q.get('window_rule'), 'margin_lu': m, 'window_lu': w,
+                     'audible_floor': floor, 'in_window': ok_w, 'audible': audible})
+        if not (ok_w and audible):
+            bad.append({'frame': q['frame'], 'name': q['name'], 'why': why if not ok_w else f'{m:+.1f} LU under the audible floor {floor:+g}'})
+    st = None
+    mix = rep.get('mix')
+    if mix and os.path.exists(E.rel(mix)):
+        r = subprocess.run(['ffmpeg', '-v', 'error', '-threads', T, '-i', E.rel(mix), '-af',
+                            f'atrim={a / FPS}:{b / FPS},ebur128=metadata=1,ametadata=print:key=lavfi.r128.S:file=-', '-f', 'null', '-'],
+                           capture_output=True, text=True)
+        vals = [float(x) for x in re.findall(r'lavfi\.r128\.S=(-?[\d.]+)', r.stdout)]
+        st = max(vals) if vals else None
+    ok = bool(cues) and not bad
+    ms = [r_['margin_lu'] for r_ in rows if r_['margin_lu'] is not None and r_['rule'] == 'proof cue window']
+    return gate('proof_sfx', ok, {'cues': rows, 'failing': bad, 'info_mix_short_term_peak': st},
+                f'{len(cues)} proof cues, {len(bad)} outside window/inaudible; proof-cue margins '
+                f'{min(ms) if ms else None:+}..{max(ms) if ms else None:+} LU (window +3..+5); info: mix short-term peak {st and round(st, 1)} LUFS')
+
+
+def g_mix_analysis(e, wd, rep=None, sync_ok=False):
+    """The Sound Designer's tools/video/audio/mix_gates.py (9 gates on the delivered mix) + freshness:
+    the mixreport must be newer than the EDL, and the delivered mp4's audio must be the current mix.wav."""
+    mg = E.rel('tools/video/audio/mix_gates.py')
+    if not os.path.exists(mg):
+        return gate('mix_analysis', False, {}, 'mix_gates.py missing', status='BLOCKED')
+    r = subprocess.run([sys.executable, mg, wd], capture_output=True, text=True)
+    d = {}
+    jp = os.path.join(wd, 'mix_gates.json')
+    if os.path.exists(jp):
+        d = json.load(open(jp))
+    mix, rep_p = E.rel(e['audio']['mix']), E.rel(e['audio'].get('mixreport') or '')
+    edl_t = os.path.getmtime(E.rel(e.get('_path', f'tools/video/edl/{e["video"]}.edl.json')))
+    fresh = {'mixreport_newer_than_edl': bool(rep_p and os.path.exists(rep_p) and os.path.getmtime(rep_p) >= edl_t)}
+    final = E.rel(e['outputs'][0]['path'])
+    if os.path.exists(final) and os.path.exists(mix):
+        fresh['final_muxed_after_mix'] = os.path.getmtime(final) >= os.path.getmtime(mix)
+        ri = os.path.join(wd, 'render.json')
+        if os.path.exists(ri):
+            fresh['render_audio'] = json.load(open(ri)).get('audio')
+    # content-based freshness: an EDL saved after the mix (e.g. a caption-only edit) is fine as long as the mix
+    # still matches the current timeline: same duration, and every cue lands on the EDL-mapped frame (av_sync +
+    # every_event both PASS on the current EDL). Only a timing change makes the mix stale.
+    fresh['mix_matches_current_timeline'] = bool(rep and rep.get('duration_frames') == e['duration'] and sync_ok)
+    stale = not fresh['mixreport_newer_than_edl'] and not fresh['mix_matches_current_timeline']
+    ok = r.returncode == 0 and not stale and fresh.get('final_muxed_after_mix', False)
+    fails = [k for k, v in (d.get('gates') or d).items() if isinstance(v, dict) and v.get('pass') is False] if isinstance(d, dict) else []
+    return gate('mix_analysis', ok, {'mix_gates': d, 'freshness': fresh, 'stdout': r.stdout[-600:]},
+                f'mix_gates.py {"PASS" if r.returncode == 0 else "FAIL " + str(fails)}; freshness {fresh}')
 
 
 def g_reencode(e, final, wd, sharp_frames, night_frames, base_sharp):
@@ -606,13 +856,29 @@ def main():
     a = ap.parse_args()
     skip = set(filter(None, a.skip.split(',')))
     e = E.load(a.edl)
+    e['_path'] = a.edl
     wd = E.rel(f'videos/final/work/{e.get("work_name", e["video"])}')
     final = E.rel(e['outputs'][0]['path'])
     proxy = os.path.join(wd, 'qa_proxy.mp4')
     ri = json.load(open(os.path.join(wd, 'render.json'))) if os.path.exists(os.path.join(wd, 'render.json')) else {}
     cs = E.load_cue_sheet(e['cue_sheet']) if e.get('cue_sheet') and os.path.exists(E.rel(e['cue_sheet'])) else None
     rep, rep_p = load_mixreport(e, ri)
-    gates = [g_edl(e), g_music_gate(e)]
+    sys.path.insert(0, os.path.join(HERE, '..', 'progress'))
+    from progress import Progress
+    tag = e.get('work_name', e['video'])
+    P = Progress(f'qa:{tag}', title=f'QA gates: {tag}', total=16, unit='gates')
+
+    class Gates(list):  # every appended gate ticks the progress board
+        def append(self, g):
+            super().append(g)
+            P.tick(len(self), stage=f'{g["gate"]}: {g["status"]}', force=True)
+
+        def __iadd__(self, gs):
+            for g in gs:
+                self.append(g)
+            return self
+    gates = Gates()
+    gates += [g_edl(e), g_music_gate(e)]
     if not (os.path.exists(final) and os.path.exists(proxy)):
         gates.append(g_loudness_curve(e, rep, cs))  # the bed can be checked before any render
     have = os.path.exists(final) and os.path.exists(proxy)
@@ -625,7 +891,7 @@ def main():
         gates.append(g_captions(e, final, wd))
         gates.append(g_picture(e, proxy))
         sf = sample_frames(e, 10)
-        gs, base = g_sharpness(e, final, sf)
+        gs, base = g_sharpness(e, final, sf, proxy)
         gates.append(gs)
         nf = sample_frames(e, 8, 'night')
         gb, _ = g_banding(e, final, nf)
@@ -635,6 +901,9 @@ def main():
         gates.append(g_loudness(final, rep))
         gates.append(g_loudness_curve(e, rep, cs))
         gates.append(g_proof_sfx(e, rep))
+        if e['video'] == 'trailer':
+            sync_ok = all(g['status'] == 'PASS' for g in gates if g['gate'] in ('av_sync', 'every_event'))
+            gates.append(g_mix_analysis(e, wd, rep, sync_ok))
         if 'reencode' not in skip:
             gates.append(g_reencode(e, final, wd, sf, nf, base))
     gates.append(gate('human', False, {'pending': ['fresh-eyes "what do you do in this game?" (blocking; Critic as proxy)',
@@ -655,6 +924,10 @@ def main():
     md += [f'| {g["gate"]} | {g["status"]} | {g["summary"]} |' for g in gates]
     open(os.path.join(REVIEW, f'{tag}_qa.md'), 'w').write('\n'.join(md) + '\n')
     print('\n'.join(md))
+    P.output(os.path.join(REVIEW, f'{tag}_qa.md'), 'QA table')
+    P.output(jp, 'QA details (json)')
+    bad = [g['gate'] for g in gates if g['status'] in ('FAIL', 'BLOCKED')]
+    P.done(report['overall'] + (f' ({", ".join(bad)})' if bad else ''))
     sys.exit(0 if report['overall'].startswith('PASS') else 1)
 
 

@@ -58,8 +58,24 @@ def main():
         if c.get('section') and c['section'] not in seen:
             seen.add(c['section'])
             cand.append((c['start'] + c['dur'] // 2, f'section {c["section"]}'))
+    # trailer key beats the Director asked for (REVISED 2), first in line
+    key = []
+    if v == 'trailer':
+        by = lambda pred: next((c for c in e['clips'] if pred(c)), None)
+        pk = lambda c, u=0.5, why='': key.append((c['start'] + int(c['dur'] * u), why)) if c else None
+        sh = by(lambda c: c['transition']['type'] == 'shatter' or c['shot'] in ('title_peek',))
+        if sh:
+            key.append((min(sh['start'] + sh['dur'] - 1, max(sh['start'], 434 + 4)), 'the shatter'))
+        pk(by(lambda c: 'wobbles' in c['shot'] and c.get('section') == 'build'), 0.6, 'the Wobbles beat')
+        dr = by(lambda c: c.get('section') == 'drop' or 'logo' in c['shot'])
+        if dr:
+            key.append((min(dr['start'] + dr['dur'] - 1, 1394 + 20), 'the drop'))
+        pk(by(lambda c: c['shot'] == 'pg_split_23' and c['dur'] >= 150), 0.5, 'split-screen proof')
+        pk(by(lambda c: c.get('section') == 'montage' and c['shot'].startswith('pg_')), 0.5, 'programming montage cut')
+        pk(by(lambda c: 'justagame' in c['shot']), 0.7, 'closing card')
+    cand = key + cand
     chosen = []
-    for f, why in sorted(cand, key=lambda t: (not t[1].startswith('caption'), t[0])):
+    for f, why in sorted(cand, key=lambda t: (t not in key, not t[1].startswith('caption'), t[0])):
         if all(abs(f - g) > 45 for g, _ in chosen) and 0 <= f < e['duration']:
             chosen.append((f, why))
         if len(chosen) == 10:
@@ -79,6 +95,16 @@ def main():
         fh.write('\n'.join(out) + '\n')
     print(os.path.relpath(cp, E.ROOT))
     print('\n'.join(out))
+    try:
+        sys.path.insert(0, os.path.join(HERE, '..', 'progress'))
+        from progress import Progress
+        P = Progress(f'review:{v}', title=f'Review stills: {v}', total=len(out), unit='stills')
+        P.output(cp, 'contact sheet')
+        for line in out:
+            P.output(line.split('  (')[0], line.split('  (')[1].rstrip(')'))
+        P.done(f'{len(out)} stills + contact sheet')
+    except Exception as x:  # the board is a convenience; never fail the review on it
+        print('progress board:', x)
 
 
 if __name__ == '__main__':

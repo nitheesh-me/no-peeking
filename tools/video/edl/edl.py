@@ -213,6 +213,25 @@ def game_area(edl, size=None):
     return (0, 0, W, H)
 
 
+def window_boxes(win, src_w, src_h, size_w):
+    """One split-screen window: (source box (x0, y0, x1, y1) in source px, cover-cropped to the destination
+    aspect and centred in the source rect; destination rect (x, y, w, h) in output px at width size_w).
+    win = {"src": [x, y, w, h] normalised 0..1, "dst": [x, y, w, h] in 1080p units}."""
+    k = size_w / 1920
+    dx, dy, dw, dh = [round(v * k) for v in win['dst']]
+    sx, sy, sw_, sh_ = win['src']
+    sx, sy, sw_, sh_ = sx * src_w, sy * src_h, sw_ * src_w, sh_ * src_h
+    ar = dw / dh
+    if sw_ / sh_ > ar:  # source rect too wide: crop width
+        w = sh_ * ar
+        x0, y0, x1, y1 = sx + (sw_ - w) / 2, sy, sx + (sw_ + w) / 2, sy + sh_
+    else:
+        hh = sw_ / ar
+        ay = win.get('anchor_y', 0.5)  # 0 = keep the top (the Bot Code column starts at its top)
+        x0, y0, x1, y1 = sx, sy + (sh_ - hh) * ay, sx + sw_, sy + (sh_ - hh) * ay + hh
+    return (x0, y0, x1, y1), (dx, dy, dw, dh)
+
+
 def strip_rect(edl, size=None):
     W, H = size or edl['work']
     gh = round(H * 0.88)

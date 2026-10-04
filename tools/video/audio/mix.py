@@ -64,8 +64,8 @@ DESIGN = ROOT / 'videos/audio2/design'
 SPF = SR // 60  # samples per frame at 60 fps (800)
 
 PRESETS = {
-    'trailer': dict(music_lufs=-20.0, max_duck=12.0, weight='trailer', voices=False, sfx_gain_db=4.0, voice_gain_db=-6,
-                    design=HERE / 'cues/trailer_design.json', bg_duck=3.0, featured_all_game=True, plr_db=10.0, quiet_target_lufs=-16.0),
+    'trailer': dict(music_first=True, card_accents=True, score=HERE / 'cues/trailer_score.json', music_lufs=-20.0, max_duck=12.0, weight='trailer', voices=False, sfx_gain_db=4.0, voice_gain_db=-6,
+                    design=HERE / 'cues/trailer_design.json', bg_duck=3.0, featured_all_game=True, plr_db=10.0, quiet_target_lufs=-16.0, arc_cap_lufs=-11.5),
     'mechanic': dict(music_lufs=-27.0, max_duck=12.0, weight='game', voices=True, sfx_gain_db=0.0, voice_gain_db=-2.0,
                      design=None, bg_duck=2.0, featured_all_game=False, plr_db=14.0),
     'showcase': dict(music_lufs=-25.0, max_duck=12.0, weight='game', voices=True, sfx_gain_db=0.0, voice_gain_db=-3.0,
@@ -86,6 +86,19 @@ ALIASES = {  # Editor's clip-cue names (plans.py) → design assets / groups
 }
 GROUP_OF = {v: k for k, v in ALIASES.items()}
 BOT_LETTERS = 'abcdefgh'
+ACCENTS = {'card_pick', 'card_drop', 'ui_click'}  # card UI = rhythmic accents in programming shots (REVISED 2)
+PROG_RE = r'(^pg_|_pg_|program|editor|card_?guide|bot_?code|test_?strip|qol|snippet|step_?mode|timeline|export|qiskit|text_?view|drag|split|tr_proof)'
+
+
+def is_programming(clip) -> bool:
+    """A clip that shows the program: explicit flag, audio.programming, section 'proof', or the shot name."""
+    import re
+    au = clip.get('audio') or {}
+    if 'programming' in clip or 'programming' in au:
+        return bool(clip.get('programming', au.get('programming')))
+    if clip.get('section') == 'proof':
+        return True
+    return bool(re.search(PROG_RE, str(clip.get('shot', '')).lower()))
 
 
 # ───────────────────────── loading ─────────────────────────
@@ -262,9 +275,11 @@ class Library:
             p = LIB / f'{name}{sub}'
             if p.suffix == '.wav' and p.exists():
                 return load_audio(p), {'hit_s': 0.0, 'kind': 'sfx'}
+        if self.weight == 'trailer' and (LIB / f'trailer/{name}.wav').exists():
+            return load_audio(LIB / f'trailer/{name}.wav'), {'hit_s': 0.0, 'kind': 'sfx', 'featured': True}
         p = LIB / f'game/{name}__v1.wav'
         if p.exists():
-            return load_audio(p), {'hit_s': 0.0, 'kind': 'sfx'}
+            return load_audio(p), {'hit_s': 0.0, 'kind': 'sfx', 'featured': name in FEATURED}
         return None, None
 
 
@@ -403,7 +418,8 @@ def build(args):
             if tf is None:
                 continue
             name = e.get('name') if e['type'] == 'sfx' else e['type']
-            raw.append({'clip': c['id'], 'shot': c.get('shot'), 'type': e['type'], 'name': name, 'src_frame': f, 'frame': tf,
+            accent = bool(P.get('card_accents') and name in ACCENTS and is_programming(c))
+            raw.append({'accent': accent, 'clip': c['id'], 'shot': c.get('shot'), 'type': e['type'], 'name': name, 'src_frame': f, 'frame': tf,
                         'speed': spd(tf), 'opts': e.get('opts', {}), 'bot': e.get('bot'), 'result': e.get('result'),
                         'bits': e.get('bits'), 'clip_gain_db': au.get('gain_db', 0.0)})
         # voices
@@ -432,7 +448,7 @@ def build(args):
         s = r['speed']
         t = r['frame'] / 60
         reason = None
-        if s >= 2 and PRIORITY.get(r['name'], 5) <= 2:
+        if s >= 2 and PRIORITY.get(r['name'], 5) <= 2 and not r.get('accent'):
             reason = f'ui sound at {s:.1f}x'
         else:
             gap = 0.03 if s <= 1.05 else 0.09 * (1 + math.log2(s))
@@ -451,9 +467,15 @@ def build(args):
     kept.sort(key=lambda r: r['frame'])
 
     # ── 3. place game SFX ──
+    grid8 = []
+    if cs:
+        b0 = int(cs['raw'].get('grid', {}).get('beat0_frame', cs['beats'][0] if cs['beats'] else 0))
+        bf = cs['raw'].get('beat_frames') or (cs['beats'][1] - cs['beats'][0] if len(cs['beats']) > 1 else 32)
+        grid8 = [b0 + k * bf / 2 for k in range(int((dur_f - b0) / (bf / 2)) + 2)]
+        grid8 = [int(round(g8)) for g8 in grid8]
     feat_all = P['featured_all_game']
     for r in kept:
-        featured = r['name'] in FEATURED or (feat_all and PRIORITY.get(r['name'], 5) >= 3)
+        featured = r['name'] in FEATURED or (feat_all and PRIORITY.get(r['name'], 5) >= 3) or r.get('accent', False)
         if r['type'] == 'botNote':
             x, src = lib.bot(int(r['bot'] or 0), int(r['result'] or 0), featured)
         elif r['type'] == 'syndromeChord':
@@ -472,8 +494,13 @@ def build(args):
         if o.get('pan'):
             p = max(-1, min(1, o['pan']))
             x = x * np.array([math.cos((p + 1) * math.pi / 4), math.sin((p + 1) * math.pi / 4)]) * math.sqrt(2)
-        cues.append({'id': f'g{next(IDS):03d}', 'kind': 'game', 'name': r['name'], 'src': src, 'stem': 'sfx', 'frame': r['frame'],
-                     'start': r['frame'] * SPF, 'x': x, 'gain_db': g, 'featured': featured, 'clip': r['clip'],
+        frame, qfrom = r['frame'], None
+        if r.get('accent') and grid8:
+            near8 = min(grid8, key=lambda g8: abs(g8 - frame))
+            if 0 < abs(near8 - frame) <= 2:  # quantise to the nearest 8th when within 2 frames
+                qfrom, frame = frame, near8
+        cues.append({'id': f'g{next(IDS):03d}', 'kind': 'game', 'name': r['name'], 'src': src, 'stem': 'sfx', 'frame': frame,
+                     'start': frame * SPF, 'accent': r.get('accent', False), 'quantised_from': qfrom, 'x': x, 'gain_db': g, 'featured': featured, 'clip': r['clip'],
                      'src_frame': r['src_frame'], 'speed': round(r['speed'], 3)})
 
     # ── 4. designed layers ──
@@ -527,17 +554,12 @@ def build(args):
             design_cues.append({**q, 'frame': f, 'src': f'list:{Path(lp).name}',
                                 'until_f': resolve_anchor(q['until'], cs, bpm) if q.get('until') else None})
     gates = []
+    zones = []
     for q in design_cues:
         if q.get('frame') is None:
             continue
-        if q['asset'].startswith('zone:'):  # zone:sfx_gain → gain on every game SFX cue inside [frame, until)
-            end = q.get('until_f') or q['frame']
-            for c in cues:
-                if c['kind'] == 'game' and q['frame'] <= c['frame'] < end:
-                    c['gain_db'] += float(q.get('gain_db', 0))
-                    c['zone_db'] = c.get('zone_db', 0) + float(q.get('gain_db', 0))
-                    if q.get('floor_lufs') is not None:
-                        c['floor_lufs'] = float(q['floor_lufs'])
+        if q['asset'].startswith('zone:'):  # applied after every design cue exists (see below)
+            zones.append(q)
             continue
         if q['asset'].startswith('gate:'):
             end = q.get('until_f')
@@ -550,8 +572,9 @@ def build(args):
             print('  ! unknown design asset', q['asset'])
             continue
         sup = q.get('suppress_game') or meta.get('suppress_game') or []
+        win = int(meta.get('suppress_window_f', 30))  # forward window (frames) the designed sound covers
         for nm in ([sup] if isinstance(sup, str) else sup):  # the designed sound replaces the in-game one(s) here
-            for c in [c for c in cues if c['kind'] == 'game' and c['name'] == nm and abs(c['frame'] - q['frame']) <= 30]:
+            for c in [c for c in cues if c['kind'] == 'game' and c['name'] == nm and -30 <= c['frame'] - q['frame'] <= max(30, win)]:
                 cues.remove(c)
                 thinned.append({'clip': c['clip'], 'name': c['name'], 'src_frame': c['src_frame'], 'frame': c['frame'],
                                 'speed': c['speed'], 'reason': f"replaced by {q['asset']}"})
@@ -570,8 +593,28 @@ def build(args):
         cues.append({'id': f'd{next(IDS):03d}', 'kind': 'design', 'name': q['asset'], 'src': q.get('src'), 'stem': stem,
                      'frame': q['frame'], 'start': start, 'x': x,
                      'gain_db': float(q.get('gain_db', 0.0) or 0.0) + float(meta.get('mix_gain_db', 0.0)) + (P['sfx_gain_db'] if stem == 'sfx' else 0),
-                     'featured': featured, 'clip': None, 'src_frame': None, 'speed': 1.0,
+                     'featured': featured, 'clip': None, 'src_frame': None, 'speed': 1.0, 'bed': meta.get('kind') == 'bed',
+                     'riser': meta.get('kind') == 'riser',
+                     'mix_max_s': meta.get('mix_max_s'), **({'under_db': float(q['under_db'])} if q.get('under_db') is not None else {}),
                      'music_zero_start': bool(q.get('music_zero_start'))})
+
+    # zones: zone:sfx_gain (gain [+ floor] on cues of `kinds` inside [frame, until)), zone:no_duck (no music dips)
+    no_duck = []
+    for z in zones:
+        end = z.get('until_f') or z['frame']
+        if z['asset'] == 'zone:no_duck':
+            no_duck.append((z['frame'], end))
+            continue
+        kinds = z.get('kinds', ['game'])
+        for c in cues:
+            if c['kind'] in kinds and z['frame'] <= c['frame'] < end and not str(c['name']).startswith(('room_tone', 'night_amb')):
+                c['gain_db'] += float(z.get('gain_db', 0))
+                c['zone_db'] = c.get('zone_db', 0) + float(z.get('gain_db', 0))
+                if z.get('floor_lufs') is not None:
+                    c['floor_lufs'] = float(z['floor_lufs'])
+    for c in cues:
+        if any(a <= c['frame'] < b for a, b in no_duck):
+            c['no_duck'] = True
 
     # ── 5. music bed ──
     music_path = args.music or (edl.get('audio', {}) or {}).get('music')
@@ -582,11 +625,85 @@ def build(args):
                 music_path = p
                 break
     music_info = {'path': str(music_path), 'offset_frames': args.music_offset_frames}
+    seg_report = []
     if music_path and rel(music_path).exists():
         m = load_audio(rel(music_path))
-        m = m * dsp.undb(P['music_lufs'] - dsp.integrated(m))
-        dsp.place(stems['music'], m, args.music_offset_frames * SPF)
+        bed_gain = dsp.undb(P['music_lufs'] - dsp.integrated(m))  # one gain for every score source (all ~-16 LUFS)
+        base = np.zeros((N, 2))
+        dsp.place(base, m * bed_gain, args.music_offset_frames * SPF)
         music_info['lufs_in'] = round(dsp.integrated(load_audio(rel(music_path))), 2)
+        plan_path = args.score or (edl.get('audio', {}) or {}).get('score') or P.get('score')
+        base_env = np.ones(N)
+        layers = np.zeros((N, 2))
+        if plan_path and not args.no_score and rel(plan_path).exists():
+            plan = json.loads(rel(plan_path).read_text())
+            srcs = {k: rel(v) for k, v in plan.get('sources', {}).items()}
+            downs = cs['downbeats'] if cs else []
+            for sg in plan.get('segments', []):
+                if sg.get('only_with') and sg['only_with'] not in str(music_path):
+                    continue
+                spans = []
+                if sg.get('clips') == 'programming':
+                    # bar-majority rule: a bar (downbeat → downbeat) carries the groove when >= min_cover of its
+                    # frames show programming clips (sub-bar 32/64-frame cuts can't each land on a downbeat)
+                    prog = np.zeros(dur_f + 1, bool)
+                    for c in edl['clips']:
+                        if is_programming(c) and (not sg.get('section') or c.get('section') == sg['section']):
+                            prog[c['start']:min(c['end'], dur_f)] = True
+                    sec = cs['sections'].get(sg['section']) if (cs and sg.get('section')) else None
+                    dl = [d for d in (cs['downbeats'] if cs else []) if (not sec or sec[0] <= d <= sec[1])]
+                    if sg.get('within'):  # optional window [from, to] (anchors) restricting the bars
+                        w0, w1 = resolve_anchor(sg['within'][0], cs, bpm), resolve_anchor(sg['within'][1], cs, bpm)
+                        dl = [d for d in dl if w0 <= d <= w1]
+                    run = None
+                    for d0, d1 in zip(dl, dl[1:]):
+                        cov = float(prog[d0:d1].mean()) if d1 > d0 else 0.0
+                        if cov >= sg.get('min_cover', 0.5):
+                            if run and run[1] == d0:
+                                run[1] = d1
+                                run[2].append(round(cov, 2))
+                            else:
+                                run = [d0, d1, [round(cov, 2)]]
+                                spans.append(run)
+                        else:
+                            run = None
+                else:
+                    a = resolve_anchor(sg['from'], cs, bpm)
+                    b = resolve_anchor(sg['to'], cs, bpm)
+                    if a is not None and b is not None:
+                        spans.append([a, b])
+                xf = int(sg.get('xfade_frames', 6)) * SPF
+                src_path = srcs.get(sg['source'], rel(sg['source']))
+                if not Path(src_path).exists():
+                    print('  ! score source missing', sg['source'])
+                    continue
+                sx = dsp.fit(load_audio(src_path) * bed_gain * dsp.undb(sg.get('gain_db', 0.0)), N)
+                for sp in spans:
+                    a, b = sp[0], sp[1]
+                    cover = sp[2] if len(sp) > 2 else None
+                    sa = min(downs, key=lambda d: abs(d - a)) if downs else a
+                    sb = min(downs, key=lambda d: abs(d - b)) if downs else b
+                    if sb <= sa:
+                        continue
+                    i0, i1 = sa * SPF, sb * SPF
+                    env = np.zeros(N)
+                    env[i0:i1] = 1.0
+                    n_in = min(xf, i0)
+                    if n_in:  # equal-power fade-in that completes ON the downbeat
+                        env[i0 - n_in:i0] = np.sin((np.arange(n_in) + 1) / n_in * np.pi / 2)
+                    n_out = len(env[i1:i1 + xf])
+                    if n_out:  # fade-out that starts ON the downbeat
+                        env[i1:i1 + n_out] = np.cos(np.arange(n_out) / max(xf, 1) * np.pi / 2)
+                    layers += sx * env[:, None]
+                    if sg.get('mode') == 'replace':
+                        base_env = np.minimum(base_env, np.sqrt(np.clip(1 - env ** 2, 0, 1)))
+                    elif sg.get('bed_db'):  # layer that makes room: the bed dips under it (keeps the section's energy)
+                        base_env = base_env * (1 - env * (1 - dsp.undb(sg['bed_db'])))
+                    seg_report.append({'source': sg['source'], 'mode': sg.get('mode', 'layer'), 'gain_db': sg.get('gain_db', 0.0), 'bed_db': sg.get('bed_db', 0.0),
+                                       'requested_frames': [a, b], 'frames': [sa, sb], 'on_downbeat': bool(not downs or (sa in downs and sb in downs)),
+                                       'snapped': [sa - a, sb - b], 'xfade_frames': int(sg.get('xfade_frames', 6)),
+                                       'clips': sg.get('clips'), 'bar_programming_cover': cover, 'plan': relp(rel(plan_path))})
+        stems['music'] = base * base_env[:, None] + layers
     for q in cues:
         if q.get('music_zero_start'):
             mabs = np.max(np.abs(stems['music']), axis=1)
@@ -609,6 +726,13 @@ def build(args):
         g[max(0, i0 - r):i0] = np.linspace(1, 0, min(r, i0))
         g[i1:i1 + r] = np.linspace(0, 1, len(g[i1:i1 + r]))
         stems['music'] *= g[:, None]
+
+    auto_rep, gcurve = {}, None
+    secs_list = sorted(((k, a, b) for k, (a, b) in (cs['sections'].items() if cs else [])), key=lambda r: r[1])
+    if P.get('music_first') and cs:
+        import mixfirst
+        stems['music'], gcurve, auto_rep = mixfirst.automate_music(stems['music'], secs_list, cs['downbeats'], P.get('music_targets', mixfirst.TARGETS))
+        stems['music'] = mixfirst.music_polish(stems['music'], secs_list)
 
     # ── 6. voices ──
     voice_stem, voice_src = render_voice_stem(voice_calls, N, not args.no_engine) if voice_calls else (np.zeros((N, 2)), 'none')
@@ -633,122 +757,183 @@ def build(args):
         if key not in plr_cache:
             x = q['x']
             m = float(np.max(dsp.momentary(dsp.fit(x, max(len(x), int(0.4 * SR))), 0.01)))
-            ceil = m + P['plr_db']
+            ceil = m + P['plr_db'] + (6.0 if q.get('accent') else 0.0)  # accents: short clicks, keep their snap
             pk = dsp.true_peak_db(x)
             plr_cache[key] = (dsp.limiter(x, ceil, 0.002, 0.04) if pk > ceil else x, round(pk - ceil, 2) if pk > ceil else 0.0)
         q['x'], q['plr_cut_db'] = plr_cache[key]
-    # ── 6b. level floors (zone floor_lufs) and the bots' QUIET answer (Critic, sound milestone #7) ──
-    def mmax(q):
-        return float(np.max(dsp.momentary(dsp.fit(q['x'], max(len(q['x']), int(0.4 * SR))), 0.01))) + q['gain_db']
-    for q in cues:
-        if q.get('floor_lufs') is not None and q['featured'] and '_quiet' not in str(q['src']):
-            lift = q['floor_lufs'] + 0.5 - mmax(q)
-            if lift > 0:
-                q['gain_db'] += lift
-                q['floor_lift_db'] = round(lift, 2)
-    if P.get('quiet_target_lufs') is not None:
-        beeps = [q for q in cues if q['kind'] == 'game' and (q['name'] == 'listen_beep' or (q['name'] == 'botNote' and '_beep' in str(q['src'])))]
+    level_rep = []
+    if P.get('music_first'):
+        import mixfirst
+        for q in cues:  # fade every tail (>= 20 ms): nothing ends on a click
+            if len(q['x']) > int(0.05 * SR):
+                q['x'] = dsp.fade(q['x'], 0.0, 0.02)
+        level_rep = mixfirst.level_cues(cues, stems['music'], secs_list, P)
+    else:
+        # ── 6b. level floors (zone floor_lufs) and the bots' QUIET answer (Critic, sound milestone #7) ──
+        def mmax(q):
+            return float(np.max(dsp.momentary(dsp.fit(q['x'], max(len(q['x']), int(0.4 * SR))), 0.01))) + q['gain_db']
         for q in cues:
-            if q['kind'] == 'game' and q['name'] == 'botNote' and '_quiet' in str(q['src']):
-                near = [b for b in beeps if abs(b['frame'] - q['frame']) <= 240]
-                tgt = P['quiet_target_lufs']
-                q['gain_db'] += tgt - mmax(q)
-                q['quiet_target'] = round(tgt, 2)
-                # "one beeps, one stays quiet": the answering BEEP stays >= 4 LU (+0.5 safety) above the quiet
-                for b in near:
-                    lift = (tgt + 4.5) - mmax(b)
-                    if lift > 0:
-                        b['gain_db'] += lift
+            if q.get('floor_lufs') is not None and q['featured'] and '_quiet' not in str(q['src']):
+                lift = q['floor_lufs'] + 0.5 - mmax(q)
+                if lift > 0:
+                    q['gain_db'] += lift
+                    q['floor_lift_db'] = round(lift, 2)
+        if P.get('quiet_target_lufs') is not None:
+            beeps = [q for q in cues if q['kind'] == 'game' and (q['name'] == 'listen_beep' or (q['name'] == 'botNote' and '_beep' in str(q['src'])))]
+            for q in cues:
+                if q['kind'] == 'game' and q['name'] == 'botNote' and '_quiet' in str(q['src']):
+                    near = [b for b in beeps if abs(b['frame'] - q['frame']) <= 240]
+                    tgt = P['quiet_target_lufs']
+                    q['gain_db'] += tgt - mmax(q)
+                    q['quiet_target'] = round(tgt, 2)
+                    # "one beeps, one stays quiet": the answering BEEP stays >= 4 LU (+0.5 safety) above the quiet
+                    for b in near:
+                        lift = (tgt + 4.5) - mmax(b)
+                        if lift > 0:
+                            b['gain_db'] += lift
 
+        # anticipation arc (Critic fix 5): before the payoff, no featured cue outside the drop may out-shout the drop
+        if P.get('arc_cap_lufs') is not None and cs:
+            d0 = cs['hits_f'].get('drop', cs['sections'].get('drop', (10 ** 9,))[0])
+            pay = cs['hits_f'].get('payoff_slam', cs['sections'].get('payoff', (10 ** 9,))[0])
+            cand = sorted([q for q in cues if q['featured'] and q['frame'] < pay and not (d0 <= q['frame'] < d0 + 252)
+                           and q['kind'] != 'voice'], key=lambda q: q['frame'])
+            groups, cur = [], []
+            for q in cand:  # cues within 3 frames of each other sound as one event: cap their COMBINED loudness
+                if cur and q['frame'] - cur[0]['frame'] > 3:
+                    groups.append(cur)
+                    cur = []
+                cur.append(q)
+            if cur:
+                groups.append(cur)
+            for grp in groups:
+                tot = 10 * np.log10(sum(10 ** (mmax(q) / 10) for q in grp))
+                over = tot - P['arc_cap_lufs']
+                if over > 0:
+                    for q in grp:
+                        q['gain_db'] -= over
+                        q['arc_cut_db'] = round(over, 2)
     for q in cues:
         q['gain'] = dsp.undb(q['gain_db'])
         dsp.place(stems[q['stem']], q['x'], q['start'], q['gain'])
         q['body_s'] = body_end(q['x'], 0)
 
-    # ── 8. ducking solve ──
-    n_ctrl = N * CR // SR + 1
-    music_raw = stems['music'].copy()
-    band = dsp.bandpass(music_raw, 2000, 5000, 2, zp=True)
-    rest = music_raw - band
-    feat = [q for q in cues if q['featured']] + voice_cues
-    for q in feat:
-        q['duck_db'] = 0.0      # broadband fallback (only if the band dip alone cannot reach the margin)
-        q['band_db'] = 6.0      # 2-5 kHz dynamic-EQ dip (Critic: -6 dB under every featured SFX), up to 12
-        q['boost_db'] = 0.0
-    # non-featured SFX and voices get a lighter 3 dB band dip; no broadband ducking at all by default
-    light = [(q['start'] / SR, q['start'] / SR + q['body_s'], 3.0) for q in cues if not q['featured'] and q['stem'] == 'sfx']
-    light += [(v['start'] / SR, v['end_s'], 3.0) for v in voice_cues if not v['featured']]
-    target = args.margin + 1.0
-    alone_cache = {}
-
-    def cue_alone(q):
-        if q['kind'] == 'voice':
-            a, b = q['start'], int(q['end_s'] * SR) + int(0.4 * SR)
-            y = np.zeros_like(stems['voices'])
-            y[a:b] = stems['voices'][a:b]
-            return y
-        if q['id'] not in alone_cache:
-            y = np.zeros((N, 2))
-            dsp.place(y, q['x'], q['start'], 1.0)
-            alone_cache[q['id']] = y
-        return alone_cache[q['id']] * dsp.undb(q['gain_db'] + q['boost_db'])
-
-    def span(q):
-        t0 = q['start'] / SR
-        return t0, (q['end_s'] if q['kind'] == 'voice' else t0 + q['body_s'])
-
-    def measure(q, music):
-        t0, t1 = span(q)
-        ca = cue_alone(q)
-        cm, base = momentary_at(ca, t0 - 0.2, t1)
-        mm, _ = momentary_at(music, t0 - 0.2, t1)
-        n = min(len(cm), len(mm))
-        k = int(np.argmax(cm[:n]))
-        # the same window, 2-5 kHz only (where BEEP / BOOP / HIGHFIVE live): plain band energy, dB
-        w0 = int((base + k * 0.01) * SR)
-        w1 = w0 + int(0.4 * SR)
-        cb = dsp.bandpass(ca[w0:w1], 2000, 5000, 2)
-        mb = dsp.bandpass(music[w0:w1], 2000, 5000, 2)
-        bm = 10 * np.log10((np.mean(cb ** 2) + 1e-12) / (np.mean(mb ** 2) + 1e-12))
-        return float(cm[k]), float(mm[k]), base + k * 0.01, float(bm)
-
-    music_d = music_raw
-    for it in range(8):
-        bdips = light + [(*span(q), q['band_db']) for q in feat]
-        band_env = ctrl_to_samples(dip_envelope(bdips, n_ctrl), N)
-        env = ctrl_to_samples(dip_envelope([(*span(q), q['duck_db']) for q in feat], n_ctrl), N)
-        music_d = (rest + band * dsp.undb(-band_env)[:, None]) * dsp.undb(-env)[:, None]
-        worst = 99
+    # ── 8. music-first: no ducking; measure every cue against the music; SFX bus processing ──
+    bus_rep = {}
+    if P.get('music_first'):
+        import mixfirst
+        n_ctrl = N * CR // SR + 1
+        music_raw = stems['music'].copy()
+        target = args.margin + 1.0
+        for q in cues:  # long reverb tails (sig_a) are cropped so the design stem never sits on the music
+            if q.get('mix_max_s') and len(q['x']) > q['mix_max_s'] * SR:
+                q['x'] = dsp.fade(q['x'][:int(q['mix_max_s'] * SR)], 0.0, 0.6)
+        bus_rep = mixfirst.place_and_correct(cues, stems, music_raw)
+        stems['sfx'], bus_rep['presence_match'] = mixfirst.presence_match(stems['sfx'], music_raw, secs_list)
+        for q in cues:
+            q.update({'duck_db': 0.0, 'band_db': 0.0, 'boost_db': 0.0, 'band_margin_db': 0.0})
+    else:
+        # ── 8. ducking solve ──
+        n_ctrl = N * CR // SR + 1
+        music_raw = stems['music'].copy()
+        band = dsp.bandpass(music_raw, 2000, 5000, 2, zp=True)
+        rest = music_raw - band
+        feat = [q for q in cues if q['featured'] and not q.get('no_duck')] + voice_cues
+        exempt = [q for q in cues if q['featured'] and q.get('no_duck')]
+        nd_mask = np.ones(N)
+        for a, b in no_duck:
+            i0, i1, r = a * SPF, b * SPF, int(0.01 * SR)
+            nd_mask[i0:i1] = 0.0
+            nd_mask[max(0, i0 - r):i0] = np.linspace(1, 0, min(r, i0))
+            nd_mask[i1:i1 + r] = np.linspace(0, 1, len(nd_mask[i1:i1 + r]))
         for q in feat:
+            q['duck_db'] = 0.0      # broadband fallback (only if the band dip alone cannot reach the margin)
+            q['band_db'] = 6.0      # 2-5 kHz dynamic-EQ dip (Critic: -6 dB under every featured SFX), up to 12
+            q['boost_db'] = 0.0
+        # non-featured SFX and voices get a lighter 3 dB band dip; no broadband ducking at all by default
+        light = [(q['start'] / SR, q['start'] / SR + q['body_s'], 3.0) for q in cues if not q['featured'] and q['stem'] == 'sfx']
+        light += [(v['start'] / SR, v['end_s'], 3.0) for v in voice_cues if not v['featured']]
+        target = args.margin + 1.0
+        alone_cache = {}
+
+        def cue_alone(q):
+            if q['kind'] == 'voice':
+                a, b = q['start'], int(q['end_s'] * SR) + int(0.4 * SR)
+                y = np.zeros_like(stems['voices'])
+                y[a:b] = stems['voices'][a:b]
+                return y
+            if q['id'] not in alone_cache:
+                y = np.zeros((N, 2))
+                dsp.place(y, q['x'], q['start'], 1.0)
+                alone_cache[q['id']] = y
+            return alone_cache[q['id']] * dsp.undb(q['gain_db'] + q['boost_db'])
+
+        def span(q):
+            t0 = q['start'] / SR
+            return t0, (q['end_s'] if q['kind'] == 'voice' else t0 + q['body_s'])
+
+        def measure(q, music):
+            t0, t1 = span(q)
+            ca = cue_alone(q)
+            cm, base = momentary_at(ca, t0 - 0.2, t1)
+            mm, _ = momentary_at(music, t0 - 0.2, t1)
+            n = min(len(cm), len(mm))
+            k = int(np.argmax(cm[:n]))
+            # the same window, 2-5 kHz only (where BEEP / BOOP / HIGHFIVE live): plain band energy, dB
+            w0 = int((base + k * 0.01) * SR)
+            w1 = w0 + int(0.4 * SR)
+            cb = dsp.bandpass(ca[w0:w1], 2000, 5000, 2)
+            mb = dsp.bandpass(music[w0:w1], 2000, 5000, 2)
+            bm = 10 * np.log10((np.mean(cb ** 2) + 1e-12) / (np.mean(mb ** 2) + 1e-12))
+            return float(cm[k]), float(mm[k]), base + k * 0.01, float(bm)
+
+        music_d = music_raw
+        for it in range(8):
+            bdips = light + [(*span(q), q['band_db']) for q in feat]
+            band_env = ctrl_to_samples(dip_envelope(bdips, n_ctrl), N)
+            env = ctrl_to_samples(dip_envelope([(*span(q), q['duck_db']) for q in feat], n_ctrl), N) * nd_mask
+            band_env = band_env * nd_mask
+            music_d = (rest + band * dsp.undb(-band_env)[:, None]) * dsp.undb(-env)[:, None]
+            worst = 99
+            for q in feat:
+                c, m, tk, bm = measure(q, music_d)
+                q['cue_lufs_m'], q['music_lufs_m'], q['t_meas'], q['band_margin_db'] = c, m, tk, bm
+                q['margin_lu'] = c - max(m, -70.0)  # silent music → measured against the -70 LUFS floor
+                short = target - q['margin_lu']
+                worst = min(worst, q['margin_lu'])
+                if short > 0.05:
+                    if q['band_db'] < 12.0:
+                        q['band_db'] = min(12.0, q['band_db'] + max(2.0, 2 * short))
+                    elif q['duck_db'] < P['max_duck']:
+                        q['duck_db'] = min(P['max_duck'], q['duck_db'] + short + 0.3)
+                    else:
+                        q['boost_db'] = min(12.0 if q.get('accent') else 6.0, q['boost_db'] + short + 0.3)
+            if worst >= target - 0.05:
+                break
+        stems['music'] = music_d
+        for q in exempt:  # measured and reported, but not ducked: the drop is a co-hit with the music (Critic fix 5)
+            q['boost_db'] = 0.0
             c, m, tk, bm = measure(q, music_d)
-            q['cue_lufs_m'], q['music_lufs_m'], q['t_meas'], q['band_margin_db'] = c, m, tk, bm
-            q['margin_lu'] = c - max(m, -70.0)  # silent music → measured against the -70 LUFS floor
-            short = target - q['margin_lu']
-            worst = min(worst, q['margin_lu'])
-            if short > 0.05:
-                if q['band_db'] < 12.0:
-                    q['band_db'] = min(12.0, q['band_db'] + max(2.0, 2 * short))
-                elif q['duck_db'] < P['max_duck']:
-                    q['duck_db'] = min(P['max_duck'], q['duck_db'] + short + 0.3)
-                else:
-                    q['boost_db'] = min(6.0, q['boost_db'] + short + 0.3)
-        if worst >= target - 0.05:
-            break
-    stems['music'] = music_d
-    # re-place boosted cues
-    for q in cues:
-        if q.get('boost_db'):
-            dsp.place(stems[q['stem']], q['x'], q['start'], dsp.undb(q['gain_db'] + q['boost_db']) - q['gain'])
+            q.update({'cue_lufs_m': c, 'music_lufs_m': m, 'band_margin_db': bm, 'margin_lu': c - max(m, -70.0),
+                      'duck_db': 0.0, 'band_db': 0.0, 'boost_db': 0.0})
+        # re-place boosted cues
+        for q in cues:
+            if q.get('boost_db'):
+                dsp.place(stems[q['stem']], q['x'], q['start'], dsp.undb(q['gain_db'] + q['boost_db']) - q['gain'])
 
     # ── 9. master ──
     n_out = dur_f * SPF
     mix = sum(stems.values())[:n_out]
+    glue_rep = {}
+    if P.get('music_first'):
+        import mixfirst
+        mix, glue_rep = mixfirst.glue(mix)
     for k in stems:
         stems[k] = stems[k][:n_out]
     g_db = args.target - dsp.integrated(mix)
     out = None
     for _ in range(4):
-        out = dsp.limiter(mix * dsp.undb(g_db), args.tp - 0.2)
+        out = dsp.limiter(mix * dsp.undb(g_db), args.tp - 0.5)  # 0.5 dB codec headroom: the AAC re-encode overshoots ~0.3 dB
         L = dsp.integrated(out)
         if abs(L - args.target) < 0.15:
             break
@@ -756,7 +941,7 @@ def build(args):
     out = dsp.fade(out, 0.0, 0.05)
     master_gain = dsp.undb(g_db)
     music_bed = music_raw[:n_out] * dsp.undb(g_db)
-    return dict(music_bed=music_bed, edl=edl, P=P, cs=cs, bpm=bpm, stems=stems, mix=out, master_gain_db=g_db, cues=cues, voice_cues=voice_cues,
+    return dict(auto_rep=auto_rep, level_rep=level_rep, bus_rep=bus_rep, glue_rep=glue_rep, seg_report=seg_report, music_bed=music_bed, edl=edl, P=P, cs=cs, bpm=bpm, stems=stems, mix=out, master_gain_db=g_db, cues=cues, voice_cues=voice_cues,
                 thinned=thinned, offscreen=offscreen, gates=gates, music_info=music_info, voice_src=voice_src, video=video,
                 master_gain=master_gain, target=target)
 
@@ -780,6 +965,9 @@ def write(res, args):
         row = {'id': q['id'], 'kind': q['kind'], 'name': q['name'], 'stem': q['stem'], 'frame': q['frame'],
                't_s': round(q['frame'] / 60, 3), 'sample': q['start'], 'featured': q['featured'], 'source': q.get('src'),
                'clip': q.get('clip'), 'src_frame': q.get('src_frame'), 'speed': q.get('speed')}
+        if q.get('accent'):
+            row['accent'] = True
+            row['quantised_from'] = q.get('quantised_from')
         if q['kind'] == 'voice':
             row['text'] = q.get('text')
         else:
@@ -790,7 +978,11 @@ def write(res, args):
                         'cue_lufs_m': round(q.get('cue_lufs_m', -99), 2), 'music_lufs_m': round(max(-70.0, q.get('music_lufs_m', -99)), 2),
                         'margin_lu': round(q.get('margin_lu', -99), 2),
                         'cue_lufs_m_post_master': round(q.get('cue_lufs_m', -99) + res['master_gain_db'], 2),
-                        'pass': bool(q.get('margin_lu', -99) >= args.margin and q.get('cue_lufs_m', -99) > -40)})
+                        'no_duck': bool(q.get('no_duck')), 'arc_cut_db': q.get('arc_cut_db'), 'zone_db': q.get('zone_db'),
+                        'window_rule': q.get('window_rule'), 'window_lu': q.get('window'),
+                        'pass': (bool((q.get('window') is None or (q['window'][0] - 0.3 <= q.get('margin_lu', -99) <= q['window'][1] + 0.3))
+                                      and q.get('cue_lufs_m', -99) > -40) if res['P'].get('music_first') else
+                                 bool((q.get('no_duck') or q.get('margin_lu', -99) >= args.margin) and q.get('cue_lufs_m', -99) > -40))})
         rows.append(row)
     feat = [r for r in rows if r['featured']]
     # Critic's loudness-curve gate (music bed as delivered to the mix, the ducked music stem, the full mix)
@@ -818,7 +1010,62 @@ def write(res, args):
             proof['pass'] = bool(ok)
     except Exception as ex:  # never let the report block the mix
         curve = {'error': str(ex)}
+    # Critic fix 5: full-mix anticipation arc; fix 9: re-measure the ENCODED file (AAC 320k, as delivered)
+    arcg = {}
+    try:
+        import arc_gate
+        hf = (res['cs'] or {}).get('hits_f', {}) if res['cs'] else {}
+        d0 = hf.get('drop', 1394)
+        arcg = arc_gate.arc(res['mix'], d0, d0 + 252, hf.get('silence_start', 1298), hf.get('payoff_slam', 3026))
+    except Exception as ex:
+        arcg = {'error': str(ex)}
+    aac = {}
+    try:
+        import subprocess
+        m4a = outdir / 'mix_check.m4a'
+        subprocess.run(['ffmpeg', '-y', '-v', 'error', '-i', str(mix_path), '-c:a', 'aac', '-b:a', '320k', '-ar', '48000', str(m4a)], check=True)
+        aac = {'codec': 'aac 320k 48k (ffmpeg native)', **dsp.ffmpeg_ebur128(m4a)}
+        aac['pass_true_peak_-1'] = aac.get('TP') is not None and aac['TP'] <= -1.0
+        m4a.unlink()
+    except Exception as ex:
+        aac = {'error': str(ex)}
+    phone = {}
+    if res['P'].get('music_first'):
+        try:
+            import mixfirst
+            ps = mixfirst.phone_sim(res['mix'])
+            pp = ROOT / 'videos/final/review' / f"{res['video']}_phone_sim.wav"
+            dsp.write_wav(pp, ps)
+            hf = res['cs']['hits_f'] if res['cs'] else {}
+            secs = res['cs']['sections'] if res['cs'] else {}
+
+            def stand(f, look=0.6):
+                a, b = int(f * SPF), int((f / 60 + look) * SR)
+                pre = ps[max(0, a - SR):a]
+                mh = float(np.max(dsp.momentary(dsp.fit(ps[a:b], max(b - a, int(0.4 * SR))), 0.02)))
+                mp = float(np.median(dsp.momentary(dsp.fit(pre, max(len(pre), int(0.4 * SR))), 0.05))) if len(pre) else -70
+                return {'frame': f, 'hit_momentary': round(mh, 1), 'pre_1s_median': round(max(mp, -70), 1), 'stands_out_lu': round(mh - max(mp, -70), 1)}
+            keys = {k: hf[k] for k in ('peek_collapse', 'bot_beep', 'drop', 'snap_circuit_reveal') if k in hf}
+            phone = {'file': relp(pp), 'hits': {k: stand(v) for k, v in keys.items()}}
+            if 'payoff' in secs and 'lights_out' in secs:  # the payoff is preceded by its swell: compare sections
+                pl = dsp.integrated(ps[secs['payoff'][0] * SPF:secs['payoff'][1] * SPF])
+                ll = dsp.integrated(ps[secs['lights_out'][0] * SPF:secs['lights_out'][1] * SPF])
+                phone['payoff_vs_lights_out'] = {'payoff_lufs': round(pl, 1), 'lights_out_lufs': round(ll, 1), 'lu': round(pl - ll, 1), 'pass': pl - ll >= 3}
+            if 'closing_musicbox' in secs:
+                a, b = secs['closing_musicbox']
+                box = dsp.integrated(ps[a * SPF:b * SPF])
+                pay = dsp.integrated(ps[secs['payoff'][0] * SPF:secs['payoff'][1] * SPF]) if 'payoff' in secs else None
+                phone['closing_musicbox'] = {'lufs': round(box, 1), 'payoff_lufs': round(pay, 1) if pay else None,
+                                             'below_payoff_lu': round(pay - box, 1) if pay else None, 'audible': box > -35}
+            phone['pass'] = (all(h['stands_out_lu'] >= 3 for h in phone['hits'].values()) and phone.get('closing_musicbox', {}).get('audible', True)
+                             and phone.get('payoff_vs_lights_out', {}).get('pass', True))
+        except Exception as ex:
+            phone = {'error': str(ex)}
     rep = {
+        'arc_gate': arcg, 'aac_check': aac, 'mode': 'music-first' if res['P'].get('music_first') else 'sfx-ducking',
+        'music_automation': res.get('auto_rep'), 'sfx_bus': res.get('bus_rep'), 'glue': res.get('glue_rep'),
+        'level_decisions': res.get('level_rep'), 'phone_sim': phone,
+        'score_segments': res.get('seg_report', []),
         'loudness_curve': curve, 'proof_energy': proof,
         'edl': str(args.edl) if not isinstance(args.edl, dict) else '(in-memory)', 'video': res['video'],
         'preset': args.preset or res['video'], 'cue_sheet': (res['cs'] or {}).get('path'), 'bpm': res['bpm'],
@@ -836,6 +1083,7 @@ def write(res, args):
                     'thinned': len(res['thinned']), 'offscreen_events': len(res['offscreen']), 'music_gates': res['gates']},
         'cues': rows, 'thinned': res['thinned'], 'offscreen': res['offscreen'][:200],
         'stems': {k: relp(stem_dir / f'{k}.wav') for k in res['stems']},
+        'stems_scaled_by_master_gain': True,  # stems on disk already include the master gain (pre glue/limiter)
         'mix': relp(mix_path),
     }
     rp = rel(au['mixreport']) if (au.get('mixreport') and not args.out) else outdir / 'mixreport.json'
@@ -855,16 +1103,31 @@ def main(argv=None):
     ap.add_argument('--cue-sheet')
     ap.add_argument('--cues', nargs='*')
     ap.add_argument('--no-design', action='store_true')
+    ap.add_argument('--score', help='score-segment plan JSON (default: the EDL audio.score, else the preset plan)')
+    ap.add_argument('--no-score', action='store_true', help='ignore score segments (bed only)')
     ap.add_argument('--no-engine', action='store_true')
     ap.add_argument('--out')
     ap.add_argument('--target', type=float, default=-14.0)
-    ap.add_argument('--tp', type=float, default=-1.0)
+    ap.add_argument('--tp', type=float, default=-1.5)  # Critic fix 9: platforms re-encode (inter-sample overshoot)
     ap.add_argument('--margin', type=float, default=6.0)
     args = ap.parse_args(argv)
-    res = build(args)
-    rep, rp = write(res, args)
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'progress'))
+    from progress import Progress
+    prog = Progress(f'mix:{Path(args.out or args.edl).stem}', title=f'Mix {Path(args.edl).name}', agent=os.environ.get('NP_AGENT', 'sound'))
+    try:
+        prog.stage('building stems + cues')
+        res = build(args)
+        prog.stage('writing mix + loudness report')
+        rep, rp = write(res, args)
+    except BaseException as x:
+        prog.fail(x)
+        raise
     s = rep['summary']
     L = rep['loudness']
+    prog.output(rep['mix'], 'mix')
+    prog.output(rp, 'report')
+    prog.done(f"I={L['ffmpeg_ebur128']['I']} LUFS, TP={L['ffmpeg_ebur128']['TP']} dBTP, featured {s['featured_pass']}/{s['featured']} pass"
+              + (f", FAIL {s['featured_fail']}" if s['featured_fail'] else ''))
     print(f"mix: {rep['mix']}  I={L['ffmpeg_ebur128']['I']} LUFS  TP={L['ffmpeg_ebur128']['TP']} dBTP (own: {L['integrated_lufs']}/{L['true_peak_dbtp']})")
     print(f"cues {s['cues']}  featured {s['featured_pass']}/{s['featured']} pass  min margin {s['min_margin_lu']} LU  thinned {s['thinned']}")
     if s['featured_fail']:

@@ -71,6 +71,59 @@ Registered in `tools/video/edl/shot_sources.json`. Full-frame (no matte), 3840×
 Exact markers are in each `<id>.json`. Clips over 300 frames render as resumable ≤ 300-frame segments (a killed run
 skips finished segments on re-run) and are concatenated losslessly.
 
+## REVISED 2 additions (build overlays, the programming card, the proof split screen)
+All alpha (`<name>_fill.mkv` + `<name>_matte.mkv`), registered in `tools/video/edl/shot_sources.json` as `mo_<name>`
+(each entry gives fill, matte and meta paths). Reading time = 1.6 s + 40 ms per character, counted from full legibility.
+
+| Asset | Frames | Placement / content | Legible → held |
+|---|---|---|---|
+| `card_gremlins_alpha` | 192 (2 bars) | lower-left: a small Sunny Qubble flips to Moony on f40 (red zap) + "Gremlins flip bits." (left-aligned from x 330, y ≈ 905). No gremlin sprite: the real gremlin is in the footage, and the upper/right ¾ of the frame stay clear. | f29 → 163 f held (needs 142) |
+| `card_ghosts_alpha` | 192 | lower-left: the Qubble's swirl mirrors on f40 (phase flip, purple swirl) + "Ghosts flip phases." | f29 → 163 f (needs 142) |
+| `card_wobbles_alpha` | 192 | lower-left: Wobbles' green jelly ripple on f40 jiggles a Sunny Qubble whose dream tilts only part of the way toward Moony (θ 0 → 70°, a coherent partial rotation; the colour mixes, it never fully flips) + "Wobbles flips… halfway." | f≈32 → 160 f (needs 151) |
+| `card_program_alpha` | 144 (1.5 bars) | centred on a torn paper note: "You don't play it. / You program it." ("program" in red). Starts right after the logo impact. | f18 → 126 f (2.1 s). **Below the reading rule (needs 175 f)** |
+| `card_program_alpha_long` | 192 (2 bars) | same; meets the rule | f18 → 174 f |
+| `split_frame` | 576 (proof f1586–2162) | paper frame with two transparent windows: left (room) x 28, y 28, 1124×1024; right (Bot Code) x 1196, y 104, 696×948 (1080p units; ×2 at 4K). Soft inner shadows, ink outlines, a stitched edge, a thin ink divider, and a Sunny "your program" chip above the right window (pops in over f0–14). | — |
+
+Split-screen recipe: scale/crop the capture's room into the left window and its editor column into the right
+window on a canvas, then `maskedmerge` the `split_frame` fill+matte on top. The window rects are also in `split_frame.json`.
+
+## Critic fix round (trailer song cut)
+**Proof overlay — `proof_overlay` (576 f, alpha; place at f1586 above `split_frame`).** Driven by
+`videos/capture/pg_split_23.events.json` + `.layout.json`: on each action frame the executing card (its logged
+`.card.current` rect) pops (halo in the card colour 1.0 → 1.12 → 1.06, glow, white flash, ▶ marker, ~30 f) and on the
+same frame a ring of that colour pulses on the actor (two pulses 7 f apart); the first two actions also get an
+animated card→actor connector. IF lines are evaluated from the log (an IF is true when the next executed card is not the next line): the false IF (fix1, a BEEP and b QUIET) gets only a dim grey outline sweep (9 f) and a small ✗ at trailer f1937; the true IF (fix2, BEEP·BEEP) gets the full pop + a ✓ at f1960 and a jump arrow down the gutter; at the head of the next segment (f1970) an arrow lands on ⚑ fix2, which pops, before the BOOP pop at f2010. It assumes these EDL segments and crops:
+
+| Trailer start | Dur | pg_split_23 in | What happens | Action (trailer f) |
+|---|---|---|---|---|
+| 1586 | 96 | 124 | cursor drags BOOP q2 into the program | — |
+| 1682 | 96 | 980 | HIGHFIVE q1 → a (bot a + q1), connector #1 | 1715 |
+| 1778 | 96 | 1300 | LISTEN a: bot a BEEP, connector #2 | 1826 |
+| 1874 | 96 | 1420 | LISTEN b: bot b BEEP; IF lines light (1937, 1960) | 1913 |
+| 1970 | 96 | 1600 | BOOP q2 (caretaker + q2 rings) | 2010 |
+| 2066 | 96 | 1749 | X-ray: dreams intact | — |
+
+Window crops (capture CSS px of the 1920×1080 capture frame; ×2 for the 4K source):
+- room: src `[240, 124, 838, 763]` → dst `[28, 28, 1124, 1024]` (1.34×; this also crops out the toast at the top
+  and Schrödi's dialogue box, which starts at y 887, so nothing needs masking).
+- bot_code: src `[1570, codeY, 350, 476.7]` → dst `[1196, 104, 696, 948]` (1.99× CSS ≈ 1.6× the old crop; ~9
+  lines visible), with codeY per segment = 565, 64, 160, 250, 565, 565 (the current line stays in view).
+All of it is in `proof_overlay.json` (`segs_trailer`, `code_window_src_css_per_seg`, `room_window_src_css`,
+`action_frames_trailer`). If the Editor changes the segments, re-render with `--p '{"segs":[…]}'`.
+
+**Gremlin caption icons:** `card_gremlins/ghosts/wobbles_alpha` now use each gremlin's own game sprite
+(`drawGremlin`: Flipper, Phasey, Wobbles) striking on clip f40 (with sparks in its colour; Wobbles jiggles), in place of the Qubble.
+
+**Program card, two beats — `card_program_alpha_160` (160 f, alpha; place at f1426).** The note and "You don't play it." arrive at
+clip f0 (legible **f10** = f1436; `text_legible` = 10) on a torn note in the lower third (y 790–920, under the settled wordmark);
+"You **program** it." at clip f48 (legible f62 = f1488); letters exit f146–158; fully clear at clip f160 = **f1586**.
+Line 1 holds 150 f from f10 to the exit at f160; line 2 holds 98 f (1.63 s) from legibility: it meets the Critic's rule (0.3 s/word + 0.4 = 1.3 s), not the bible's
+1.6 s + 40 ms/char (2.2 s). That rule can't be met inside f1394–1586 without covering the logo impact.
+
+**Circuit morph 32 frames earlier:** morphStart 18 → 6, stagger 3 → 2, line at clip f62 (was 96), legible clip
+f92 = **trailer f3790**, holding 196 f (3.27 s) to f3986. Re-rendered: `circuit_morph`, `mo_circuit_morph` (660),
+`circuit_morph_mech`. cap07's `legible_from` becomes 3790 (start 3760).
+
 ## Assets
 
 ### 1. Logo reveal — `logo_reveal` (198 f, 3.3 s) · **impact = clip f6 (trailer f1394)**

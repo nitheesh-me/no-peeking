@@ -12,8 +12,11 @@ Six or seven 4 GB software-GL Chromium renders ran at once and saturated all 22 
   tools/video/safe-run.sh -- <command>             # no per-job cap: use what the pool has free
   tools/video/safe-run.sh --mem 12G -- <command>   # optional ceiling; the job WAITS for that much free memory instead of failing
   ```
-  **`--heavy` is REQUIRED for every headless-Chromium render and every 4K ffmpeg encode/composite.** It takes one of **3 render slots machine-wide** (a 4th waits). Light jobs (python, JSON, short 1080p ffmpeg) run without `--heavy`.
-- The pool as a whole is capped at **16 of 22 cores** with low CPU/IO weight; the desktop (`session.slice`) has **3 GB of protected memory** and top CPU/IO weight. Per-job default CPUQuota is 8 cores.
+  **`--heavy` is REQUIRED for every headless-Chromium render and every 4K ffmpeg encode/composite.** It takes one of **2 render slots machine-wide** (a 4th waits). Light jobs (python, JSON, short 1080p ffmpeg) run without `--heavy`.
+  **Never wrap an orchestrator in `--heavy`** (`assemble/render.py`, `capture/run.mjs`, `motion/render.mjs` with several jobs): they take slots for their own child jobs. Wrapping the parent made it hold a slot while its children queued for one, a deadlock (19:15–19:50). safe-run now passes the slot down (`NP_RENDER_SLOT`) and a waiting job takes whichever slot frees first. Even so, launch orchestrators plainly: `tools/video/safe-run.sh -- python3 tools/video/assemble/render.py …`.
+- The pool as a whole is capped at **10 of 22 cores** with low CPU/IO weight; the desktop (`session.slice`) has **3 GB of protected memory** and top CPU/IO weight. Per-job default CPUQuota is 6 cores. Render one video at a time (crash #4 at 10:35: three 4K renders at once after 6 h of sustained load; thermald runs degraded on this laptop).
+- **Sleep is blocked while any job runs** (`systemd-inhibit` inside safe-run.sh): crash #5 at 17:40 was the laptop suspending and hanging on resume mid-render.
+- **Crash #6 (20:11):** a hard freeze with no kernel message, and the next boot died about 1 s in. It wasn't resources: at the last sysstat sample (20:10), CPU was 30 % busy, 16 GB was available, load was 7, and there was no OOM. Right before it, the log shows a burst of `msi_wmi` embedded-controller events (20:07–20:08) and USB-C `ucsi_acpi` errors (20:10). That points to firmware, power or heat, not our jobs. **Until it is understood, ONE heavy job at a time**, enforced by safe-run (`NP_RENDER_SLOTS`, default 1). Other heavy jobs show as queued. `tools/video/telemetry.sh` (unit `np-telemetry`) now writes temperatures, clock, load and memory every 5 s to `videos/telemetry.log`, with fsync, so the next freeze leaves evidence.
 - A last-resort watchdog kills only Playwright browsers and ffmpeg if system MemAvailable drops below 1.5 GB (logged in `videos/watchdog.log`).
 
 ## Still required (these were the actual crash causes)
@@ -22,3 +25,16 @@ Six or seven 4 GB software-GL Chromium renders ran at once and saturated all 22 
 3. One browser instance per job, closed in `finally`. Prefer one shared `vite preview` server.
 4. Stream frames through pipes into ffmpeg; never hold 4K frame sequences in RAM or in `/tmp` (a tmpfs, so it counts as RAM). Lossless intermediates go to `videos/` on disk.
 5. Long renders: chunk them (≤ 600 frames per job), so a failure loses little.
+
+## No polling (user rule)
+**Never write wait loops** (`sleep`/`until`/`while … grep`/`tail -f`/`inotifywait`) to wait for a log file, a keyword, or another agent's output.
+- For a long job of your own: run it with the Bash tool's `run_in_background: true` and end your turn. You're re-invoked automatically when it exits. Or run it in the foreground if it fits the timeout.
+- If you need another agent's output: don't wait. Finish what you can, report "blocked on X", and stop. The Director is notified when X lands and resumes you.
+
+## Progress board and reviewable outputs (user rule: no silent waiting)
+- **Live board:** open `tools/video/progress/status.html` in a browser (it refreshes every 3 s), or run `node tools/video/progress/status.mjs` in a terminal. Every job shows a progress bar, rate, ETA and state (running / queued / done / failed / dead), plus its outputs.
+- **Already reporting:** capture (per shot), motion (per job), `assemble/render.py` (stages A, B/C and mux) and `audio/mix.py`. `safe-run.sh` shows a job as **queued** while it waits for a render slot or for memory.
+- **Every new long tool must report too:** `tools/video/progress/progress.mjs` (`new Progress(id, {title, total, unit})`, then `.tick(n)`, `.output(path, label)`, `.done(note)` / `.fail(err)`). Python uses `progress.py`, with the same API. Set `NP_AGENT=<your role>` in the environment.
+- **Every finished job leaves something to review:** a contact sheet (`contactSheet()` / `contact_sheet()` writes `videos/review/<name>_sheet.png`), stills, or an H.264 preview MP4, registered with `.output()`. Lossless FFV1 masters don't play in a browser, so they don't count as reviewable.
+- **Record:** every finished or failed job is appended to `videos/progress/history.jsonl`.
+- **Don't idle.** If your next step depends on something not ready yet, work with what exists (placeholders, proxies, partial cuts). Placeholders get replaced when the real asset lands.

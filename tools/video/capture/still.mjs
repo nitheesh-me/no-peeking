@@ -18,7 +18,9 @@ const b = await chromium.launch({ args: ['--disable-gpu', '--use-angle=swiftshad
 try {
   const ctx = await b.newContext({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
   const p = await ctx.newPage();
-  const cfg = { seed: 1, cursor: false, storage: buildStorage({ unlockAll: true, progress: [] }) };
+  // STILL_SAVE='{"unlockAll":true,"settings":{"nerd":true}}'  STILL_LS='{"np.nb.open":"1"}'  (optional)
+  const save = process.env.STILL_SAVE ? JSON.parse(process.env.STILL_SAVE) : { unlockAll: true, progress: [] };
+  const cfg = { seed: 1, cursor: false, storage: buildStorage(save, process.env.STILL_LS ? JSON.parse(process.env.STILL_LS) : {}) };
   await p.addInitScript(`(${SHIM.replace(/^[\s\S]*?(function __npCaptureShim)/, '$1')})(${JSON.stringify(cfg)});`);
   await p.goto(base + '?qa' + (query ? '&' + query : '') + hash);
   for (let i = 0; i < 400 && !(await p.evaluate(() => document.fonts.status === 'loaded' && !!document.querySelector('#app *'))); i++) { await p.evaluate(() => __cap.step(16.667)); await p.waitForTimeout(10); }

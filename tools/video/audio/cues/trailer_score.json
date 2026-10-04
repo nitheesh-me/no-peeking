@@ -1,0 +1,40 @@
+{
+ "_doc": "Score segments for the trailer (REVISED 2: the programming is heard). The bed (song or public score) carries the arc; the game's coding groove (videos/audio2/groove, 112.5 BPM 3/4, F minor, timeline-aligned) is LAYERED under the proof split screen and under the programming cuts of the montage. Entries/exits are snapped to cue-sheet downbeats; equal-power crossfades complete on the entry downbeat and start on the exit downbeat. mode: layer | replace (replace fades the bed out under the segment). 'clips': 'programming' = one segment per run of programming clips in the EDL (clip.programming / audio.programming / section proof / shot name). Levels are relative to the bed's normalisation and are set so the loudness-curve gate still passes (proof bed >= 6 dB under the montage; payoff loudest).",
+ "sources": {
+  "groove_light": "videos/audio2/groove/groove_light.wav",
+  "groove_perc": "videos/audio2/groove/groove_perc.wav",
+  "groove_type": "videos/audio2/groove/groove_type.wav",
+  "groove_full": "videos/audio2/groove/groove_full.wav",
+  "song": "videos/music/trailer_edit.wav",
+  "public": "videos/audio2/score_alt/score_alt.wav"
+ },
+ "segments": [
+  {
+   "source": "groove_perc",
+   "from": "section:proof",
+   "to": "section:montage",
+   "mode": "layer",
+   "gain_db": -12,
+   "xfade_frames": 6,
+   "_why": "a quiet programming pulse under the split screen; the proof bed stays submerged (the bed dips 0.8 dB under it, so the proof section keeps its energy and the loudness-curve gate is unaffected)",
+   "bed_db": -0.8
+  },
+  {
+   "source": "groove_type",
+   "from": "section:proof",
+   "to": "section:montage",
+   "mode": "layer",
+   "gain_db": -10,
+   "xfade_frames": 6
+  },
+  {
+   "source": "groove_light",
+   "clips": "programming",
+   "section": "montage",
+   "mode": "layer",
+   "gain_db": -4,
+   "xfade_frames": 6,
+   "_why": "under each programming cut of the montage"
+  }
+ ]
+}

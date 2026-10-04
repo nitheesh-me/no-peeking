@@ -4,6 +4,47 @@
   {
    "asset": "zone:sfx_gain",
    "at": [
+    "hit:title_letters",
+    "section:peek+3b"
+   ],
+   "until": [
+    "section:build"
+   ],
+   "gain_db": -5.0,
+   "kinds": [
+    "game",
+    "design"
+   ],
+   "_why": "Critic fix 5: the title letters (sig_b phrase + the game's letter collapses) were the loudest moment of the first half"
+  },
+  {
+   "asset": "zone:sfx_gain",
+   "at": [
+    "section:build"
+   ],
+   "until": [
+    "section:silence"
+   ],
+   "gain_db": -3.0,
+   "kinds": [
+    "game"
+   ],
+   "_why": "Critic fix 5: build stingers (gremlin flip / ghost phase / wobble) -3 dB, so the build climbs to the drop instead of topping it"
+  },
+  {
+   "asset": "zone:no_duck",
+   "at": [
+    "hit:drop",
+    "section:drop"
+   ],
+   "until": [
+    "section:drop+3b"
+   ],
+   "_why": "Critic fix 5: no music ducking under the logo reveal; the drop is a co-hit"
+  },
+  {
+   "asset": "zone:sfx_gain",
+   "at": [
     "section:proof",
     "hit:proof_start"
    ],
@@ -29,6 +70,7 @@
   {
    "asset": "heartbeat_sub_4bar",
    "at": [
+    "hit:peek_collapse-12b",
     "section:cold_open"
    ],
    "until": [
@@ -36,7 +78,8 @@
     "section:peek"
    ],
    "gain_db": -2,
-   "stem": "design"
+   "stem": "design",
+   "_why": "on the beat grid: 4 bars from the first downbeat (f50) into the collapse; cold open only"
   },
   {
    "asset": "revcym_2beat",
@@ -78,6 +121,20 @@
    "featured": true,
    "stem": "design",
    "group": "title_letters_pitched"
+  },
+  {
+   "asset": "night_ambience_30s",
+   "at": [
+    "section:cold_open"
+   ],
+   "until": [
+    "hit:peek_collapse",
+    "section:peek"
+   ],
+   "gain_db": 0,
+   "stem": "design",
+   "_why": "moonlit night under the cold open: a continuous bed (8 dB under the music) so the trailer never opens on digital silence and the music-box gaps don't read as level jumps",
+   "under_db": -6.0
   },
   {
    "asset": "night_ambience_30s",
@@ -237,7 +294,9 @@
     "section:end_card"
    ],
    "gain_db": -4,
-   "stem": "design"
+   "stem": "design",
+   "under_db": -12.0,
+   "_why": "final-chord sub tail: felt, not heard (a 5 s sub bed reads low on K-weighting, so it is set 12 dB under)"
   },
   {
    "asset": "trailer/qubble_snore",

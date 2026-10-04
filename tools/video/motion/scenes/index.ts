@@ -7,5 +7,7 @@ import { shatter, glitch, blanket } from './transitions';
 import { syndrome } from './syndrome';
 import { circuit } from './circuit';
 import { caption } from './caption';
+import { splitframe } from './splitframe';
+import { proof } from './proof';
 
-export const SCENES: Record<string, Scene> = { logo, card, endcard, titlecollapse, shatter, glitch, blanket, syndrome, circuit, caption };
+export const SCENES: Record<string, Scene> = { logo, card, endcard, titlecollapse, shatter, glitch, blanket, syndrome, circuit, caption, splitframe, proof };

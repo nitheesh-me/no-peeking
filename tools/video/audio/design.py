@@ -270,7 +270,10 @@ def sig_b(info, ir_small):
     for i, x in enumerate(letters):
         dsp.place(phrase, x, int(round(i * eighth * SR)))
     files['sig_b_title_phrase'] = (finish(phrase, lufs=-13.0), {'notes': [PCS[m % 12] + str(m // 12 - 1) for m in notes],
-                                                                 'eighth_s': eighth, 'hit_s': 0.0})
+                                                                 'eighth_s': eighth, 'hit_s': 0.0,
+                                                                 # the pitched letters REPLACE the game's own letter collapses
+                                                                 'suppress_game': ['peek_collapse'],
+                                                                 'suppress_window_f': int(round(eighth * 60 * 10)) + 16})
     return files
 
 
@@ -664,7 +667,7 @@ def main():
     def add(name, x, kind, align='start', hit_s=0.0, featured=False, **meta):
         A[name] = (x, {'kind': kind, 'align': align, 'hit_s': round(hit_s, 4), 'featured': featured, **meta})
 
-    add('sig_a_coldopen_impact', sig_a_coldopen(ir_big), 'signature', 'hit', 0.0, True, suppress_game=['peek_collapse'],
+    add('sig_a_coldopen_impact', sig_a_coldopen(ir_big), 'signature', 'hit', 0.0, True, suppress_game=['peek_collapse'], mix_max_s=2.2,
         use='cold-open collapse (critic b4, 0:07.5 provisional)')
     for k, (x, m) in sig_b(info, ir_small).items():
         add(k, x, 'signature', 'hit', m.pop('hit_s'), True, **m, use=f"title letters on 8ths ({info['key']})")
@@ -700,7 +703,7 @@ def main():
     x, pre = shatter(ir_small)
     add('shatter_whoosh_shards', x, 'transition', 'hit', pre, True, use='shatter transition (hit = collapse frame)')
     add('glitch_tear', glitch_tear(), 'transition', 'hit', 0.0, True, use='glitch tear at the drop (6 frames)')
-    add('impact_logo', impact_logo(ir_big), 'impact', 'hit', 0.0, True, use='drop / logo reveal')
+    add('impact_logo', impact_logo(ir_big), 'impact', 'hit', 0.0, True, use='drop / logo reveal', mix_gain_db=2.0)
     add('whoosh_short', finish(whoosh(0.28, 700, 6000, 6), lufs=-17.0), 'transition', 'end', 0.28, False)
     add('whoosh_long', finish(whoosh(0.6, 300, 7000, 7), lufs=-17.0), 'transition', 'end', 0.6, False)
     add('whoosh_by', finish(whoosh(0.5, 400, 4000, 8, hit_at_end=False), lufs=-18.0), 'transition', 'hit', 0.25, False)

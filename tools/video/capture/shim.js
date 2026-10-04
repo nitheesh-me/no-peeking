@@ -211,8 +211,26 @@ function __npCaptureShim(cfg) {
       if (t.length && ++d.__capStable >= 4) { d.__capTyped = true; log('dialogue_typed', { id, text: t, lagFrames: 4 }); }
     }
   }
-  const mo = new MutationObserver((ms) => { for (const m of ms) { m.addedNodes.forEach(scanAdded); m.removedNodes.forEach(scanRemoved); } });
-  const startObs = () => mo.observe(document.documentElement, { childList: true, subtree: true });
+  // program highlight: log every card that becomes .current (the line the caretaker / bots are executing)
+  const cardInfo = (c) => {
+    const op = [...c.classList].find((k) => k.startsWith('op-'))?.slice(3) ?? '';
+    const list = c.closest('.prog-list');
+    return { op, line: +(c.querySelector('.line-no')?.textContent ?? 0) || null, phase: list?.dataset.phase ?? null, text: (c.textContent || '').replace(/\s+/g, ' ').replace(/×$/, '').trim().slice(0, 60) };
+  };
+  const curSeen = new WeakSet();
+  const checkCurrent = (el) => {
+    if (!(el instanceof Element) || !el.classList.contains('card')) return;
+    if (el.classList.contains('current')) { if (!curSeen.has(el)) { curSeen.add(el); log('card_current', cardInfo(el)); } }
+    else curSeen.delete(el);
+  };
+  const mo = new MutationObserver((ms) => {
+    for (const m of ms) {
+      if (m.type === 'attributes') { checkCurrent(m.target); continue; }
+      m.addedNodes.forEach(scanAdded); m.removedNodes.forEach(scanRemoved);
+      m.addedNodes.forEach((n) => { if (n instanceof Element) { checkCurrent(n); n.querySelectorAll?.('.card.current').forEach(checkCurrent); } });
+    }
+  });
+  const startObs = () => mo.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
   if (document.documentElement) startObs(); else document.addEventListener('DOMContentLoaded', startObs);
 
   // ───────────── capture-only CSS ─────────────

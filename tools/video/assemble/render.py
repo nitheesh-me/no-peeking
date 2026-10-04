@@ -37,6 +37,20 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'edl'))
 import edl as E  # noqa: E402
 import validate as V  # noqa: E402
+sys.path.insert(0, os.path.join(HERE, '..', 'progress'))
+from progress import Progress, contact_sheet  # noqa: E402
+
+PROG = None  # live progress (videos/progress; dashboard tools/video/progress/status.html), set by main()
+
+
+def prog_stage(name, total, unit):
+    if PROG:
+        PROG.stage(name, done=0, total=total, unit=unit)
+
+
+def prog_add(n):
+    if PROG:
+        PROG.tick(PROG.s['done'] + n, force=True)
 
 FPS = 60
 CRF = 15
@@ -44,10 +58,14 @@ CHUNK = 600
 THREADS = '6'
 # ONE ffv1 configuration for every intermediate: the concat demuxer decodes all pieces with the first file's config
 FFV1 = ['-c:v', 'ffv1', '-level', '3', '-slices', '16', '-g', '1', '-pix_fmt', 'gbrp10le']
-JOBS = 1  # my concurrent heavy jobs: the wrapper has 3 slots machine-wide, shared with every agent
+JOBS = 2  # within ONE video: the 2 machine-wide render slots (docs/VIDEO_RESOURCES.md); never two videos at once
 SAFE = os.path.join(E.ROOT, 'tools/video/safe-run.sh')
 GRAIN = {'night': 6, 'day': 3, 'none': 2}  # noise c0s: ~1.9 / 1.0 / 0.6 LSB std (8-bit) temporal grain = dither
 LUTS = os.path.join(HERE, 'luts')
+# AAC adds ~0.7 dB of inter-sample overshoot (the -1.1 dBTP mix decoded at -0.4). A 4x-oversampled limiter at 0.85
+# ahead of the encoder lands the decoded file at -1.2 dBTP / -14.2 LUFS (measured on the trailer mix).
+AAC_TP_GUARD = 'aresample=192000,alimiter=limit=0.85:attack=0.5:release=40:level=0,aresample=48000'
+GRAIN_COARSE = 14  # night: half-res noise strength (~1.8 LSB after the 0.6 mix and bicubic upscale)
 TEMPLATE_CANDIDATES = ['videos/motion/caption_template.html', 'tools/video/motion/caption_template.html',
                        'tools/video/motion/captions.html']
 X264 = ['-c:v', 'libx264', '-threads', THREADS, '-profile:v', 'high', '-preset', 'slow', '-crf', str(CRF), '-pix_fmt', 'yuv420p',
@@ -65,10 +83,25 @@ def h(obj):
     return hashlib.sha1(json.dumps(obj, sort_keys=True, default=str).encode()).hexdigest()[:12]
 
 
-def safe(cmd, mem='6G', heavy=True):
+def holds_slot():
+    """True when this process already holds a machine-wide render slot (launched via safe-run.sh --heavy, which keeps
+    the slot's flock on fd 9). Inner jobs must then run inside that slot: asking for a second slot while Capture holds
+    the other one would deadlock."""
+    try:
+        return '.render-slot-' in os.readlink('/proc/self/fd/9')
+    except OSError:
+        return False
+
+
+IN_SLOT = holds_slot()
+if IN_SLOT:
+    JOBS = 1  # one slot held -> strictly one inner job at a time
+
+
+def safe(cmd, mem=None, heavy=True):
     """Run inside the shared npvideo.slice pool (docs/VIDEO_RESOURCES.md). --heavy takes one of the 3 machine-wide
     render slots (queued by the wrapper); --mem reserves memory and WAITS for it."""
-    full = [SAFE] + (['--heavy'] if heavy else []) + (['--mem', mem] if mem else []) + ['--'] + list(map(str, cmd))
+    full = [SAFE] + (['--heavy'] if heavy and not IN_SLOT else []) + (['--mem', mem] if mem else []) + ['--'] + list(map(str, cmd))
     r = subprocess.run(full, capture_output=True, text=True)
     if r.returncode:
         sys.stderr.write(' '.join(map(str, cmd))[:2000] + '\n' + r.stderr[-4000:])
@@ -90,7 +123,7 @@ def seg_key(e, c):
     if not src.startswith('@'):
         p = E.rel(src)
         st = [os.path.getmtime(p), os.path.getsize(p) if os.path.isfile(p) else 0]
-    keep = {k: c[k] for k in ('src', 'in', 'dur', 'speed', 'camera', 'grade', 'shot')}
+    keep = {k: c.get(k) for k in ('src', 'in', 'dur', 'speed', 'camera', 'grade', 'shot', 'windows')}
     return h([keep, st, e['work'], e['layout'], 'A5'])
 
 
@@ -141,6 +174,16 @@ def render_chunk(edl_path, cid, i0, i1, out):
                     if len(buf) < fsz:
                         raise RuntimeError(f'{cid}: source {src} ended at frame {cur + 1} (needed {s})')
                     cur += 1
+                if c.get('windows'):  # split screen: each window cover-crops a source rect into its destination rect
+                    if s != last_key:
+                        im = Image.frombuffer('RGB', (sw, sh), buf, 'raw', 'RGB', 0, 1)
+                        g = Image.new('RGB', (W, H), (242, 240, 235))  # paper; the Motion split_frame covers the margins
+                        for win in c['windows']:
+                            box, (dx, dy, dw, dh) = E.window_boxes(win, sw, sh, W)
+                            g.paste(im.resize((dw, dh), Image.LANCZOS, box=box), (dx, dy))
+                        last_out, last_key = g.tobytes(), s
+                    enc.stdin.write(last_out)
+                    continue
                 z, cx, cy = E.camera_at(c['camera'], i0 + k)
                 box = E.view_box(sw, sh, aw, ah, z, cx, cy)
                 key = (s, tuple(round(v, 4) for v in box))
@@ -195,12 +238,14 @@ def stage_a(e, edl_path, force):
     if cur:
         batches.append(cur)
     t0 = time.time()
+    prog_stage(f'A: grade {len(tasks)} clip chunk(s)', sum(t[2] - t[1] for t in tasks), 'frames')
 
     def run_batch(kb):
         k, bt = kb
         jp = os.path.join(sd, f'batch_{k:03d}.json')
         json.dump({'edl': edl_path, 'tasks': bt}, open(jp, 'w'))
         safe([sys.executable, os.path.abspath(__file__), '--chunks', jp])
+        prog_add(sum(t[2] - t[1] for t in bt))
         print(f'  A batch {k + 1}/{len(batches)}: ' + ', '.join(f'{t[0]}[{t[1]},{t[2]})' for t in bt) + f'  ({time.time() - t0:.0f}s)', flush=True)
     parallel(run_batch, list(enumerate(batches)))
     print(f'stage A: {len(tasks)} chunk(s) in {len(batches)} job(s), {time.time() - t0:.0f}s', flush=True)
@@ -229,7 +274,7 @@ def render_captions(e):
         out[c['id']] = {'png': png, 'mask': mask}
         if not os.path.exists(png):
             items.append(dict(id=c['id'], text=c['text'], style=c.get('style', 'night'), position=c['position'], out=png, mask=mask))
-    strip = os.path.join(wd, 'cap', f'strip_{tkey}.png') if e['layout'] == 'strip' else None
+    strip = os.path.join(wd, 'cap', f'strip_{tkey}.png') if e['layout'] == 'strip' and not e.get('strip_overlay') else None
     job = dict(W=W, H=H, template=tpl, items=items)
     if strip and not os.path.exists(strip):
         job['strip'] = {'out': strip}
@@ -390,10 +435,13 @@ def build_chunk_graph(e, segs, caps, strip, outputs, proxy, a, b, trans=None, li
     cur = 'base'
     k = 0
 
-    def over(src_label):
+    def over(src_label, offset=None):
         nonlocal cur, k
         k += 1
-        fc.append(f'[{cur}][{src_label}]overlay=format=yuv444p10:eof_action=pass[o{k}]')
+        xy = ''
+        if offset:  # [dx, dy] in 1080p units (e.g. a card centred over the split-screen room window)
+            xy = f':x={round(offset[0] * W / 1920)}:y={round(offset[1] * H / 1080)}'
+        fc.append(f'[{cur}][{src_label}]overlay=format=yuv444p10:eof_action=pass{xy}[o{k}]')
         cur = f'o{k}'
 
     def place(s, e_, chain_in, label):
@@ -412,11 +460,20 @@ def build_chunk_graph(e, segs, caps, strip, outputs, proxy, a, b, trans=None, li
     def alpha_src(spec, start, n_frames, label, src_in=0):
         """RGBA stream for timeline [start, start+n_frames): {fill, matte} pair (Motion Designer) or one RGBA file;
         `hold` pads with the last frame (cards whose text must stay up longer than the clip)."""
+        shadow_src = None
         if spec.get('fill'):
             fi = add_input(['-i', E.rel(spec['fill'])])
             mi = add_input(['-i', E.rel(spec['matte'])])
-            fc.append(f'[{fi}:v]format=gbrp[{label}f];[{mi}:v]format=gray,scale=in_range=pc:out_range=pc[{label}m];'
-                      f'[{label}f][{label}m]alphamerge[{label}a]')
+            sh = spec.get('shadow')
+            if sh:  # editor drop-shadow from the card's own matte: legibility over bright footage (contrast gate)
+                fc.append(f'[{fi}:v]format=gbrp,split[{label}f][{label}f2];[{mi}:v]format=gray,scale=in_range=pc:out_range=pc,'
+                          f'split[{label}m][{label}m2];[{label}f2]lutrgb=r=0:g=0:b=0[{label}k];'
+                          f"[{label}m2]gblur=sigma={sh.get('sigma', 24)},lut=y='min(255\\,val*{sh.get('gain', 2.5)})*{sh.get('opacity', 0.8)}'[{label}sm];"
+                          f'[{label}k][{label}sm]alphamerge[{label}s]')
+                shadow_src = f'[{label}s]'
+            else:
+                fc.append(f'[{fi}:v]format=gbrp[{label}f];[{mi}:v]format=gray,scale=in_range=pc:out_range=pc[{label}m]')
+            fc.append(f'[{label}f][{label}m]alphamerge[{label}a]')
             src = f'[{label}a]'
         else:
             oi = add_input(['-i', E.rel(spec['src'])])
@@ -425,12 +482,18 @@ def build_chunk_graph(e, segs, caps, strip, outputs, proxy, a, b, trans=None, li
         pad = max(0, n_frames - avail)
         chain = (f'{src}trim=start_frame={src_in}:end_frame={src_in + min(avail, n_frames)},setpts=N/{FPS}/TB,scale={W}:{H},scale=out_color_matrix=bt709:out_range=tv,format=yuva444p10le'
                  + (f',tpad=stop_mode=clone:stop={pad}' if pad else ''))
+        if spec.get('fade_out'):
+            fo = spec['fade_out']
+            chain += f',fade=t=out:st={(n_frames - fo) / FPS:.4f}:d={fo / FPS:.4f}:alpha=1'
+        if shadow_src:
+            place(start, start + n_frames, shadow_src + chain[len(src):], label + 'sh')
+            over(label + 'sh', spec.get('offset'))  # under the card
         place(start, start + n_frames, chain, label)
 
     for j, o in enumerate(e['overlays']):
         if o['start'] < b and o['start'] + o['dur'] > a:
             alpha_src(o, o['start'], o['dur'], f'ov{j}', o.get('in', 0))
-            over(f'ov{j}')
+            over(f'ov{j}', o.get('offset'))
     if strip:
         si = add_input(['-thread_queue_size', '4', '-loop', '1', '-framerate', str(FPS), '-t', f'{n / FPS:.4f}', '-i', strip])
         fc.append(f'[{si}:v]scale=out_color_matrix=bt709:out_range=tv,format=yuva444p10le[strip]')
@@ -444,6 +507,8 @@ def build_chunk_graph(e, segs, caps, strip, outputs, proxy, a, b, trans=None, li
             if c['render'].get('baked'):
                 continue  # the text is part of a clip's picture (Motion card); listed for the gates only
             alpha_src(c['render'], c['start'], c['end'] - c['start'], f'c_{c["id"]}', c['render'].get('in', 0))
+            over(f'c_{c["id"]}', c['render'].get('offset'))
+            continue
         else:
             dur = (c['end'] - c['start']) / FPS
             fin = (c['legible_from'] - c['start']) / FPS
@@ -464,10 +529,19 @@ def build_chunk_graph(e, segs, caps, strip, outputs, proxy, a, b, trans=None, li
     for j, o in enumerate(outputs):
         ow, oh = o['size']
         chain = f'[out{j}]' + (f'scale={ow}:{oh}:flags=lanczos+accurate_rnd+full_chroma_int,' if [ow, oh] != [W, H] else '')
-        for g, rs in ranges.items():
-            s1 = max(1, GRAIN.get(g, 2) // 3)
-            chain += f"noise=c0s={GRAIN.get(g, 2)}:c0f=t+u:c1s={s1}:c1f=t+u:c2s={s1}:c2f=t+u:enable='{en(rs)}',"
-        chain += f'scale=sws_dither=ed,format=yuv420p[enc{j}]'
+        for g, rs in ranges.items():  # fine temporal dither on day shots and cards
+            if g != 'night':
+                s1 = max(1, GRAIN.get(g, 2) // 3)
+                chain += f"noise=c0s={GRAIN.get(g, 2)}:c0f=t+u:c1s={s1}:c1f=t+u:c2s={s1}:c2f=t+u:enable='{en(rs)}',"
+        chain += 'scale=sws_dither=ed,format=yuv420p'
+        if ranges.get('night'):
+            # night: 2-px luma grain (noise made at half size, bicubic up, added around mid-grey). Fine per-pixel
+            # grain is erased by an 8 Mbps platform re-encode and the moonlit gradients band again; 2-px grain survives
+            # (flat-plateau fraction 0.33 -> 0.01 in the re-encode test, docs/VIDEO_EDIT.md).
+            chain += (f',split[m{j}][g{j}];[g{j}]lutyuv=y=128:u=128:v=128,scale={ow // 2}:{oh // 2},noise=c0s={GRAIN_COARSE}:c0f=t+u,'
+                      f"scale={ow}:{oh}:flags=bicubic[n{j}];[m{j}][n{j}]blend=c0_expr='A+(B-128)*0.6':c1_expr='A':c2_expr='A':"
+                      f"enable='{en(ranges['night'])}'")
+        chain += f'[enc{j}]'
         fc.append(chain)
         maps.append(f'enc{j}')
     if proxy:
@@ -495,6 +569,8 @@ def stage_bc(e, segs, caps, strip, force, proxy=True, trans=None):
         if force or not all(os.path.exists(p) for p in paths.values()):
             todo.append((a, b, inputs, graph, maps, paths))
 
+    prog_stage(f'B/C: composite + encode {len(todo)} chunk(s)', sum(t[1] - t[0] for t in todo), 'frames')
+
     def run_chunk(t):
         a, b, inputs, graph, maps, paths = t
         gp = os.path.join(cd, f'graph_{a:06d}.txt')
@@ -508,6 +584,7 @@ def stage_bc(e, segs, caps, strip, force, proxy=True, trans=None):
         safe(cmd)
         for p in paths.values():
             os.replace(p + '.tmp.mp4', p)
+        prog_add(b - a)
         print(f'  B/C chunk [{a},{b})  ({time.time() - t0:.0f}s)', flush=True)
     parallel(run_chunk, todo)
     return files
@@ -519,7 +596,7 @@ def concat_mux(chunks, audio, out, frames):
         f.write(''.join(f"file '{os.path.abspath(c)}'\n" for c in chunks))
     cmd = ['ffmpeg', '-v', 'error', '-y', '-threads', THREADS, '-f', 'concat', '-safe', '0', '-i', lp]
     if audio:
-        cmd += ['-i', audio, '-map', '0:v', '-map', '1:a', '-c:a', 'aac', '-b:a', '320k', '-ar', '48000', '-ac', '2']
+        cmd += ['-i', audio, '-map', '0:v', '-map', '1:a', '-af', AAC_TP_GUARD, '-c:a', 'aac', '-b:a', '320k', '-ar', '48000', '-ac', '2']
     cmd += ['-c:v', 'copy', '-frames:v', str(frames), '-shortest', '-movflags', '+faststart', out + '.tmp.mp4']
     safe(cmd, mem=None, heavy=False)
     os.replace(out + '.tmp.mp4', out)
@@ -589,6 +666,17 @@ def main():
             render_chunk(job['edl'], cid, int(i0), int(i1), out)
         return
     e = E.load(a.edl)
+    global PROG
+    PROG = Progress(f'render:{e["video"]}', title=f'Render {e["video"]} ({os.path.basename(a.edl)})', unit='frames')
+    try:
+        _main(a, e)
+    except BaseException as x:
+        PROG.fail(x)
+        raise
+
+
+def _main(a, e):
+    print(f'render: holds a render slot = {IN_SLOT} (inner jobs {"run inside it" if IN_SLOT else "take their own --heavy slots"}, JOBS={JOBS})', flush=True)
     err, warn = V.validate(e)
     for x in err:
         print('EDL ERROR:', x)
@@ -599,8 +687,11 @@ def main():
     t0 = time.time()
     segs = stage_a(e, os.path.abspath(a.edl), a.force)
     if a.only_segments:
+        PROG.done('segments only')
         return
     caps, strip, tname = render_captions(e)
+    if e.get('strip_overlay'):
+        strip = None  # the Motion Designer's paper strip arrives as an overlay (motion_captions.py)
     json.dump(caps, open(os.path.join(wd, 'captions.json'), 'w'), indent=1)
     audio, ph_audio = find_mix(e, a.edl)
     trans = stage_t(e, segs, a.force)
@@ -608,12 +699,21 @@ def main():
     for o in e['outputs']:
         os.makedirs(os.path.dirname(E.rel(o['path'])), exist_ok=True)
         concat_mux(files[o['name']], audio, E.rel(o['path']), e['duration'])
+    PROG.stage('mux')
+    for o in e['outputs']:
+        PROG.output(E.rel(o['path']), o['name'])
     if files['proxy']:
-        concat_mux(files['proxy'], None, os.path.join(wd, 'qa_proxy.mp4'), e['duration'])
+        qp = os.path.join(wd, 'qa_proxy.mp4')
+        concat_mux(files['proxy'], None, qp, e['duration'])
+        PROG.stage('contact sheet')
+        sheet = contact_sheet(qp, f'render_{e["video"]}', e['duration'])
+        if sheet:
+            PROG.output(sheet, 'contact sheet')
     info = dict(video=e['video'], edl=a.edl, outputs=[o['path'] for o in e['outputs']], audio=os.path.relpath(audio, E.ROOT),
                 audio_placeholder=ph_audio, caption_template=tname, seconds=round(time.time() - t0, 1),
                 placeholder_clips=[c['id'] for c in e['clips'] if c.get('src_kind') == 'placeholder'], edl_warnings=warn)
     json.dump(info, open(os.path.join(wd, 'render.json'), 'w'), indent=1)
+    PROG.done(f'{info["seconds"]} s' + (f'; placeholders: {", ".join(info["placeholder_clips"])}' if info['placeholder_clips'] else ''))
     print(json.dumps({k: v for k, v in info.items() if k != 'edl_warnings'}, indent=1))
 
 

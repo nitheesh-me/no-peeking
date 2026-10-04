@@ -126,3 +126,26 @@ All 10 of the Critic's top changes are **accepted**. Read docs/VIDEO_CRITIQUE.md
    - platform re-encode review;
    - intentional flashes and dissolves marked in the EDL for the cut gate.
 9. **The Critic reviews every milestone** (the capture samples, motion tests, the music edit plus sound design, the rough cut, the final) before sign-off.
+
+---
+## REVISED 2 (Director, after user review): Wobbles + the PROGRAMMING must be visible
+User feedback: (1) Wobbles was missing; (2) "I see movement, but no relation to the programming; the programming aspect is just as important to emphasise, and all its features"; (3) multiple audio scores are allowed (interleaved, cut, trimmed) as appropriate.
+
+**Principle:** every action on screen must be visibly caused by a card. The viewer should understand "you write a little program, and the room obeys it". So the program is on screen whenever the room acts: split-screen or picture-in-picture, with the **current card lit in sync** with the caretaker's action.
+
+### Trailer changes (timing still on cue_sheet v2; section frames unchanged unless noted)
+- **build** (f722–1298): three 2-bar gremlin beats, each the real gremlin with its card overlaid: Flipper "Gremlins flip bits." · Phasey "Ghosts flip phases." · Wobbles "Wobbles flips… halfway.".
+- **drop** (f1394): the logo reveal, then a new card **"You don't play it. You program it."** (motion) over a hard cut to the editor.
+- **proof** (f1586–2162) becomes a **split screen**: the room (left ~60%) and the Bot Code program column (right ~40%), with each card lighting on its beat: HIGHFIVE → LISTEN a (BEEP) → LISTEN b (quiet) → **IF a BEEP and b QUIET → fix** (the jump arrow animates) → BOOP q2 → X-ray. The cursor drags the last card (BOOP) into place on the first bar, so the viewer sees the program being written.
+- **montage** (f2162–2834, 12 cuts) is rebalanced to **half programming, half world**. Programming cuts:
+  - dragging cards into the column (close-up);
+  - the IF card's anatomy (Card Guide);
+  - Test all (the strip filling with ✓);
+  - step mode / timeline scrub with the one-way measurement snap;
+  - the snippet library plus a doodle comment;
+  - Text view → "Export to Qiskit".
+  World cuts: Schrödi's checklist, highfive, mn_codex_wobbles, Lights Out, the dream map, the Lab Notebook circuit.
+- **Audio:** interleaving is allowed. The song carries the arc. Under the proof/split-screen and the programming montage cuts, layer the game's own "build" groove and the card UI sounds (card_pick/card_drop/ui_click, keyed on each drag and drop, on the beat). The song's own sections stay intact at f1394 (drop) and f3026 (payoff). Every music and section change must land on a downbeat.
+
+### Mechanic video
+The mechanic video already centres on programming; make sure every captured action shows its card lit (the normal layout with the editor visible) and include the drag-and-drop of the 2-3 decoder.

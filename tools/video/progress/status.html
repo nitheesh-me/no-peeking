@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video Jobs</title>
+<style>
+  :root { --bg: #f6f4fb; --card: #fff; --ink: #221d33; --mute: #6c6585; --line: #e3def0; --run: #7a5af8; --ok: #1f9d6b; --bad: #d64545; --wait: #c98a12; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #15121f; --card: #1f1a2e; --ink: #ece8f7; --mute: #9a93b3; --line: #2f2944; --run: #9b82ff; --ok: #3cc58f; --bad: #ff6b6b; --wait: #f0b43c; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, sans-serif; padding: 20px 16px 40px; }
+  header { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; max-width: 1100px; margin: 0 auto 16px; }
+  h1 { font-size: 20px; margin: 0; }
+  .mute { color: var(--mute); }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--mute); max-width: 1100px; margin: 20px auto 8px; }
+  .job { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; max-width: 1100px; margin: 0 auto 10px; }
+  .row { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+  .title { font-weight: 600; }
+  .pill { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 99px; color: #fff; text-transform: uppercase; }
+  .running { background: var(--run); } .done { background: var(--ok); } .failed, .dead { background: var(--bad); } .queued { background: var(--wait); }
+  .bar { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; margin: 8px 0 4px; }
+  .bar > i { display: block; height: 100%; background: var(--run); transition: width .4s; }
+  .bar.indet > i { width: 30% !important; animation: slide 1.4s infinite linear; }
+  @keyframes slide { from { margin-left: -30%; } to { margin-left: 100%; } }
+  .warn { color: var(--bad); font-weight: 600; }
+  .outs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .outs a { color: var(--run); }
+  .outs img, .outs video { max-width: 100%; width: 320px; border-radius: 6px; border: 1px solid var(--line); display: block; }
+  .banner { max-width: 1100px; margin: 0 auto 12px; padding: 10px 14px; border-radius: 10px; background: var(--wait); color: #fff; font-weight: 600; }
+  .banner a { color: #fff; }
+  [hidden] { display: none !important; }
+  figure { margin: 0; } figcaption { font-size: 12px; color: var(--mute); }
+</style>
+</head>
+<body>
+<header><h1>Video jobs</h1><span class="mute" id="meta"></span></header>
+<div id="reload" class="banner" hidden>This page was updated. <a href="javascript:location.reload()">Reload</a> to get the new version (only needed once).</div>
+<div id="app"></div>
+<script>
+// Live board. Every 3 s it re-loads only videos/progress/status.js (rebuilt by each job's Progress reporter) and updates
+// the page IN PLACE: bars and text change, but outputs (images, videos) are created once and never touched again, so a
+// playing video keeps playing. If this page's code changes, a banner asks for a full reload instead.
+const PAGE_VERSION = 2; // bump when editing this file; progress.mjs/.py copy it into status.js
+const ROOT = '../../../';
+const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const dur = (ms) => { const s = Math.round(ms / 1000); return s < 90 ? s + ' s' : s < 5400 ? Math.round(s / 60) + ' min' : (s / 3600).toFixed(1) + ' h'; };
+const app = document.getElementById('app');
+const cards = new Map(); // job id -> { el, outs:Set }
+let lastBuilt = 0;
+function poll() {
+  const s = document.createElement('script');
+  s.src = ROOT + 'videos/progress/status.js?' + Date.now();
+  s.onload = () => { s.remove(); if (window.NP_STATUS) render(window.NP_STATUS); };
+  s.onerror = () => { s.remove(); document.getElementById('meta').textContent = 'no data yet (videos/progress/status.js missing)'; };
+  document.head.appendChild(s);
+}
+function section(name) {
+  let h = document.getElementById('sec-' + name);
+  if (!h) { h = document.createElement('section'); h.id = 'sec-' + name; h.innerHTML = `<h2>${name}</h2><div></div>`; app.appendChild(h); }
+  return h;
+}
+function render({ jobs, builtAt, pageVersion }) {
+  const now = Date.now();
+  document.getElementById('meta').textContent = `${jobs.length} job(s) · data updated ${dur(now - builtAt)} ago`;
+  document.getElementById('reload').hidden = !(pageVersion && pageVersion !== PAGE_VERSION);
+  const order = ['Active', 'Needs attention', 'Finished'];
+  for (const n of order) section(n);
+  jobs.sort((a, b) => b.startedAt - a.startedAt);
+  const seen = new Set();
+  for (const j of jobs) {
+    seen.add(j.id);
+    const sec = j.state === 'done' ? 'Finished' : j.state === 'running' || j.state === 'queued' ? 'Active' : 'Needs attention';
+    let c = cards.get(j.id);
+    if (!c) {
+      const el = document.createElement('div'); el.className = 'job';
+      el.innerHTML = '<div class="head"></div><div class="outs"></div>';
+      c = { el, outs: new Set() }; cards.set(j.id, c);
+    }
+    const body = section(sec).lastElementChild;
+    if (c.el.parentNode !== body) body.prepend(c.el); // moves the node: media inside keep playing
+    const frac = j.total ? Math.min(1, j.done / j.total) : null;
+    const el = (j.state === 'running' ? now : j.updatedAt) - j.startedAt;
+    const rate = j.done && el > 0 ? j.done / (el / 1000) : 0;
+    const eta = frac != null && rate && j.state === 'running' ? `ETA ${dur((j.total - j.done) / rate * 1000)}` : '';
+    const stale = j.state === 'running' && now - j.updatedAt > 60000 ? `<span class="warn">no update for ${dur(now - j.updatedAt)}</span>` : '';
+    let h = `<div class="row"><span class="pill ${j.state}">${j.state}</span><span class="title">${esc(j.title)}</span>
+      ${j.agent ? `<span class="mute">${esc(j.agent)}</span>` : ''}${j.stage ? `<span class="mute">· ${esc(j.stage)}</span>` : ''}</div>`;
+    if (j.state !== 'done') h += `<div class="bar ${frac == null && j.state === 'running' ? 'indet' : ''}"><i style="width:${(frac ?? 0) * 100}%"></i></div>`;
+    h += `<div class="row mute"><span>${j.done}${j.total ? ' / ' + j.total : ''} ${esc(j.unit)}${frac != null ? ` (${(frac * 100).toFixed(0)}%)` : ''}</span>
+      ${rate ? `<span>${rate.toFixed(2)} ${esc(j.unit)}/s</span>` : ''}<span>${dur(el)}</span><span>${eta}</span>${stale}</div>`;
+    if (j.note) h += `<div class="${j.state === 'failed' || j.state === 'dead' ? 'warn' : 'mute'}">${esc(j.note)}</div>`;
+    const head = c.el.firstElementChild;
+    if (head.innerHTML !== h) head.innerHTML = h;
+    const outs = c.el.lastElementChild;
+    for (const o of j.outputs) {
+      const key = o.path + '@' + (o.v ?? '');
+      if (c.outs.has(key)) continue;
+      c.outs.add(key);
+      const url = ROOT + o.path + (o.v ? '?v=' + o.v : ''), cap = esc(o.label || o.path.split('/').pop());
+      const f = document.createElement(/\.(png|jpe?g|webp|gif|mp4|webm)$/i.test(o.path) ? 'figure' : 'span');
+      if (/\.(png|jpe?g|webp|gif)$/i.test(o.path)) f.innerHTML = `<a href="${url}" target="_blank"><img src="${url}" loading="lazy"></a><figcaption>${cap}</figcaption>`;
+      else if (/\.(mp4|webm)$/i.test(o.path)) f.innerHTML = `<video src="${url}" controls preload="metadata"></video><figcaption>${cap}</figcaption>`;
+      else f.innerHTML = `<a href="${url}" target="_blank">${cap}</a>`;
+      outs.appendChild(f);
+    }
+  }
+  for (const [id, c] of cards) if (!seen.has(id)) { c.el.remove(); cards.delete(id); }
+  for (const n of order) { const s = section(n); s.hidden = !s.lastElementChild.children.length; }
+  if (!jobs.length) document.getElementById('meta').textContent = 'no jobs yet';
+}
+poll();
+setInterval(poll, 3000);
+</script>
+</body>
+</html>

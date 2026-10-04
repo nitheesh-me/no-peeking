@@ -62,5 +62,57 @@
  "sc_qol_grid": "videos/capture/sc_qol_grid.mkv",
  "sc_save_joke": "videos/capture/sc_save_joke.mkv",
  "sc_curtain_call": "videos/capture/sc_curtain_call.mkv",
- "me_31_phase": "videos/capture/me_31_phase.mkv"
+ "me_31_phase": "videos/capture/me_31_phase.mkv",
+ "mo_card_gremlins_alpha": {
+  "fill": "videos/motion/card_gremlins_alpha_fill.mkv",
+  "matte": "videos/motion/card_gremlins_alpha_matte.mkv",
+  "meta": "videos/motion/card_gremlins_alpha.json"
+ },
+ "mo_card_ghosts_alpha": {
+  "fill": "videos/motion/card_ghosts_alpha_fill.mkv",
+  "matte": "videos/motion/card_ghosts_alpha_matte.mkv",
+  "meta": "videos/motion/card_ghosts_alpha.json"
+ },
+ "mo_card_wobbles_alpha": {
+  "fill": "videos/motion/card_wobbles_alpha_fill.mkv",
+  "matte": "videos/motion/card_wobbles_alpha_matte.mkv",
+  "meta": "videos/motion/card_wobbles_alpha.json"
+ },
+ "mo_card_program_alpha": {
+  "fill": "videos/motion/card_program_alpha_fill.mkv",
+  "matte": "videos/motion/card_program_alpha_matte.mkv",
+  "meta": "videos/motion/card_program_alpha.json"
+ },
+ "mo_card_program_alpha_long": {
+  "fill": "videos/motion/card_program_alpha_long_fill.mkv",
+  "matte": "videos/motion/card_program_alpha_long_matte.mkv",
+  "meta": "videos/motion/card_program_alpha_long.json"
+ },
+ "mo_split_frame": {
+  "fill": "videos/motion/split_frame_fill.mkv",
+  "matte": "videos/motion/split_frame_matte.mkv",
+  "meta": "videos/motion/split_frame.json"
+ },
+ "tr_gremlin_flipper": "videos/capture/tr_gremlin_flipper.mkv",
+ "tr_gremlin_phasey": "videos/capture/tr_gremlin_phasey.mkv",
+ "mn_codex_wobbles": "videos/capture/mn_codex_wobbles.mkv",
+ "mn_notebook_circuit": "videos/capture/mn_notebook_circuit.mkv",
+ "pg_split_23": "videos/capture/pg_split_23.mkv",
+ "pg_drag_closeup": "videos/capture/pg_drag_closeup.mkv",
+ "pg_if_anatomy": "videos/capture/pg_if_anatomy.mkv",
+ "pg_test_strip": "videos/capture/pg_test_strip.mkv",
+ "pg_step_scrub": "videos/capture/pg_step_scrub.mkv",
+ "pg_snippets_doodle": "videos/capture/pg_snippets_doodle.mkv",
+ "pg_export_qiskit": "videos/capture/pg_export_qiskit.mkv",
+ "me_23_drag": "videos/capture/me_23_drag.mkv",
+ "mo_proof_overlay": {
+  "fill": "videos/motion/proof_overlay_fill.mkv",
+  "matte": "videos/motion/proof_overlay_matte.mkv",
+  "meta": "videos/motion/proof_overlay.json"
+ },
+ "mo_card_program_alpha_160": {
+  "fill": "videos/motion/card_program_alpha_160_fill.mkv",
+  "matte": "videos/motion/card_program_alpha_160_matte.mkv",
+  "meta": "videos/motion/card_program_alpha_160.json"
+ }
 }
