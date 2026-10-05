@@ -439,3 +439,10 @@ But one new defect is a blocker, and an old one came back in a new place.
 **Polish (not blocking):** f1580–1585, the end of cap05 "You don't play it. You program it.". The text fades faster than its grey paper plate, leaving an **empty grey box for about 3–4 frames**. Fade the plate with the text (or 2 frames ahead of it). If the Editor is already re-rendering that area, take this in the same pass; otherwise, ship it.
 
 **Human checks:** unchanged from the re-review. Fresh eyes, muted, audio-only and phone-sim all PASS. The user's one real-phone listen is the only open item.
+
+**Final tag check: PASS.**
+- **f2140:** the "X-ray · simulator view" tag is legible on its dark plate, sits bottom-left clear of every sprite, chip and caption, and appears only on the X-ray frames.
+- **f2080:** normal view, no tag. That is honest.
+- **Nit, not blocking:** this tag is slightly larger than the top-right tags on the gremlin shots. Accept it.
+
+**The trailer song cut is signed off by the Critic.** The only open item is the user's single real-phone listen.

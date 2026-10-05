@@ -108,7 +108,7 @@ export default async function (api) {
   // cold open: hushed phrase A (bars 1-4), detuned octave-down copy, decaying into the peek hit
   {
     const bars = downbeats(T.cold_open, T.peek);
-    melody(bars, A, 0, { v: 0.5, len: 2.6, low: 0.07, until: T.peek - 0.4 });
+    melody(bars, A, 0, { v: 0.5, len: 2.6, low: 0.07, until: T.peek - BAR });  // a breath before the collapse (decays into the hit)
   }
   // peek: damaged box continues phrase A (bars 5-6 + 1)
   melody(downbeats(T.peek, T.build), A, 4, { v: 0.75, len: 2.4, until: T.build });

@@ -66,9 +66,17 @@ SPF = SR // 60  # samples per frame at 60 fps (800)
 PRESETS = {
     'trailer': dict(music_first=True, card_accents=True, score=HERE / 'cues/trailer_score.json', music_lufs=-20.0, max_duck=12.0, weight='trailer', voices=False, sfx_gain_db=4.0, voice_gain_db=-6,
                     design=HERE / 'cues/trailer_design.json', bg_duck=3.0, featured_all_game=True, plr_db=10.0, quiet_target_lufs=-16.0, arc_cap_lufs=-11.5),
-    'mechanic': dict(music_lufs=-27.0, max_duck=12.0, weight='game', voices=True, sfx_gain_db=0.0, voice_gain_db=-2.0,
+    'mechanic': dict(music_first=True, explainer=True, card_accents=True, target_lufs=-16.0, bar_grid=(0.08, 4 * 60 / 84),
+                     score=HERE / 'cues/mechanic_score.json', bed='videos/audio2/beds/mechanic_bed.wav', window={'hit': (3.0, 6.0, 4.5), 'proof': (3.0, 6.0, 4.5), 'pre': (3.0, 6.0, 4.5), 'pocket': (3.0, 6.0, 4.5),
+                             'cohit': (3.0, 6.0, 4.5), 'cohit_song': (3.0, 6.0, 4.5), 'phrase': (0.0, 3.0, 1.5),
+                             'accent': (-2.0, 6.0, 3.0), 'under': -8.0, 'silent_abs': -27.0, 'quiet_below_beep': 4.5},
+                     music_lufs=-27.0, max_duck=12.0, weight='game', voices=True, sfx_gain_db=0.0, voice_gain_db=-2.0,
                      design=None, bg_duck=2.0, featured_all_game=False, plr_db=14.0),
-    'showcase': dict(music_lufs=-25.0, max_duck=12.0, weight='game', voices=True, sfx_gain_db=0.0, voice_gain_db=-3.0,
+    'showcase': dict(music_first=True, explainer=True, card_accents=True, target_lufs=-16.0, bar_grid=(0.08, 4 * 60 / 84),
+                     score=HERE / 'cues/showcase_score.json', bed='videos/audio2/beds/showcase_bed.wav', window={'hit': (3.0, 6.0, 4.5), 'proof': (3.0, 6.0, 4.5), 'pre': (3.0, 6.0, 4.5), 'pocket': (3.0, 6.0, 4.5),
+                             'cohit': (3.0, 6.0, 4.5), 'cohit_song': (3.0, 6.0, 4.5), 'phrase': (0.0, 3.0, 1.5),
+                             'accent': (-2.0, 6.0, 3.0), 'under': -8.0, 'silent_abs': -27.0, 'quiet_below_beep': 4.5},
+                     music_lufs=-25.0, max_duck=12.0, weight='game', voices=True, sfx_gain_db=0.0, voice_gain_db=-3.0,
                      design=None, bg_duck=2.0, featured_all_game=False, plr_db=14.0),
 }
 PRIORITY = {'peek_collapse': 10, 'level_win': 10, 'gremlin_flip': 9, 'botNote': 9, 'syndromeChord': 9, 'glitch': 8,
@@ -187,6 +195,28 @@ def cue_sheet(edl_obj, override=None):
             cs['path'] = str(p)
             return cs
     return None
+
+
+def explainer_sheet(edl, grid):
+    """A cue-sheet-shaped dict for videos without one: sections = runs of clip `section`, downbeats = the game
+    bed's bar grid (first downbeat grid[0] s, bar grid[1] s), named hits = section starts."""
+    secs, order = {}, []
+    for c in edl['clips']:
+        nm = c.get('section') or 'body'
+        if nm not in secs:
+            secs[nm] = [c['start'], c['end']]
+            order.append(nm)
+        else:
+            secs[nm][1] = max(secs[nm][1], c['end'])
+    for a, b in zip(order, order[1:]):  # sections abut (overlapping transitions belong to the incoming section)
+        secs[a][1] = secs[b][0]
+    b0, bar = grid
+    downs = [int(round((b0 + k * bar) * 60)) for k in range(int(edl['duration'] / 60 / bar) + 2)]
+    raw = {'fps': 60, 'bpm': 84, 'meter': '4/4', 'duration_frames': edl['duration'],
+           'sections': [{'name': n, 'start_frame': secs[n][0], 'end_frame': secs[n][1]} for n in order],
+           'named_hits': {f'{n}_start': secs[n][0] for n in order}, 'downbeat_frames': downs, 'beats': []}
+    return {'bpm': 84, 'beats': [], 'downbeats': downs, 'sections': {n: tuple(secs[n]) for n in order}, 'hits': [],
+            'hits_f': dict(raw['named_hits']), 'raw': raw, 'path': None, 'synthetic': True}
 
 
 # ───────────────────────── anchors ─────────────────────────
@@ -372,6 +402,8 @@ def build(args):
     video = edl.get('video', 'trailer')
     P = dict(PRESETS[args.preset or video])
     cs = cue_sheet(edl, args.cue_sheet)
+    if cs is None and P.get('bar_grid'):  # explainers: sections from the EDL clips, bars from the game bed's grid
+        cs = explainer_sheet(edl, P['bar_grid'])
     bpm = float((cs or {}).get('bpm') or 96)
     dur_f = int(edl['duration'])
     N = dur_f * SPF + int(3.0 * SR)  # 3 s of tail room, cropped at the end
@@ -526,7 +558,7 @@ def build(args):
                                 'group': 'glitch_tear'})
     music_path_pre = args.music or (edl.get('audio', {}) or {}).get('music') or next(
         (p for p in ({'trailer': ['videos/music/trailer_edit.wav', 'videos/audio2/score_alt/score_alt.wav']}.get(video) or
-                     [f'videos/audio2/beds/{video}_bed.wav']) if rel(p).exists()), '')
+                     [P.get('bed') or f'videos/audio2/beds/{video}_bed.wav']) if rel(p).exists()), '')
     lists = []
     if P['design'] and not args.no_design:
         lists.append(P['design'])
@@ -620,7 +652,7 @@ def build(args):
     music_path = args.music or (edl.get('audio', {}) or {}).get('music')
     if not music_path:
         for p in ({'trailer': ['videos/music/trailer_edit.wav', 'videos/audio2/score_alt/score_alt.wav']}.get(video) or
-                  [f'videos/audio2/beds/{video}_bed.wav']):
+                  [P.get('bed') or f'videos/audio2/beds/{video}_bed.wav']):
             if rel(p).exists():
                 music_path = p
                 break
@@ -731,8 +763,11 @@ def build(args):
     secs_list = sorted(((k, a, b) for k, (a, b) in (cs['sections'].items() if cs else [])), key=lambda r: r[1])
     if P.get('music_first') and cs:
         import mixfirst
-        stems['music'], gcurve, auto_rep = mixfirst.automate_music(stems['music'], secs_list, cs['downbeats'], P.get('music_targets', mixfirst.TARGETS))
+        # polish FIRST (fills, compressors, fades), so the automation measures and hits the targets on what plays
         stems['music'] = mixfirst.music_polish(stems['music'], secs_list)
+        tg = mixfirst.explainer_targets(secs_list) if P.get('explainer') else P.get('music_targets', mixfirst.TARGETS)
+        stems['music'], gcurve, auto_rep = mixfirst.automate_music(stems['music'], secs_list, cs['downbeats'], tg,
+                                                                   ramp_s=1.0 if P.get('explainer') else 0.2)
 
     # ── 6. voices ──
     voice_stem, voice_src = render_voice_stem(voice_calls, N, not args.no_engine) if voice_calls else (np.zeros((N, 2)), 'none')
@@ -829,6 +864,8 @@ def build(args):
             if q.get('mix_max_s') and len(q['x']) > q['mix_max_s'] * SR:
                 q['x'] = dsp.fade(q['x'][:int(q['mix_max_s'] * SR)], 0.0, 0.6)
         bus_rep = mixfirst.place_and_correct(cues, stems, music_raw)
+        if voice_cues:  # Qubblese lines: readable over the bed (+3 LU integrated over each line), never shouting
+            bus_rep['voices'] = mixfirst.level_voices(stems['voices'], music_raw, voice_cues, P.get('voice_window', (1.0, 6.0, 3.0)))
         stems['sfx'], bus_rep['presence_match'] = mixfirst.presence_match(stems['sfx'], music_raw, secs_list)
         # Critic (fix 5 polish): the build must rise bar by bar on the FULL mix, not just in the music stem
         bus_rep['build_bars'] = mixfirst.monotonic_build(stems, cs['downbeats'], cs['sections'].get('build')) if cs else {}
@@ -932,6 +969,8 @@ def build(args):
         mix, glue_rep = mixfirst.glue(mix)
     for k in stems:
         stems[k] = stems[k][:n_out]
+    if args.target is None:
+        args.target = P.get('target_lufs', -14.0)  # -14 trailer, -16 for the longer explainers
     g_db = args.target - dsp.integrated(mix)
     out = None
     for _ in range(4):
@@ -955,6 +994,16 @@ def write(res, args):
     outdir.mkdir(parents=True, exist_ok=True)
     mix_path = outdir / 'mix.wav'
     dsp.write_wav(mix_path, res['mix'])
+    if res['cs'] and res['cs'].get('synthetic'):  # explainers: a cue-sheet-shaped sections file for analyze_mix
+        sp = outdir / 'sections_sheet.json'
+        dsp.save_json(sp, res['cs']['raw'])
+        res['cs']['path'] = relp(sp)
+    rz = outdir / 'edl.resolved.json'
+    if not rz.exists() or args.out:  # cut list for the jump gate (the Editor's assembler writes the same file)
+        try:
+            dsp.save_json(rz, E.resolved(edl))
+        except Exception:
+            pass
     g = res['master_gain']
     stem_dir = outdir / 'stems'
     for k, v in res['stems'].items():
@@ -1036,7 +1085,7 @@ def write(res, args):
         try:
             import mixfirst
             ps = mixfirst.phone_sim(res['mix'])
-            pp = ROOT / 'videos/final/review' / f"{res['video']}_phone_sim.wav"
+            pp = ROOT / 'videos/final/review' / f"{outdir.name}_phone_sim.wav"  # per work dir (trailer, trailer_public)
             dsp.write_wav(pp, ps)
             hf = res['cs']['hits_f'] if res['cs'] else {}
             secs = res['cs']['sections'] if res['cs'] else {}
@@ -1061,6 +1110,24 @@ def write(res, args):
                                              'below_payoff_lu': round(pay - box, 1) if pay else None, 'audible': box > -35}
             phone['pass'] = (all(h['stands_out_lu'] >= 3 for h in phone['hits'].values()) and phone.get('closing_musicbox', {}).get('audible', True)
                              and phone.get('payoff_vs_lights_out', {}).get('pass', True))
+            if res['P'].get('explainer'):  # every game action must read on a phone: featured cues vs the second before
+                rows_f = [q for q in res['cues'] if q['featured'] and q['kind'] == 'game']
+                st = []
+                for q in rows_f:
+                    a = q['start']
+                    seg = ps[a:a + int(0.6 * SR)]
+                    pre = ps[max(0, a - SR):a]
+                    if len(seg) < 100:
+                        continue
+                    mh = float(np.max(dsp.momentary(dsp.fit(seg, max(len(seg), int(0.4 * SR))), 0.02)))
+                    mp = float(np.median(dsp.momentary(dsp.fit(pre, max(len(pre), int(0.4 * SR))), 0.05))) if len(pre) else -70
+                    quiet = '_quiet' in str(q['src'])
+                    st.append({'frame': q['frame'], 'name': q['name'] + (' (quiet)' if quiet else ''), 'stands_out_lu': round(mh - max(mp, -70), 1),
+                               'ok': (mh - max(mp, -70)) >= (-2.0 if quiet else 1.5)})
+                ok = sum(x['ok'] for x in st)
+                phone['featured_cues'] = {'checked': len(st), 'readable': ok, 'rule': 'hit momentary >= the second before +1.5 LU (QUIET >= -2 LU)',
+                                          'not_readable': [x for x in st if not x['ok']][:20]}
+                phone['pass'] = bool(st) and ok >= 0.9 * len(st)
         except Exception as ex:
             phone = {'error': str(ex)}
     rep = {
@@ -1109,7 +1176,7 @@ def main(argv=None):
     ap.add_argument('--no-score', action='store_true', help='ignore score segments (bed only)')
     ap.add_argument('--no-engine', action='store_true')
     ap.add_argument('--out')
-    ap.add_argument('--target', type=float, default=-14.0)
+    ap.add_argument('--target', type=float, default=None, help='integrated LUFS (default: the preset, -14 trailer / -16 explainers)')
     ap.add_argument('--tp', type=float, default=-1.5)  # Critic fix 9: platforms re-encode (inter-sample overshoot)
     ap.add_argument('--margin', type=float, default=6.0)
     args = ap.parse_args(argv)

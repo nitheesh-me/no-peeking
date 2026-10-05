@@ -112,7 +112,8 @@ def main():
             t += bar
 
     thump = dsp.stereo(dsp.sub_thump(48, 0.35, 2.0), 0) / np.sqrt(2)
-    for t in list(downbeats(T['drop'], T['lights_out'])) + list(downbeats(T['payoff'], T['closing'])):
+    # no sub kicks in the proof: they pass straight through its 1.2 kHz low-pass and pop out of the submerged bed
+    for t in list(downbeats(T['drop'], T['proof'])) + list(downbeats(T['montage'], T['lights_out'])) + list(downbeats(T['payoff'], T['closing'])):
         in_drop = T['drop'] <= t < T['proof']
         dsp.place(add, thump, int(t * SR), 0.7 if t >= T['payoff'] else (0.5 * dsp.undb(-3) if in_drop else 0.5))
     # the drop as an epic, not a waltz (Critic #6): saw-brass stabs on beats 1 and 2-and (the level_win_big
@@ -155,7 +156,8 @@ def main():
     fc_exp = np.where((np.arange(n) >= int(T['build'] * SR)) & (np.arange(n) < int(T['silence'] * SR)),
                       900 * (19500 / 900) ** ((np.arange(n) / SR - T['build']) / (T['silence'] - T['build'])), fc)
     r = 0.05
-    for (s0, s1, f) in ((T['proof'], T['montage'], 1200), (T['lights_out'], T['payoff'], 300)):
+    # Lights Out: dark (1.8 kHz) rather than 300 Hz, so the syndrome chord sits IN the music, not alone over a hum
+    for (s0, s1, f) in ((T['proof'], T['montage'], 1200), (T['lights_out'], T['payoff'], 1800)):
         a0, a1 = int(s0 * SR), int(s1 * SR)
         fc_exp[a0:a1] = f
         ramp = int(r * SR)

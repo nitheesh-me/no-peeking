@@ -35,20 +35,62 @@ PLANS = {
 }
 
 
+# EDL section → game music scene (scene, tension, harmony). The sequencer switches scenes on the next BAR
+# (src/audio/music.ts), so a section change never cuts the bed mid-phrase.
+SCENE_OF = {
+    'cold_open': ('title', 0, 1), 'rule': ('build', 0, 1), 'threat': ('run', 0.5, 0.7), 'cant_copy': ('build', 0, 1),
+    'ask': ('lab', 0, 1), 'repair': ('run', 0.35, 0.85), 'proof': ('build', 0, 1), 'twist': ('run', 0.6, 0.6),
+    'close': ('title', 0, 1), 'under_the_hood': ('lab', 0, 1), 'end_card': ('credits', 0, 1),
+    'open': ('map', 0, 1), 'ch1': ('build', 0, 1), 'ch2': ('lab', 0, 1), 'ch3': ('run', 0.4, 0.8), 'ch4': ('run', 0.6, 0.7),
+    'labs': ('lab', 0, 1), 'codex': ('map', 0, 1), 'notebook': ('lab', 0, 1), 'qol': ('build', 0, 1), 'credits': ('credits', 0, 1),
+}
+
+
+def plan_from_edl(edl_path):
+    """(duration_s, plan) from an EDL: one scene per section (clip `section`), plus the engine's win sting
+    on every level_win event shown in the cut (a gentle lift on level wins)."""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'edl'))
+    import edl as E
+    import mix as MX
+    e = E.load(str(edl_path))
+    secs = []
+    for c in e['clips']:
+        nm = c.get('section') or 'build'
+        if secs and secs[-1][0] == nm:
+            continue
+        secs.append((nm, c['start']))
+    plan = [(f / 60.0, *SCENE_OF.get(nm, ('build', 0, 1))) for nm, f in secs]
+    wins = []
+    for c in e['clips']:
+        for ev in MX.load_events(c.get('events')):
+            if ev.get('type') == 'sfx' and ev.get('name') == 'level_win' and ev.get('frame') is not None and c['in'] <= ev['frame'] < c['out']:
+                m = c['_map']
+                idx = next((i for i, s in enumerate(m) if s >= ev['frame']), None)
+                if idx is not None:
+                    wins.append((c['start'] + idx) / 60.0)
+    return e['duration'] / 60.0, plan, sorted(set(round(w, 3) for w in wins))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('which', nargs='?', default='all')
     ap.add_argument('--plan')
+    ap.add_argument('--edl', action='store_true', help='plan from tools/video/edl/<which>.edl.json (sections + level wins)')
     a = ap.parse_args()
     todo = ['mechanic', 'showcase'] if a.which == 'all' else [a.which]
     for name in todo:
         dur, plan = PLANS[name]
+        wins = []
+        if a.edl:
+            dur, plan, wins = plan_from_edl(ROOT / f'tools/video/edl/{name}.edl.json')
         if a.plan:
             p = json.loads(Path(a.plan).read_text())
             plan = [(e['t'], e['scene'], e.get('tension', 0), e.get('harmony', 1)) for e in p]
         calls = []
         for t, scene, ten, har in plan:
             calls += [{'t': t, 'k': 'scene', 'v': scene}, {'t': t + 0.01, 'k': 'tension', 'v': ten}, {'t': t + 0.02, 'k': 'harmony', 'v': har}]
+        for w in wins:  # the engine's 2-bar win sting, then it returns to the section's scene by itself
+            calls.append({'t': max(0.0, w - 0.05), 'k': 'scene', 'v': 'win'})
         x, = render_jobs([{'name': f'{name} bed', 'secs': dur + 2, 'music': True, 'master': 'raw', 'dry': False, 'seed': 42,
                            'scene0': plan[0][1], 'calls': calls}])
         x = dsp.fit(x, int(dur * dsp.SR))
@@ -57,7 +99,8 @@ def main():
         OUT.mkdir(parents=True, exist_ok=True)
         p = OUT / f'{name}_bed.wav'
         dsp.write_wav(p, x)
-        rep = {'plan': plan, 'loudness': dsp.loudness_report(x), 'ffmpeg': dsp.ffmpeg_ebur128(p)}
+        rep = {'plan': plan, 'level_wins_s': wins, 'bpm': 84, 'meter': '4/4 (swung 8ths 0.62)', 'beat0_s': 0.08,
+               'loudness': dsp.loudness_report(x), 'ffmpeg': dsp.ffmpeg_ebur128(p)}
         dsp.save_json(OUT / f'{name}_bed.json', rep)
         dsp.spectrogram_png(x, OUT / f'{name}_bed.png', f'{name} bed (game adaptive score)', marks=[(t, s) for t, s, _, _ in plan])
         print(name, rep['loudness'], rep['ffmpeg'])

@@ -957,14 +957,62 @@ def g_reencode(e, final, wd, sharp_frames, night_frames, base_sharp):
                 f'sharpness retained {keep and round(keep * 100)}%, banding {bg["status"]} ({bg["summary"]})')
 
 
+def audio_gates(e, a, wd, final, proxy, rep, cs, gates, P):
+    """Audio-swap QA: the picture is byte-identical to a QA'd render, so only the audio gates run."""
+    tag = e.get('work_name', e['video'])
+    vstream = lambda p: subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=nb_frames,codec_name,width,height',
+                                        '-of', 'csv=p=0', p], capture_output=True, text=True).stdout.strip()
+    fresh = {'final': os.path.relpath(final, E.ROOT), 'video_stream': vstream(final) if os.path.exists(final) else None}
+    gates.append(gate('freshness', os.path.exists(final), fresh, f'{fresh["final"]}: {fresh["video_stream"]}'))
+    gates.append(g_music_gate(e))
+    gates += [g_av(e, rep), g_every_event(e, rep)]
+    gates.append(g_loudness(final, rep))
+    gates.append(g_loudness_curve(e, rep, cs))
+    gates.append(g_proof_sfx(e, rep))
+    sync_ok = all(g['status'] == 'PASS' for g in gates if g['gate'] in ('av_sync', 'every_event'))
+    gates.append(g_mix_analysis(e, wd, rep, sync_ok))
+    if 'reencode' not in set(filter(None, a.skip.split(','))):
+        sf = sample_frames(e, 10)
+        nf = sample_frames(e, 8, 'night')
+        base = sharpness(final, sf)
+        gates.append(g_reencode(e, final, wd, sf, nf, base))
+    bad = [g['gate'] for g in gates if g['status'] in ('FAIL', 'BLOCKED')]
+    overall = 'FAIL' if bad else 'PASS'
+    report = {'video': e['video'], 'variant': tag, 'mode': 'audio-only', 'edl': a.edl, 'final': os.path.relpath(final, E.ROOT),
+              'mixreport': e['audio'].get('mixreport'), 'overall': overall, 'gates': list(gates)}
+    os.makedirs(REVIEW, exist_ok=True)
+    jp = os.path.join(REVIEW, f'{tag}_audio_qa.json')
+    json.dump(report, open(jp, 'w'), indent=1, default=str)
+    md = [f'# Audio QA: {tag}  ->  {overall}', '', f'final: `{report["final"]}` · mix: `{e["audio"]["mix"]}` · picture gates carry over from the signed-off render', '',
+          '| gate | status | summary |', '|---|---|---|'] + [f'| {g["gate"]} | {g["status"]} | {g["summary"]} |' for g in gates]
+    open(os.path.join(REVIEW, f'{tag}_audio_qa.md'), 'w').write('\n'.join(md) + '\n')
+    print('\n'.join(md))
+    P.output(os.path.join(REVIEW, f'{tag}_audio_qa.md'), 'audio QA table')
+    P.done(overall + (f' ({", ".join(bad)})' if bad else ''))
+    sys.exit(0 if overall == 'PASS' else 1)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('edl')
     ap.add_argument('--skip', default='')
+    ap.add_argument('--audio-only', action='store_true', help='audio swap: only the audio gates (+ freshness); picture gates carry over')
+    ap.add_argument('--variant', help='derived EDL tag, e.g. trailer_public: work dir, mix, mixreport, music bed and final from videos/final/work/<tag>/')
+    ap.add_argument('--music', help='with --variant: the music bed (for music_gate / loudness_curve)')
     a = ap.parse_args()
     skip = set(filter(None, a.skip.split(',')))
     e = E.load(a.edl)
     e['_path'] = a.edl
+    if a.variant:  # same picture/EDL, different mix (e.g. the public-domain score cut)
+        v = a.variant
+        e['work_name'] = v
+        e['audio'] = dict(e['audio'], mix=f'videos/final/work/{v}/mix.wav', mixreport=f'videos/final/work/{v}/mixreport.json',
+                          stems=f'videos/final/work/{v}/stems')
+        if a.music:
+            e['audio']['music'] = a.music
+        for o in e['outputs']:
+            d, b = os.path.split(o['path'])
+            o['path'] = os.path.join(d, b.replace(e['video'], v, 1))
     wd = E.rel(f'videos/final/work/{e.get("work_name", e["video"])}')
     final = E.rel(e['outputs'][0]['path'])
     proxy = os.path.join(wd, 'qa_proxy.mp4')
@@ -986,6 +1034,9 @@ def main():
                 self.append(g)
             return self
     gates = Gates()
+    if a.audio_only:
+        audio_gates(e, a, wd, final, proxy, rep, cs, gates, P)
+        return
     gates += [g_edl(e), g_music_gate(e)]
     if not (os.path.exists(final) and os.path.exists(proxy)):
         gates.append(g_loudness_curve(e, rep, cs))  # the bed can be checked before any render

@@ -15,6 +15,7 @@ One shared gain puts groove_full at -16 LUFS over its active span (the same refe
 """
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -28,7 +29,29 @@ from engine_render import render_jobs, ROOT  # noqa: E402
 OUT = ROOT / 'videos/audio2/groove'
 
 
+def explainer(video):
+    """Typing-tick groove for the mechanic/showcase beds: the bed's own grid (84 BPM, 4/4, swung 0.62, first
+    downbeat 0.08 s, src/audio/music.ts), full length. Only the wood-block 'type' stem: the beds already have
+    drums in their build/lab scenes, a second kit would be mud."""
+    b = json.loads((ROOT / f'videos/audio2/beds/{video}_bed.json').read_text())
+    dur = b['loudness']['duration_s']
+    beat = 60 / 84
+    plan = {'beat_s': beat, 'bpb': 4, 'bar_s': 4 * beat, 'beat0_s': 0.08, 't': {}}
+    x, = render_jobs([{'name': f'{video} groove type', 'secs': dur + 2, 'script': '/tools/video/audio/score_groove.js', 'dry': False,
+                       'master': 'raw', 'seed': 84, 'plan': plan, 'span': [0.0, dur], 'stem': 'type', 'swing': 0.62}])
+    x = dsp.fit(dsp.highpass(x, 30, 2), int(dur * dsp.SR))
+    x = x * dsp.undb(-26.0 - dsp.integrated(x))  # sparse ticks: a -26 LUFS reference keeps the peaks < 0 dBFS
+    p = OUT / f'{video}_type.wav'
+    OUT.mkdir(parents=True, exist_ok=True)
+    dsp.write_wav(p, x)
+    print(video, 'groove type', dsp.loudness_report(x))
+
+
 def main():
+    if len(sys.argv) > 2 and sys.argv[1] == '--explainer':
+        for v in sys.argv[2:]:
+            explainer(v)
+        return
     path = sheet.pick()
     P = sheet.plan(path)
     T = P['t']

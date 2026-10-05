@@ -274,3 +274,16 @@ It all re-runs on any EDL change: `mix.py <edl>` → `mix_gates.py <workdir>`.
 - **Result** (`mixreport.sfx_bus.build_bars`): music lifts of +2.4 dB on bar 4 (f1010, Phasey→Wobbles) and +2.0 dB on bar 6.
 - **Final-mix build bars:** before −26.4 / −21.9 / −21.3 / **−22.8** / −18.1 / −18.6; after **−26.4 / −22.0 / −21.2 / −21.2 / −18.1 / −17.4 dB** (rising; the end of the build stays well under the drop).
 - **Gates:** drop rule −12.1 → −10.0 (pass); all 9 `mix_analysis` gates pass.
+
+## 12. Public trailer cut (public-domain Twinkle score, same final EDL)
+`mix.py tools/video/edl/trailer.edl.json --music videos/audio2/score_alt/score_alt.wav --out videos/final/work/trailer_public`. It writes `mix.wav`, `stems/`, `mixreport.json` and `mix_gates.json`, plus `videos/final/review/trailer_public_phone_sim.wav` (the phone simulation is now named per work dir).
+
+Fixes the public score needed:
+- **Lights Out at 1.8 kHz** instead of 300 Hz. The syndrome chord now sits in the music, not alone over a hum: 2–5 kHz SFX − music went from +20.4 to +5.4.
+- **No sub kicks in the proof.** They passed straight through the 1.2 kHz low-pass.
+- **A breath before the collapse.** The cold-open phrase stops a bar before f434, so the music box decays into the hit as the song does. The peek on the phone simulation went from +1.4 to +5.1 LU.
+- **Mixer: `music_polish` now runs BEFORE the automation**, so the targets are met on what actually plays. In the sparse public cold open, the fill and make-up gain had added about 5 dB after the automation.
+- **3:1 smoothing compressor on the submerged proof.** A downbeat-only bed was jumping +10 LU on every bar.
+- **QUIET answers outside the proof** are floored at the music − 5 LU. This fixes the earlier synthetic 52/53 case, now 53/53.
+
+`music_gate.py` on the re-rendered score: pass. The song cut was re-run after the polish reorder, and all 9 gates still pass.

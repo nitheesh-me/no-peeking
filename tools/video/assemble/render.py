@@ -724,6 +724,10 @@ def main():
     ap.add_argument('--chunk', nargs=5, metavar=('EDL', 'CLIP', 'I0', 'I1', 'OUT'), help=argparse.SUPPRESS)
     ap.add_argument('--chunks', help=argparse.SUPPRESS)
     ap.add_argument('--dry-run', action='store_true', help='report which stage-A/transition/B-C chunks would render; render nothing')
+    ap.add_argument('--mux-only', action='store_true', help='audio swap: concat the CACHED picture chunks + mux --mix; fails if any chunk is stale')
+    ap.add_argument('--mix', help='with --mux-only: the mix.wav to mux (default: the EDL audio.mix)')
+    ap.add_argument('--out-tag', help="with --mux-only: rename outputs, e.g. trailer_public -> videos/final/trailer_public*.mp4, "
+                                      "and write render.json/qa_proxy link into videos/final/work/<tag>/")
     a = ap.parse_args()
     if a.chunk:
         p, cid, i0, i1, out = a.chunk
@@ -735,6 +739,9 @@ def main():
             render_chunk(job['edl'], cid, int(i0), int(i1), out)
         return
     e = E.load(a.edl)
+    if a.mux_only:
+        mux_only(a, e)
+        return
     if a.dry_run:  # no progress-board entry, no renders
         _main(a, e)
         return
@@ -745,6 +752,40 @@ def main():
     except BaseException as x:
         PROG.fail(x)
         raise
+
+
+def mux_only(a, e):
+    """Swap the audio under an already-rendered picture: no stage A / transitions / B-C encode."""
+    wd = work_dir(e)
+    segs = stage_a(e, os.path.abspath(a.edl), False, dry_run=True)
+    caps = json.load(open(os.path.join(wd, 'captions.json'))) if os.path.exists(os.path.join(wd, 'captions.json')) else {}
+    strip = None if e.get('strip_overlay') else render_captions(e)[1]
+    trans = stage_t(e, segs, False, dry_run=True)
+    files, todo = stage_bc(e, segs, caps, strip, False, proxy=True, trans=trans, dry_run=True)
+    if todo:
+        raise SystemExit(f'--mux-only: {len(todo)} picture chunk(s) are not cached; run a normal render first')
+    mix = E.rel(a.mix or e['audio']['mix'])
+    if not os.path.exists(mix):
+        raise SystemExit(f'--mux-only: mix not found: {mix}')
+    tag = a.out_tag
+    outs = []
+    for o in e['outputs']:
+        path = E.rel(o['path'])
+        if tag:
+            d, b = os.path.split(path)
+            path = os.path.join(d, b.replace(e['video'], tag, 1))
+        concat_mux(files[o['name']], mix, path, e['duration'])
+        outs.append(os.path.relpath(path, E.ROOT))
+        print(f'  muxed {outs[-1]}  <- {os.path.relpath(mix, E.ROOT)}', flush=True)
+    od = E.rel(f'videos/final/work/{tag}') if tag else wd
+    os.makedirs(od, exist_ok=True)
+    qp_src, qp = os.path.join(wd, 'qa_proxy.mp4'), os.path.join(od, 'qa_proxy.mp4')
+    if od != wd and os.path.exists(qp_src) and not os.path.exists(qp):
+        os.symlink(qp_src, qp)
+    info = dict(video=e['video'], edl=a.edl, mode='mux-only', picture_from=os.path.relpath(wd, E.ROOT), outputs=outs,
+                audio=os.path.relpath(mix, E.ROOT), audio_placeholder=False, muxed_at=time.strftime('%Y-%m-%d %H:%M:%S'))
+    json.dump(info, open(os.path.join(od, 'render.json'), 'w'), indent=1)
+    print(json.dumps(info, indent=1))
 
 
 def _main(a, e):

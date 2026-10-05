@@ -1,0 +1,7 @@
+{
+ "_doc": "Explainer score plan (showcase): the game's own adaptive bed carries the video; the typing-tick groove (videos/audio2/groove/showcase_type.wav, the bed's own 84 BPM swung grid) is layered under the PROGRAMMING sections (drag, IF anatomy, step/scrub, snippets, Qiskit export, card guide, QoL...), bar-majority on the bed's bar grid, 6-frame equal-power crossfades that land on bar lines. Never a bed swap.",
+ "sources": {"groove_type": "videos/audio2/groove/showcase_type.wav"},
+ "segments": [
+  {"source": "groove_type", "clips": "programming", "mode": "layer", "gain_db": 0.0, "xfade_frames": 6, "min_cover": 0.5}
+ ]
+}

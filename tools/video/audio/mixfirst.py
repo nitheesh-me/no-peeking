@@ -38,6 +38,50 @@ TARGETS = {
 }
 
 
+def explainer_targets(sections, base=-19.0):
+    """Steady and readable: one near-constant bed level per section (post-master LUFS short-term), a little
+    softer at the edges, the end card fading out. No build curve."""
+    t = {}
+    for nm, a, b in sections:
+        if nm in ('cold_open', 'open'):
+            t[nm] = base - 1.0
+        elif nm in ('close',):
+            t[nm] = base - 0.5
+        elif nm == 'end_card':
+            t[nm] = (base, base - 9.0)
+        elif 'silence' in nm:
+            t[nm] = None
+        else:
+            t[nm] = base
+    return t
+
+
+def level_voices(voices, music, vcues, win):
+    """Each Qubblese line: integrated over its span at music + aim (window lo..hi), 50 ms ramps; reports margins."""
+    lo, hi, aim = win
+    rep = []
+    r = int(0.05 * SR)
+    for v in vcues:
+        a = v['start']
+        b = min(len(voices), int(v['end_s'] * SR) + int(0.15 * SR))
+        if b - a < int(0.2 * SR) or dsp.integrated(voices[a:b]) < -69:
+            v.update({'window': None, 'window_rule': 'voice line (too short to measure)', 'margin_lu': 0.0, 'cue_lufs_m': -70.0, 'music_lufs_m': -70.0})
+            continue
+        vi = dsp.integrated(voices[a:b])
+        mi = dsp.integrated(music[a:b]) if np.any(music[a:b]) else -70.0
+        d = (max(mi, -40.0) + aim) - vi
+        g = np.ones(b - a)
+        g[:] = dsp.undb(d)
+        g[:r] = 1 + (dsp.undb(d) - 1) * np.linspace(0, 1, min(r, len(g)))
+        g[-r:] = dsp.undb(d) + (1 - dsp.undb(d)) * np.linspace(0, 1, r)
+        voices[a:b] *= g[:, None]
+        m = dsp.integrated(voices[a:b]) - max(mi, -70.0)
+        v.update({'cue_lufs_m': dsp.integrated(voices[a:b]), 'music_lufs_m': mi, 'margin_lu': m, 'window': (lo, hi),
+                  'window_rule': 'voice line (integrated over the line)', 'gain_db': d})
+        rep.append({'id': v['id'], 'delta_db': round(d, 2), 'margin_lu': round(m, 2)})
+    return rep
+
+
 def centred_short_term(x, hop=1.0 / CR, win=3.0):
     """analyze_mix.loud_curve: K-weighted loudness of a CENTRED window, sampled every hop."""
     k = dsp.kweight(x)
@@ -250,6 +294,8 @@ def level_cues(cues, music, sections, P):
             near = [lv for f, lv in beeps.items() if abs(f - lead[0]['frame']) <= 240]
             if near:
                 tgt = min(tgt, max(near) - W['quiet_below_beep'])
+                if sec != 'proof' or P.get('explainer'):  # the QUIET must still be heard: >= bed - 5 LU
+                    tgt = max(tgt, mus - 5.0)
                 rule = 'quiet answer: under its BEEP'
                 win = (-6.0, win[1] if win else 7.0)
         d = tgt - comb
@@ -408,20 +454,26 @@ def music_polish(music, sections):
         env[:r] = np.linspace(0, 1, r)
         env[i1 - i0:] = np.linspace(1, 0, len(env) - (i1 - i0)) ** 2  # the tail dies out after the section
         dsp.place(y, wet * env[:, None], i0)
-    if 'cold_open' in sec:  # gentle 2:1 on the cold-open music: the music-box swells don't jump out of the hush
-        a, b = sec['cold_open']
+    # gentle compression where the bed is sparse: cold open (2:1, the music-box swells don't jump out of the hush)
+    # and the submerged proof (3:1, a downbeat-only bed must not jump +10 LU on every bar)
+    for nm, ratio, att, rel in (('cold_open', 2.0, 0.030, 0.300), ('proof', 3.0, 0.010, 0.400)):
+        if nm not in sec:
+            continue
+        a, b = sec[nm]
         i0, i1 = int(a * SR), int(b * SR)
         seg = y[i0:i1]
-        e = env_db(seg, 0.030, 0.300)
+        e = env_db(seg, att, rel)
         act = e > -70
-        if act.any():
-            thr = float(np.percentile(e[act], 60))
-            comp, _ = compress(seg, 2.0, 0.030, 0.300, thr, 4.0)
-            mk = dsp.undb(float(np.median(np.maximum(0.0, (e[act] - thr) * 0.5))))  # make-up for the median GR
-            r = int(0.2 * SR)
-            w = np.ones(i1 - i0)
-            w[-r:] = np.linspace(1, 0, r)
-            y[i0:i1] = seg * (1 - w[:, None]) + comp * mk * w[:, None]
+        if not act.any():
+            continue
+        thr = float(np.percentile(e[act], 60 if nm == 'cold_open' else 40))
+        comp, _ = compress(seg, ratio, att, rel, thr, 8.0)
+        mk = dsp.undb(float(np.median(np.maximum(0.0, (e[act] - thr) * (1 - 1 / ratio)))))  # make-up for the median GR
+        r = int(0.2 * SR)
+        w = np.ones(i1 - i0)
+        w[:r] = np.linspace(0, 1, r) if nm != 'cold_open' else 1.0
+        w[-r:] = np.linspace(1, 0, r)
+        y[i0:i1] = seg * (1 - w[:, None]) + comp * mk * w[:, None]
     fo = int(4.0 * SR)
     y[n - fo:] *= (0.5 + 0.5 * np.cos(np.linspace(0, np.pi, fo)))[:, None]
     return y

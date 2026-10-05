@@ -28,7 +28,9 @@ export default async function (api) {
   for (let tb = P.beat0_s + k * SB; tb < t1 - 1e-6; tb += BAR, bar++) {
     const [root, voi] = CH[Math.floor(bar / 2) % 4];
     for (let s = 0; s < BPB * 2; s++) {
-      const t = tb + s * E8;
+      // swung 8ths for the game's own beds (music.ts SWING 0.62): off-8ths sit at beat*swing
+      const sw = job.swing || 0.5;
+      const t = tb + Math.floor(s / 2) * SB + (s % 2) * SB * sw;
       if (t >= t1 - 1e-6) break;
       if (job.stem === 'perc') at(t, () => {
         if (s === 0) I.kick(kit, bus, t, 0.75);
