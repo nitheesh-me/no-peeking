@@ -320,8 +320,8 @@
    },
    "flags": {
     "intentional_hold": true,
-    "on_beat": true,
-    "intentional_black": true
+    "intentional_black": true,
+    "on_beat": true
    },
    "section": "silence",
    "cues": [
@@ -704,7 +704,7 @@
    "src": "videos/capture/pg_split_23.mkv",
    "src_kind": "alias",
    "start": 2066,
-   "dur": 96,
+   "dur": 48,
    "in": 1749,
    "speed": 1,
    "grade": "night",
@@ -757,12 +757,72 @@
    "scdet_exempt": [
     [
      2066,
-     2138
+     2114
     ]
    ]
   },
   {
    "id": "T019",
+   "shot": "pg_split_23_xray",
+   "src": "videos/capture/pg_split_23_xray.mkv",
+   "src_kind": "alias",
+   "start": 2114,
+   "dur": 48,
+   "in": 322,
+   "speed": 1,
+   "grade": "night",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "proof",
+   "cues": [],
+   "beat_frame": 2114,
+   "note": "proof end: X-ray replay, q2 restored (Critic re-review fix 3) split screen: room + Bot Code windows (split_frame)",
+   "windows": [
+    {
+     "name": "room",
+     "src": [
+      0.125,
+      0.11481481481481481,
+      0.43645833333333334,
+      0.7064814814814815
+     ],
+     "dst": [
+      28,
+      28,
+      1124,
+      1024
+     ]
+    },
+    {
+     "name": "bot_code",
+     "src": [
+      0.8177083333333334,
+      0.5231481481481481,
+      0.18229166666666666,
+      0.4413888888888889
+     ],
+     "dst": [
+      1196,
+      104,
+      696,
+      948
+     ],
+     "anchor_y": 0.0
+    }
+   ],
+   "events": "videos/capture/pg_split_23_xray.events.json",
+   "layout_json": "videos/capture/pg_split_23_xray.layout.json",
+   "punch_native": true,
+   "grid_waiver": {
+    "rule": "3/4 beat grid",
+    "reason": "hidden cut: X-ray room -> same X-ray room (same framing and windows), not perceived as a cut; Director decision, trailer re-review",
+    "frame": 2114
+   }
+  },
+  {
+   "id": "T020",
    "shot": "pg_drag_closeup",
    "src": "videos/capture/pg_drag_closeup.mkv",
    "src_kind": "alias",
@@ -802,7 +862,7 @@
    "punch_native": true
   },
   {
-   "id": "T020",
+   "id": "T021",
    "shot": "mn_schrodi_checklist",
    "src": "videos/capture/mn_schrodi_checklist.mkv",
    "src_kind": "alias",
@@ -825,7 +885,7 @@
    "montage_kind": "world"
   },
   {
-   "id": "T021",
+   "id": "T022",
    "shot": "pg_if_anatomy",
    "src": "videos/capture/pg_if_anatomy.mkv",
    "src_kind": "alias",
@@ -865,7 +925,7 @@
    "punch_native": true
   },
   {
-   "id": "T022",
+   "id": "T023",
    "shot": "mn_highfive",
    "src": "videos/capture/mn_highfive.mkv",
    "src_kind": "alias",
@@ -888,7 +948,7 @@
    "montage_kind": "world"
   },
   {
-   "id": "T023",
+   "id": "T024",
    "shot": "pg_test_strip",
    "src": "videos/capture/pg_test_strip.mkv",
    "src_kind": "alias",
@@ -928,7 +988,7 @@
    "punch_native": true
   },
   {
-   "id": "T024",
+   "id": "T025",
    "shot": "mn_dream_map",
    "src": "videos/capture/mn_dream_map.mkv",
    "src_kind": "alias",
@@ -951,7 +1011,7 @@
    "montage_kind": "world"
   },
   {
-   "id": "T025",
+   "id": "T026",
    "shot": "pg_step_scrub",
    "src": "videos/capture/pg_step_scrub.mkv",
    "src_kind": "alias",
@@ -991,7 +1051,7 @@
    "punch_native": true
   },
   {
-   "id": "T026",
+   "id": "T027",
    "shot": "mn_codex_wobbles",
    "src": "videos/capture/mn_codex_wobbles.mkv",
    "src_kind": "alias",
@@ -1014,7 +1074,7 @@
    "montage_kind": "world"
   },
   {
-   "id": "T027",
+   "id": "T028",
    "shot": "pg_snippets_doodle",
    "src": "videos/capture/pg_snippets_doodle.mkv",
    "src_kind": "alias",
@@ -1054,7 +1114,7 @@
    "punch_native": true
   },
   {
-   "id": "T028",
+   "id": "T029",
    "shot": "mn_notebook_circuit",
    "src": "videos/capture/mn_notebook_circuit.mkv",
    "src_kind": "alias",
@@ -1093,7 +1153,7 @@
    "montage_kind": "world"
   },
   {
-   "id": "T029",
+   "id": "T030",
    "shot": "pg_export_qiskit",
    "src": "videos/capture/pg_export_qiskit.mkv",
    "src_kind": "alias",
@@ -1133,7 +1193,7 @@
    "punch_native": true
   },
   {
-   "id": "T030",
+   "id": "T031",
    "shot": "mn_shor9",
    "src": "videos/capture/mn_shor9.mkv",
    "src_kind": "alias",
@@ -1156,50 +1216,26 @@
    "montage_kind": "world"
   },
   {
-   "id": "T031",
-   "shot": "mn_lights_out",
-   "src": "videos/capture/mn_lights_out.mkv",
-   "src_kind": "alias",
-   "start": 2834,
-   "dur": 96,
-   "in": 1656,
-   "speed": 1,
-   "grade": "night",
-   "transition": {
-    "type": "cut"
-   },
-   "flags": {
-    "on_beat": true,
-    "intentional_black": true
-   },
-   "section": "lights_out",
-   "cues": [],
-   "beat_frame": 2834,
-   "events": "videos/capture/mn_lights_out.events.json",
-   "layout_json": "videos/capture/mn_lights_out.layout.json"
-  },
-  {
    "id": "T032",
    "shot": "mn_lights_out",
    "src": "videos/capture/mn_lights_out.mkv",
    "src_kind": "alias",
-   "start": 2930,
-   "dur": 96,
-   "in": 1656,
+   "start": 2834,
+   "dur": 192,
+   "in": 1543,
    "speed": 1,
    "grade": "night",
    "transition": {
     "type": "cut"
    },
    "flags": {
-    "on_beat": true,
-    "intentional_black": true
+    "intentional_black": true,
+    "on_beat": true
    },
    "section": "lights_out",
    "cues": [],
-   "beat_frame": 2930,
-   "note": "repeat: the chord a second time",
-   "continuous": true,
+   "beat_frame": 2834,
+   "note": "one continuous dark stretch (src 1543-1734); chord-1 lands on k91 (f2962); lights come up at src 1735, never shown",
    "events": "videos/capture/mn_lights_out.events.json",
    "layout_json": "videos/capture/mn_lights_out.layout.json"
   },
@@ -1402,7 +1438,8 @@
      "opacity": 0.8
     }
    },
-   "id": "cap03"
+   "id": "cap03",
+   "decor_waiver": "wall decor (clock, shelf, bunting), not characters: Director-reviewed 2026-10-05"
   },
   {
    "text": "Ghosts flip phases.",
@@ -1422,7 +1459,8 @@
      "opacity": 0.8
     }
    },
-   "id": "cap04"
+   "id": "cap04",
+   "decor_waiver": "wall decor (clock, shelf, bunting), not characters: Director-reviewed 2026-10-05"
   },
   {
    "text": "Wobbles flips\u2026 halfway.",
@@ -1462,9 +1500,10 @@
      0
     ],
     "shadow": {
-     "sigma": 12,
-     "gain": 2.5,
-     "opacity": 0.7
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
     }
    },
    "id": "cap06",
@@ -1494,6 +1533,33 @@
    },
    "id": "cap07",
    "motion_asset": "card_program_alpha_160"
+  },
+  {
+   "text": "X-ray \u00b7 simulator view",
+   "start": 2114,
+   "end": 2162,
+   "legible_from": 2120,
+   "position": "top_third",
+   "style": "night",
+   "render": {
+    "fill": "videos/final/work/motion_ext/tag_xray_alpha_fill.mkv",
+    "matte": "videos/final/work/motion_ext/tag_xray_alpha_matte.mkv",
+    "in": 8,
+    "frames": 96,
+    "hold": true,
+    "offset": [
+     -670,
+     935
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   },
+   "id": "tag_xray_proof",
+   "label": true
   },
   {
    "text": "It's #2.",
@@ -1655,7 +1721,7 @@
   {
    "type": "dissolve",
    "start": 2066,
-   "end": 2138,
+   "end": 2114,
    "why": "in-engine X-ray dissolve"
   },
   {

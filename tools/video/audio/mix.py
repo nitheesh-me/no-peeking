@@ -830,6 +830,8 @@ def build(args):
                 q['x'] = dsp.fade(q['x'][:int(q['mix_max_s'] * SR)], 0.0, 0.6)
         bus_rep = mixfirst.place_and_correct(cues, stems, music_raw)
         stems['sfx'], bus_rep['presence_match'] = mixfirst.presence_match(stems['sfx'], music_raw, secs_list)
+        # Critic (fix 5 polish): the build must rise bar by bar on the FULL mix, not just in the music stem
+        bus_rep['build_bars'] = mixfirst.monotonic_build(stems, cs['downbeats'], cs['sections'].get('build')) if cs else {}
         for q in cues:
             q.update({'duck_db': 0.0, 'band_db': 0.0, 'boost_db': 0.0, 'band_margin_db': 0.0})
     else:

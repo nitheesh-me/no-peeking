@@ -545,6 +545,7 @@ async function runOne(browser, def, opts, wi) {
   const cfg = {
     seed: def.opts.seed ?? hashStr(def.name),
     hideDialogue: !!def.opts.hideDialogue,
+    quietBubbles: !!def.opts.quietBubbles,
     cursor: def.opts.cursor !== false,
     showCaret: !!def.opts.showCaret,
     layoutSelectors: def.opts.layoutSelectors ?? DEFAULT_LAYOUT,
@@ -599,7 +600,7 @@ async function runOne(browser, def, opts, wi) {
     marks: s.marks, ticks: s.ticks, vtStep: { min: s.vtMin, max: s.vtMax }, wallSeconds: +secs.toFixed(2), fps_capture: +(s.frame / secs).toFixed(3),
     timing_ms_per_frame: { step: +(s.t.step / Math.max(1, s.ticks)).toFixed(2), screenshot: +(s.t.shot / Math.max(1, s.frame)).toFixed(2), write: +(s.t.write / Math.max(1, s.frame)).toFixed(2) },
     bytes: env.sink.bytes, audioHook: env.hooked, renderer: env.renderer, pageErrors: errors.slice(0, 50), warnings: env.warnings ?? [],
-    options: { save: def.opts.save ?? null, hideDialogue: cfg.hideDialogue, cursor: cfg.cursor, url: '?qa' + queryString(def.opts) },
+    options: { save: def.opts.save ?? null, hideDialogue: cfg.hideDialogue, quietBubbles: cfg.quietBubbles, cursor: cfg.cursor, url: '?qa' + queryString(def.opts) },
   };
   fs.writeFileSync(base + '.meta.json', JSON.stringify(meta, null, 1));
   fs.writeFileSync(base + '.events.json', JSON.stringify({ shot: def.name, fps: FPS, frames: s.frame, note: 'frame = index in the clip (null = off camera); vt = virtual seconds since page start', ...summary, events: s.events }, null, 1));

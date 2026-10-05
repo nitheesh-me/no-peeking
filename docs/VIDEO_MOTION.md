@@ -111,6 +111,8 @@ Window crops (capture CSS px of the 1920×1080 capture frame; ×2 for the 4K sou
 All of it is in `proof_overlay.json` (`segs_trailer`, `code_window_src_css_per_seg`, `room_window_src_css`,
 `action_frames_trailer`). If the Editor changes the segments, re-render with `--p '{"segs":[…]}'`.
 
+**Gremlin caption placement (re-review polish 4):** the three cards now sit on the empty top-left wall of the X-ray gremlin shots (`layout: 'topleft'`): sprite icon at x ≈ 104 (feet y 296), text left-aligned from x 206 in two lines at 92 px, block ≈ y 150–290, on a 74 % dark rounded plate (feathered edge) spanning the icon and both lines plus a margin (≈ x 26–(text end + 44), y 101–350), so the paper text holds ≥ 12.7:1 even over the light page outside the room in the wide tr_relight frames (measured 12.7–16.5:1 at f766, f790, f870, f942, f1020, f1137, f1220; still `videos/motion/stills/final/gremlin_cards_contrast_check.png`). Checked against tr_gremlin_flipper/phasey/wobbles at the EDL camera (z 1.0→1.08) at three frames each: clear of the rug, every sprite and label, and of the top-centre "X-ray · simulator view" tag (x 721–1199, y 41–91). Still: `videos/motion/stills/final/gremlin_cards_topleft_check.png`.
+
 **Gremlin caption icons:** `card_gremlins/ghosts/wobbles_alpha` now use each gremlin's own game sprite
 (`drawGremlin`: Flipper, Phasey, Wobbles) striking on clip f40 (with sparks in its colour; Wobbles jiggles), in place of the Qubble.
 

@@ -24,10 +24,14 @@ Stage B/C (per <=600-frame timeline chunk; chunk edges never split a
 Final (light): stream-copy concat of the chunks + AAC 320k 48 kHz from the
   Sound Designer's mix, +faststart. Also a 1080p pre-grain QA proxy.
 """
+import os as _os
+for _v in ('OPENBLAS_NUM_THREADS', 'OMP_NUM_THREADS', 'MKL_NUM_THREADS', 'NUMEXPR_NUM_THREADS'):
+    _os.environ.setdefault(_v, '1')  # crash #7: numpy/OpenBLAS spawned 22 threads per worker
 import argparse
 import hashlib
 import shlex
 import json
+import re
 import os
 import subprocess
 import sys
@@ -55,10 +59,10 @@ def prog_add(n):
 FPS = 60
 CRF = 15
 CHUNK = 600
-THREADS = '6'
+THREADS = os.environ.get('NP_RENDER_THREADS', '8')  # per codec/filtergraph; safe-run pins to the 8 E-cores, so load stays <= 8 (crash #7). 2 left half of them idle
 # ONE ffv1 configuration for every intermediate: the concat demuxer decodes all pieces with the first file's config
 FFV1 = ['-c:v', 'ffv1', '-level', '3', '-slices', '16', '-g', '1', '-pix_fmt', 'gbrp10le']
-JOBS = 2  # within ONE video: the 2 machine-wide render slots (docs/VIDEO_RESOURCES.md); never two videos at once
+JOBS = 1  # crash #7: strictly one child job at a time (was 2 -> ~159 tasks)
 SAFE = os.path.join(E.ROOT, 'tools/video/safe-run.sh')
 GRAIN = {'night': 6, 'day': 3, 'none': 2}  # noise c0s: ~1.9 / 1.0 / 0.6 LSB std (8-bit) temporal grain = dither
 LUTS = os.path.join(HERE, 'luts')
@@ -69,7 +73,7 @@ GRAIN_COARSE = 14  # night: half-res noise strength (~1.8 LSB after the 0.6 mix 
 TEMPLATE_CANDIDATES = ['videos/motion/caption_template.html', 'tools/video/motion/caption_template.html',
                        'tools/video/motion/captions.html']
 X264 = ['-c:v', 'libx264', '-threads', THREADS, '-profile:v', 'high', '-preset', 'slow', '-crf', str(CRF), '-pix_fmt', 'yuv420p',
-        '-x264-params', 'aq-mode=3:aq-strength=0.9:deblock=-1,-1:psy-rd=1.0,0.15', '-g', '120', '-bf', '3',
+        '-x264-params', 'aq-mode=3:aq-strength=0.9:deblock=-1,-1:psy-rd=1.0,0.15:lookahead-threads=1', '-g', '120', '-bf', '3',
         '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv']
 
 
@@ -163,7 +167,7 @@ def render_chunk(edl_path, cid, i0, i1, out):
                 inp = ['-framerate', str(FPS), '-start_number', str(s0 + first), '-i', pat]
             else:
                 inp = (['-ss', f'{(first - 0.5) / FPS:.6f}'] if first > 0 else []) + ['-i', p]
-            dec = subprocess.Popen(['ffmpeg', '-v', 'error', '-threads', THREADS, *inp, '-frames:v', str(last - first + 1),
+            dec = subprocess.Popen(['ffmpeg', '-v', 'error', '-threads', THREADS, *inp, '-filter_threads', THREADS, '-frames:v', str(last - first + 1),
                                     '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], stdout=subprocess.PIPE)
             fsz = sw * sh * 3
             cur, buf = first - 1, None
@@ -211,7 +215,7 @@ def render_chunk(edl_path, cid, i0, i1, out):
         raise
 
 
-def stage_a(e, edl_path, force):
+def stage_a(e, edl_path, force, dry_run=False):
     """-> {clip_id: [(chunk file, local i0, local i1), ...]} (chunked FFV1 segments). Pending chunks are packed into heavy jobs of
     <= CHUNK frames in total (short trailer shots share one job, so the shared lock is taken fewer times)."""
     wd = work_dir(e)
@@ -228,6 +232,9 @@ def stage_a(e, edl_path, force):
             if force or not os.path.exists(p):
                 tasks.append([c['id'], i0, i1, p])
         lists[c['id']] = [(p, i0, min(c['dur'], i0 + CHUNK)) for p, i0 in zip(files, range(0, c['dur'], CHUNK))]
+    if dry_run:
+        print(f'stage A: {len(tasks)} chunk(s) to render (dry run)', flush=True)
+        return lists
     batches, cur, n = [], [], 0
     for t in tasks:
         if cur and n + (t[2] - t[1]) > CHUNK:
@@ -330,14 +337,17 @@ def chunk_bounds(e):
 
 def piece_entries(chunks, x, y):
     """concat-demuxer entries covering clip-local frames [x, y) of a chunked segment (intra-only FFV1:
-    inpoint/outpoint are frame-exact; half-frame offsets avoid float edge cases)."""
+    The demuxer SEEKS to inpoint (backward, to the keyframe at or before it), so the inpoint must sit just AFTER the
+    wanted frame's timestamp: +0.25 frame (Matroska stores ms; a -0.5 frame inpoint pulled in the previous frame and
+    shifted every chunk after the first by +1 frame: Critic re-review f1586 / QA cut offsets). The outpoint is
+    exclusive on timestamps, so -0.5 frame keeps frame t-1 and drops frame t.)"""
     out = []
     for p, i0, i1 in chunks:
         s_, t_ = max(x, i0), min(y, i1)
         if t_ > s_:
             e_ = f"file '{p}'\n"
             if s_ > i0:
-                e_ += f'inpoint {(s_ - i0 - 0.5) / FPS:.6f}\n'
+                e_ += f'inpoint {(s_ - i0 + 0.25) / FPS:.6f}\n'
             if t_ < i1:
                 e_ += f'outpoint {(t_ - i0 - 0.5) / FPS:.6f}\n'
             out.append(e_)
@@ -350,7 +360,7 @@ def write_list(path, entries):
     return path
 
 
-def stage_t(e, segs, force):
+def stage_t(e, segs, force, dry_run=False):
     """Pre-render every overlapping transition (<= 20 frames each) into its own small FFV1 file:
     maskedmerge(A tail, B head, matte) [+ glitch RGB tear] [+ Motion overlay]. One heavy job for all."""
     W, H = e['work']
@@ -392,6 +402,9 @@ def stage_t(e, segs, force):
         fc.append(f'[{last}]format=gbrp10le[out]')
         jobs.append(['ffmpeg', '-v', 'error', '-y', '-threads', THREADS, *ins, '-filter_complex', ';'.join(fc), '-map', '[out]',
                      '-frames:v', str(k), *FFV1, dst + '.tmp.mkv'])
+    if dry_run:
+        print(f'transitions: {len(jobs)} to render (dry run)', flush=True)
+        return out
     if jobs:
         sh = os.path.join(td, 'jobs.sh')
         with open(sh, 'w') as f:
@@ -468,7 +481,7 @@ def build_chunk_graph(e, segs, caps, strip, outputs, proxy, a, b, trans=None, li
             if sh:  # editor drop-shadow from the card's own matte: legibility over bright footage (contrast gate)
                 fc.append(f'[{fi}:v]format=gbrp,split[{label}f][{label}f2];[{mi}:v]format=gray,scale=in_range=pc:out_range=pc,'
                           f'split[{label}m][{label}m2];[{label}f2]lutrgb=r=0:g=0:b=0[{label}k];'
-                          f"[{label}m2]gblur=sigma={sh.get('sigma', 24)},lut=y='min(255\\,val*{sh.get('gain', 2.5)})*{sh.get('opacity', 0.8)}'[{label}sm];"
+                          f"[{label}m2]{'dilation,' * int(sh.get('dilate', 0))}gblur=sigma={sh.get('sigma', 24)},lut=y='min(255\\,val*{sh.get('gain', 2.5)})*{sh.get('opacity', 0.8)}'[{label}sm];"
                           f'[{label}k][{label}sm]alphamerge[{label}s]')
                 shadow_src = f'[{label}s]'
             else:
@@ -550,7 +563,55 @@ def build_chunk_graph(e, segs, caps, strip, outputs, proxy, a, b, trans=None, li
     return inputs, ';\n'.join(fc), maps
 
 
-def stage_bc(e, segs, caps, strip, force, proxy=True, trans=None):
+TEXT_EXT = ('.txt', '.json', '.ffconcat', '.cube')
+
+
+def file_stamp(x):
+    """Cache identity of one input file: text files (concat lists, LUTs, json) by CONTENT, since they are
+    rewritten every run with identical content; media by size + mtime (re-rendered in place = changed)."""
+    if x.endswith(TEXT_EXT):
+        return ('c', x, hashlib.sha1(open(x, 'rb').read()).hexdigest()[:16])
+    return ('m', x, os.path.getsize(x), int(os.path.getmtime(x)))
+
+
+def chunk_key(graph, inputs, outs, proxy):
+    """Per-chunk B/C key: ONLY what touches this chunk's frame range. build_chunk_graph emits a graph that
+    contains just the clips, transitions, overlays, captions/labels, flashes and grain ranges overlapping
+    [a, b) (chunk-relative), and `inputs` lists just the files those read (segment chunks via the base concat
+    list, transition renders, overlay/caption media). Plus the encoder settings and the output sizes."""
+    stamps = [file_stamp(x) for x in inputs if isinstance(x, str) and os.path.isfile(x)]
+    return h(['BC2', graph, stamps, CRF, X264, [o['size'] for o in outs], bool(proxy)])
+
+
+def adopt_chunk(cd, a, graph, inputs, paths, link=True):
+    """Reuse an encoded chunk made under an older key scheme when it provably came from the same inputs:
+    the last graph and base list written for this chunk equal the current ones, and the encoded file is newer
+    than that graph and than every media input. Hard-links it under the new key (no copy)."""
+    gp, lp = os.path.join(cd, f'graph_{a:06d}.txt'), os.path.join(cd, f'base_{a:06d}.txt')
+    if not os.path.exists(gp) or open(gp).read() != graph:
+        return False
+    media = [x for x in inputs if isinstance(x, str) and os.path.isfile(x) and not x.endswith(TEXT_EXT)]
+    newest_in = max([os.path.getmtime(gp)] + [os.path.getmtime(x) for x in media])
+    picks = {}
+    for nm, p in paths.items():
+        if os.path.exists(p):
+            continue
+        pat = re.compile(rf'^{re.escape(nm)}_{a:06d}_[0-9a-f]{{12}}\.mp4$')  # finished chunks only, never *.tmp.mp4 partials
+        cands = [os.path.join(cd, f) for f in os.listdir(cd) if pat.match(f)]
+        cands = [c for c in cands if os.path.getmtime(c) >= newest_in]
+        if not cands:
+            return False
+        picks[nm] = max(cands, key=os.path.getmtime)
+    if not link:
+        return True
+    for nm, c in picks.items():
+        os.link(c, paths[nm])
+    if picks:
+        print(f'  B/C chunk [{a}, ...) adopted from the previous render (same graph + inputs)', flush=True)
+    return True
+
+
+def stage_bc(e, segs, caps, strip, force, proxy=True, trans=None, dry_run=False):
     wd = work_dir(e)
     cd = os.path.join(wd, 'chunks')
     os.makedirs(cd, exist_ok=True)
@@ -559,15 +620,22 @@ def stage_bc(e, segs, caps, strip, force, proxy=True, trans=None):
     files['proxy'] = []
     t0 = time.time()
     todo = []
+    names = [o['name'] for o in outs] + (['proxy'] if proxy else [])
     for a, b in chunk_bounds(e):
         inputs, graph, maps = build_chunk_graph(e, segs, caps, strip, outs, proxy, a, b, trans, cd)
-        key = h([graph, open(os.path.join(cd, f'base_{a:06d}.txt')).read(), CRF, X264])
-        names = [o['name'] for o in outs] + (['proxy'] if proxy else [])
+        key = chunk_key(graph, inputs, outs, proxy)
         paths = {nm: os.path.join(cd, f'{nm}_{a:06d}_{key}.mp4') for nm in names}
         for nm in names:
             files[nm].append(paths[nm])
-        if force or not all(os.path.exists(p) for p in paths.values()):
+        adopted = False
+        if not force and not all(os.path.exists(p) for p in paths.values()):
+            adopted = adopt_chunk(cd, a, graph, inputs, paths, link=not dry_run)
+        if force or not (adopted or all(os.path.exists(p) for p in paths.values())):
             todo.append((a, b, inputs, graph, maps, paths))
+    print(f'B/C: {len(todo)}/{len(chunk_bounds(e))} chunk(s) to encode'
+          + (f": {', '.join(f'[{t[0]},{t[1]})' for t in todo)}" if todo else ' (all cached)'), flush=True)
+    if dry_run:
+        return files, todo
 
     prog_stage(f'B/C: composite + encode {len(todo)} chunk(s)', sum(t[1] - t[0] for t in todo), 'frames')
 
@@ -587,7 +655,7 @@ def stage_bc(e, segs, caps, strip, force, proxy=True, trans=None):
         prog_add(b - a)
         print(f'  B/C chunk [{a},{b})  ({time.time() - t0:.0f}s)', flush=True)
     parallel(run_chunk, todo)
-    return files
+    return files, todo
 
 
 def concat_mux(chunks, audio, out, frames):
@@ -655,6 +723,7 @@ def main():
     ap.add_argument('--no-proxy', action='store_true')
     ap.add_argument('--chunk', nargs=5, metavar=('EDL', 'CLIP', 'I0', 'I1', 'OUT'), help=argparse.SUPPRESS)
     ap.add_argument('--chunks', help=argparse.SUPPRESS)
+    ap.add_argument('--dry-run', action='store_true', help='report which stage-A/transition/B-C chunks would render; render nothing')
     a = ap.parse_args()
     if a.chunk:
         p, cid, i0, i1, out = a.chunk
@@ -666,6 +735,9 @@ def main():
             render_chunk(job['edl'], cid, int(i0), int(i1), out)
         return
     e = E.load(a.edl)
+    if a.dry_run:  # no progress-board entry, no renders
+        _main(a, e)
+        return
     global PROG
     PROG = Progress(f'render:{e["video"]}', title=f'Render {e["video"]} ({os.path.basename(a.edl)})', unit='frames')
     try:
@@ -676,13 +748,21 @@ def main():
 
 
 def _main(a, e):
-    print(f'render: holds a render slot = {IN_SLOT} (inner jobs {"run inside it" if IN_SLOT else "take their own --heavy slots"}, JOBS={JOBS})', flush=True)
+    if not a.dry_run:
+        print(f'render: holds a render slot = {IN_SLOT} (inner jobs {"run inside it" if IN_SLOT else "take their own --heavy slots"}, JOBS={JOBS})', flush=True)
     err, warn = V.validate(e)
     for x in err:
         print('EDL ERROR:', x)
     if err and not a.ignore_invalid:
         raise SystemExit('EDL invalid; fix it or pass --ignore-invalid')
     wd = work_dir(e)
+    if a.dry_run:  # report what WOULD render; renders and writes nothing but scratch concat lists
+        segs = stage_a(e, os.path.abspath(a.edl), a.force, dry_run=True)
+        caps = json.load(open(os.path.join(wd, 'captions.json'))) if os.path.exists(os.path.join(wd, 'captions.json')) else {}
+        strip = None if e.get('strip_overlay') else render_captions(e)[1]
+        trans = stage_t(e, segs, a.force, dry_run=True)
+        stage_bc(e, segs, caps, strip, a.force, proxy=not a.no_proxy, trans=trans, dry_run=True)
+        return
     json.dump(E.resolved(e), open(os.path.join(wd, 'edl.resolved.json'), 'w'), indent=1)
     t0 = time.time()
     segs = stage_a(e, os.path.abspath(a.edl), a.force)
@@ -695,7 +775,7 @@ def _main(a, e):
     json.dump(caps, open(os.path.join(wd, 'captions.json'), 'w'), indent=1)
     audio, ph_audio = find_mix(e, a.edl)
     trans = stage_t(e, segs, a.force)
-    files = stage_bc(e, segs, caps, strip, a.force, proxy=not a.no_proxy, trans=trans)
+    files, _ = stage_bc(e, segs, caps, strip, a.force, proxy=not a.no_proxy, trans=trans)
     for o in e['outputs']:
         os.makedirs(os.path.dirname(E.rel(o['path'])), exist_ok=True)
         concat_mux(files[o['name']], audio, E.rel(o['path']), e['duration'])

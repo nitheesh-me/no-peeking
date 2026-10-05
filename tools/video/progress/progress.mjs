@@ -12,6 +12,8 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.
 const DIR = path.join(ROOT, 'videos/progress');
 const JOBS = path.join(DIR, 'jobs');
 
+const normOuts = (a) => (a ?? []).map((o) => (typeof o === 'string' ? { path: o, label: '' } : o)); // tolerate bare-path outputs
+
 export class Progress {
   /** resume: continue a job another process started (e.g. one capture chunk of a multi-chunk shot): keeps its start time and outputs. */
   constructor(id, { title = id, total = null, unit = 'steps', stage = '', agent = process.env.NP_AGENT ?? '', resume = false } = {}) {
@@ -21,7 +23,7 @@ export class Progress {
     let prev = null;
     if (resume) { try { prev = JSON.parse(fs.readFileSync(this.file, 'utf8')); } catch { /* first */ } }
     this.s = { id, title, agent, state: 'running', stage, done: prev?.done ?? 0, total: total ?? prev?.total ?? null, unit, note: '',
-      outputs: prev?.outputs ?? [], pid: process.pid, startedAt: prev?.startedAt ?? now, updatedAt: now };
+      outputs: normOuts(prev?.outputs), pid: process.pid, startedAt: prev?.startedAt ?? now, updatedAt: now };
     this.last = 0;
     this.write(true);
   }
@@ -58,6 +60,7 @@ export function rebuild() {
     try { jobs.push(JSON.parse(fs.readFileSync(path.join(JOBS, f), 'utf8'))); } catch { /* mid-write */ }
   }
   for (const j of jobs) if (j.state === 'running' || j.state === 'queued') { try { process.kill(j.pid, 0); } catch { j.state = 'dead'; } }
+  for (const j of jobs) j.outputs = normOuts(j.outputs);
   for (const j of jobs) for (const o of j.outputs) { try { o.v = Math.round(fs.statSync(path.join(ROOT, o.path)).mtimeMs); } catch { /* not written yet */ } }
   let pageVersion = 0; // the dashboard compares this with its own PAGE_VERSION and asks for a reload when they differ
   try { pageVersion = +(/PAGE_VERSION = (\d+)/.exec(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'status.html'), 'utf8'))?.[1] ?? 0); } catch { /* */ }

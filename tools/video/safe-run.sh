@@ -14,7 +14,14 @@
 #   - The pool as a whole is capped at 10 of 22 cores with low CPU/IO priority; the desktop (session.slice) has
 #     3 GB of protected memory and top CPU priority.
 set -euo pipefail
-MEM=""; CPU="600%"; HEAVY=0
+MEM=""; CPU="1600%"; HEAVY=0
+# Crash #7 (01:14): load jumped 7 -> 16 (159 tasks) as a render fanned out; a CPU *quota* lets the pool burst over all
+# 22 cores for part of every 100 ms period, then throttles: sharp power spikes. Jobs are now PINNED to the 8 E-cores
+# (cpu12-19, max 3.8 GHz): steady, lower draw, and the P-cores stay free for the desktop. Override with NP_CPUS.
+# 2026-10-05 (user: "we can bump to 15 threads"): widened to 16 CPUs = the 8 E-cores + 4 P-cores with their
+# hyperthreads (cpu3,4 = core 12; cpu6-11 = cores 20/24/28). cpu0,1,2,5 (P-cores 8/16) and the LP cores 20-21 stay
+# free for the desktop. Quota = the pinned set, so no burst-then-throttle pulses. Revert: NP_CPUS=12-19.
+CPUS="${NP_CPUS:-3,4,6-19}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --heavy) HEAVY=1; shift;;
@@ -46,7 +53,7 @@ else
 fi
 # Block suspend/idle-sleep while any job runs: crash #5 (17:40) was a resume-from-suspend hang mid-render.
 RUN=(systemd-inhibit --what=sleep:idle --who=npvideo --why="video job running" --mode=block
-     systemd-run --user --scope -q --slice=npvideo.slice "${PROPS[@]}" -p CPUQuota="$CPU" -- nice -n 5 "$@")
+     systemd-run --user --scope -q --slice=npvideo.slice "${PROPS[@]}" -p CPUQuota="$CPU" -- taskset -c "$CPUS" nice -n 5 "$@")
 if (( HEAVY )) && [[ -n "${NP_RENDER_SLOT:-}" ]]; then
   HEAVY=0  # a parent job already holds a render slot; its children run inside it (no nested slot = no self-deadlock)
 fi

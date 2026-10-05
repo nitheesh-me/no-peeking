@@ -17,6 +17,15 @@ Six or seven 4 GB software-GL Chromium renders ran at once and saturated all 22 
 - The pool as a whole is capped at **10 of 22 cores** with low CPU/IO weight; the desktop (`session.slice`) has **3 GB of protected memory** and top CPU/IO weight. Per-job default CPUQuota is 6 cores. Render one video at a time (crash #4 at 10:35: three 4K renders at once after 6 h of sustained load; thermald runs degraded on this laptop).
 - **Sleep is blocked while any job runs** (`systemd-inhibit` inside safe-run.sh): crash #5 at 17:40 was the laptop suspending and hanging on resume mid-render.
 - **Crash #6 (20:11):** a hard freeze with no kernel message, and the next boot died about 1 s in. It wasn't resources: at the last sysstat sample (20:10), CPU was 30 % busy, 16 GB was available, load was 7, and there was no OOM. Right before it, the log shows a burst of `msi_wmi` embedded-controller events (20:07–20:08) and USB-C `ucsi_acpi` errors (20:10). That points to firmware, power or heat, not our jobs. **Until it is understood, ONE heavy job at a time**, enforced by safe-run (`NP_RENDER_SLOTS`, default 1). Other heavy jobs show as queued. `tools/video/telemetry.sh` (unit `np-telemetry`) now writes temperatures, clock, load and memory every 5 s to `videos/telemetry.log`, with fsync, so the next freeze leaves evidence.
+- **Crash #7 (01:14), the first one caught by the telemetry recorder:**
+  - Not heat or memory: CPU at 62 °C, 19.5 GB available, on AC.
+  - Load jumped from 7 to 16 (npvideo tasks 43 → 159) in two minutes, as a render fanned out its jobs.
+  - Same as #6: bursts of `msi_wmi` embedded-controller events came a few minutes before the freeze.
+  - Renders that survived ran at load 2–4.
+  - Working theory: power spikes. A CPU *quota* lets the pool burst over all 22 cores for part of each 100 ms period and then throttles it, and the firmware or EC doesn't cope.
+  - **Fix: safe-run pins every job to the 8 E-cores (`taskset -c 12-19`, override with `NP_CPUS`); pool quota 800 %.** Steady, lower draw, the P-cores stay free for the desktop, and the load can't spike past 8. Slower, but stable.
+  - Keep job fan-out low: render.py should run its chunk jobs one at a time.
+  - **2026-10-05, widened at the user's request:** pinned set is now 16 CPUs (`3,4,6-19`: the 8 E-cores plus P-cores 12/20/24/28 with their hyperthreads), pool quota 1600 %, QA ffmpeg 15 threads, render ffmpeg 8 threads. cpu0,1,2,5 and the LP cores stay free for the desktop. If a freeze recurs, check telemetry and revert with `NP_CPUS=12-19`.
 - A last-resort watchdog kills only Playwright browsers and ffmpeg if system MemAvailable drops below 1.5 GB (logged in `videos/watchdog.log`).
 
 ## Still required (these were the actual crash causes)

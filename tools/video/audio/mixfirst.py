@@ -465,3 +465,67 @@ def _presence_pass(sfx, music, sections, limit_db, max_cut, band, r, rep):
         rep[nm] = {'sfx_minus_music_before_db': prev.get('sfx_minus_music_before_db', round(sb - mb, 1)),
                    'presence_cut_db': round(prev.get('presence_cut_db', 0.0) + cut, 1)}
     return out, rep
+
+
+def bar_rms_db(x, a, b):
+    """music_gate's metric: mean-square of the mono mix over [a, b) samples, dB."""
+    m = x[a:b].mean(1)
+    return float(10 * np.log10(np.mean(m ** 2) + 1e-12))
+
+
+def monotonic_build(stems, downbeats, sec, step_db=0.1, max_lift=4.0, ramp_s=0.2, iters=4):
+    """Make the build rise bar by bar ON THE FULL MIX (music + SFX + design): any bar quieter than the bar
+    before it gets a music lift (smooth raised-cosine ramps that complete on its downbeat) up to prev+step.
+    Returns a report with the per-bar levels before and after."""
+    if not sec:
+        return {}
+    a, b = sec
+    bars = [d for d in downbeats if a <= d <= b]
+    if bars[0] != a:
+        bars = [a] + bars
+    if bars[-1] != b:
+        bars.append(b)
+    spans = [(x0 * (SR // FPS), x1 * (SR // FPS)) for x0, x1 in zip(bars, bars[1:])]
+    total = lambda: sum(stems.values())
+    before = [round(bar_rms_db(total(), s0, s1), 2) for s0, s1 in spans]
+    A0, B0 = spans[0][0], spans[-1][1]
+    music0 = stems['music'].copy()
+    M0 = centred_short_term(total()[A0:B0], hop=0.01, win=0.4)
+    peak0 = float(M0.max())
+    lifts = [0.0] * len(spans)
+    for _ in range(iters):
+        mix = total()
+        lv = [bar_rms_db(mix, s0, s1) for s0, s1 in spans]
+        changed = False
+        for i in range(1, len(spans)):
+            need = (lv[i - 1] + step_db) - lv[i]
+            if need > 0.1 and lifts[i] < max_lift:
+                d = min(need, max_lift - lifts[i])
+                s0, s1 = spans[i]
+                r = int(ramp_s * SR)
+                g = np.ones(len(stems['music']))
+                g[s0:s1] = dsp.undb(d)
+                g[max(0, s0 - r):s0] = 1 + (dsp.undb(d) - 1) * (0.5 - 0.5 * np.cos(np.linspace(0, np.pi, min(r, s0))))
+                g[s1:s1 + r] = dsp.undb(d) + (1 - dsp.undb(d)) * (0.5 - 0.5 * np.cos(np.linspace(0, np.pi, len(g[s1:s1 + r]))))
+                stems['music'] *= g[:, None]
+                lifts[i] += d
+                changed = True
+                lv = [bar_rms_db(total(), s0, s1) for s0, s1 in spans]
+        if not changed:
+            break
+    # the lift may fill the bars, never raise the build's momentary peak (the drop must stay the peak)
+    for _ in range(3):
+        M1 = centred_short_term(total()[A0:B0], hop=0.01, win=0.4)
+        ex = np.maximum(0.0, M1 - peak0)
+        if ex.max() < 0.1:
+            break
+        ex = np.maximum.reduce([np.roll(ex, k) for k in range(-20, 21, 5)])  # widen ±200 ms
+        ex = uniform_filter1d(ex, size=20, mode='nearest')
+        gx = np.interp(np.arange(B0 - A0) / SR, np.arange(len(ex)) * 0.01, ex)
+        lift_now = stems['music'][A0:B0]
+        stems['music'][A0:B0] = music0[A0:B0] + (lift_now - music0[A0:B0]) * np.clip(1 - (1 - dsp.undb(-gx)) / np.maximum(
+            1e-9, 1 - np.abs(music0[A0:B0]).mean(1, keepdims=True)[:, 0] * 0 + 1e-9), 0, 1)[:, None] if False else lift_now * dsp.undb(-gx)[:, None]
+    after = [round(bar_rms_db(total(), s0, s1), 2) for s0, s1 in spans]
+    peak1 = float(centred_short_term(total()[A0:B0], hop=0.01, win=0.4).max())
+    return {'bars_frames': bars, 'before_db': before, 'after_db': after, 'music_lift_db': [round(x, 2) for x in lifts],
+            'build_momentary_peak_before': round(peak0, 2), 'build_momentary_peak_after': round(peak1, 2)}

@@ -2,7 +2,7 @@
 // glyphs. Each card has an optional "prop" vignette made from the real art (a dreaming Qubble, a gremlin
 // flipping a bit, Phasey flipping a phase, blanketed beds). bg: night | day | dusk | notebook | image | none.
 import art from '../../../../src/art';
-import { type Scene, type Ctx, W, H, FPS, PAL, TAU, clamp, lerp, ease, prog, wobble } from '../lib/core';
+import { type Scene, type Ctx, W, H, FPS, PAL, TAU, clamp, lerp, ease, prog, wobble, roundRect, RT } from '../lib/core';
 import { drawBg, prepareBg, type BgKind } from '../lib/bg';
 import { layoutText, drawCollapseText, drawPaperPlate, defaultReveal, legibleAt, type TextStyle } from '../lib/text';
 import { drawParticles, collapseBurst, grain, sparkBurst, type Particle } from '../lib/fx';
@@ -21,7 +21,7 @@ export interface CardParams {
   exitStart?: number; exitDur?: number;
   prop: Prop;
   /** 'center' (full card) or 'corner': lower-left overlay, left-aligned text with a small prop Qubble beside it, no gremlin sprite (the real gremlin is in the footage). */
-  layout?: 'center' | 'corner';
+  layout?: 'center' | 'corner' | 'topleft';
   /** Emphasise words (indices in the text's word list) in red. */
   redWords?: number[];
   /** Frame at which the prop's event happens (the flip/phase hit). */
@@ -39,6 +39,8 @@ const cache = new Map<string, Particle[]>();
 const cached = (k: string, mk: () => Particle[]) => { let v = cache.get(k); if (!v) { v = mk(); cache.set(k, v); } return v; };
 
 const CORNER = { qx: 190, qy: 1000, s: 2.6, tx: 330, ty: 905 };
+/** Top-left wall area of the X-ray gremlin shots (clear of the rug, sprites, labels and the top-centre X-ray tag). */
+const TOPLEFT = { qx: 104, qy: 296, s: 2.6, tx: 206 };
 const KIND: Record<string, 'flipper' | 'phasey' | 'wobbles'> = { flip: 'flipper', phase: 'phasey', wobble: 'wobbles' };
 const KCOL: Record<string, string[]> = { flip: [PAL.red, '#fff36b'], phase: [PAL.phasey, '#e2c2ff'], wobble: ['#a5e05b', '#e9ffc8'] };
 /** Caption icon = the gremlin's own game sprite (drawGremlin), striking on the prop hit. */
@@ -48,7 +50,8 @@ function drawGremlinIcon(ctx: Ctx, f: number, p: CardParams) {
   const pose = f < hit - 8 ? 'taunt' : f < hit + 26 ? 'strike' : 'taunt';
   const pop = ease.outBack(prog(f, p.start - 4, p.start + 10), 2.2);
   const jig = p.prop === 'wobble' && f >= hit ? Math.exp(-(f - hit) / 16) * Math.sin((f - hit) * 0.9) : 0;
-  const x = CORNER.qx, y = CORNER.qy;
+  const L = p.layout === 'topleft' ? TOPLEFT : CORNER;
+  const x = L.qx, y = L.qy;
   ctx.save();
   ctx.translate(x, y); ctx.scale(pop * (1 + 0.14 * jig), pop * (1 - 0.14 * jig)); ctx.translate(-x, -y);
   if (p.prop === 'phase') ctx.globalAlpha *= 0.8 + 0.2 * Math.sin(t * 3);
@@ -61,7 +64,7 @@ function drawGremlinIcon(ctx: Ctx, f: number, p: CardParams) {
   if (f >= hit) drawParticles(ctx, cached('gi' + p.prop, () => sparkBurst(x + 40, y - 90, 77, 1.2, 12, KCOL[p.prop])), f, hit);
 }
 function drawProp(ctx: Ctx, f: number, p: CardParams) {
-  const corner = p.layout === 'corner';
+  const corner = p.layout === 'corner' || p.layout === 'topleft';
   if (corner && KIND[p.prop]) { drawGremlinIcon(ctx, f, p); return; }
   const t = f / FPS;
   const hit = p.propHit;
@@ -197,15 +200,28 @@ export const card: Scene<CardParams> = {
   prepare: async (p) => { await prepareBg({ bg: p.bg, bgImage: p.bgImage }); },
   render(ctx, f, p) {
     drawBg(ctx, f, { bg: p.bg, bgImage: p.bgImage, night: p.night, push: 0.05 }, p.frames);
-    drawProp(ctx, f, p);
-    const corner = p.layout === 'corner';
+    if (p.layout !== 'topleft') drawProp(ctx, f, p);
+    const corner = p.layout === 'corner' || p.layout === 'topleft';
+    const tx = p.layout === 'topleft' ? TOPLEFT.tx : CORNER.tx;
     const block = corner
-      ? layoutText(ctx, p.text, { x: CORNER.tx, y: p.y, size: p.size, maxW: p.maxW, font: p.font, align: 'left' })
+      ? layoutText(ctx, p.text, { x: tx, y: p.y, size: p.size, maxW: p.maxW, font: p.font, align: 'left' })
       : layoutText(ctx, p.text, { x: W / 2, y: p.y, size: p.size, maxW: p.maxW, font: p.font });
     const block2 = p.text2 ? layoutText(ctx, p.text2, { x: W / 2, y: p.y2 ?? p.y + p.size * 1.25, size: p.size, maxW: p.maxW, font: p.font }) : null;
+    if (p.layout === 'topleft') {
+      // dark plate under the whole block (text + icon) so the paper text keeps ≥ 4.5:1 even over the light page
+      // outside the room in wide shots: 74 % core, feathered edge.
+      const k = prog(f, p.start - 4, p.start + 10) * (p.exitStart != null ? 1 - prog(f, p.exitStart, p.exitStart + 12) : 1);
+      const bx = block.box, x0 = 26, y0 = bx.y - 34, x1 = bx.x + bx.w + 44, y1 = bx.y + bx.h + 40;
+      ctx.save(); ctx.globalAlpha *= k;
+      ctx.shadowColor = 'rgba(8,6,24,0.74)'; ctx.shadowBlur = 34 * RT.dpr;
+      ctx.fillStyle = 'rgba(8,6,24,0.74)';
+      roundRect(ctx, x0, y0, x1 - x0, y1 - y0, 36); ctx.fill();
+      ctx.restore();
+      drawProp(ctx, f, p); // the gremlin sprite sits on top of the plate
+    }
     if (p.plate) {
       const bx = block2 ? { x: Math.min(block.box.x, block2.box.x), y: block.box.y, w: Math.max(block.box.x + block.box.w, block2.box.x + block2.box.w) - Math.min(block.box.x, block2.box.x), h: block2.box.y + block2.box.h - block.box.y } : block.box;
-      const ex = p.exitStart != null ? 1 - prog(f, p.exitStart + 6, p.exitStart + (p.exitDur ?? 10) + 4) : 1;
+      const ex = p.exitStart != null ? 1 - ease.inOutCubic(prog(f, p.exitStart - 2, p.exitStart + (p.exitDur ?? 10) - 1)) : 1; // plate leaves with (slightly ahead of) the letters
       ctx.save(); ctx.globalAlpha *= ex; drawPaperPlate(ctx, bx, prog(f, p.start - 6, p.start + 8), p.seed + 4); ctx.restore();
     }
     if (block2) drawCollapseText(ctx, block2, f, { start: p.start2 ?? p.start + 40, reveal: 14, style: p.style, seed: p.seed + 3, exitStart: p.exitStart, exitDur: p.exitDur, colorOf: p.redWords ? (g) => (p.redWords!.includes(100 + g.word) ? PAL.red : undefined) : undefined });

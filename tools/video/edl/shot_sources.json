@@ -114,5 +114,6 @@
   "fill": "videos/motion/card_program_alpha_160_fill.mkv",
   "matte": "videos/motion/card_program_alpha_160_matte.mkv",
   "meta": "videos/motion/card_program_alpha_160.json"
- }
+ },
+ "pg_split_23_xray": "videos/capture/pg_split_23_xray.mkv"
 }

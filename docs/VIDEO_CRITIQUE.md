@@ -367,3 +367,75 @@ But two of the user's four explicit asks fail on screen, and the hook still isn'
 4. **Phone speaker: probable PASS, unverified.** The SFX are presence-lifted, the BEEP (C5) and the letters sit at 400 Hz–3 kHz, and the song's drop keeps mid energy (44% below 120 Hz). The risks are the sub-only heartbeat (it has a 2nd harmonic) and the impacts. **The user must play it once on a phone** before sign-off.
 
 **Re-review scope:** after fixes 1–7, I only need a new contact sheet, the frame grids of f722–1298 and f1586–2834, a full frame at f2900, and the per-second loudness. Fixes 8–9 are polish.
+
+---
+
+## Milestone: trailer song cut, re-review
+
+**What I checked:**
+- the new contact sheet;
+- frame grids of f722–1298 (every 32 frames), f1586–2162 (every 24), f2066–2161 (every 12) and f2834–3026 (every 12, plus every 3 around the flashes);
+- per-frame luma (signalstats) over Lights Out;
+- full frames at f520, f940, f1230, f2040, f2900;
+- the stems in 16-frame windows over the title letters;
+- per-bar build loudness, and the phone-sim WAV per section.
+
+### Verdict: **FIX (one blocker, then polish)**
+This round fixed nearly everything, and the trailer now *tells the story*:
+- **Gremlins:** Flipper zapping q2, Phasey's swirl twist and Wobbles' half-tipped q2 are all clearly on screen (f940 and f1230 are lovely), each with its own sprite.
+- **Proof:** the drag of BOOP into fix2, the cards popping in sync, the ✓ on the true IF, and the "It's #2." / "Fix it. Never look." labels make cause and effect readable.
+- **Montage:** the punch-ins finally show each feature.
+- **Mix:** the drop is now the peak.
+
+But one new defect is a blocker, and an old one came back in a new place.
+
+### Ranked fixes
+| # | Timecode | Owner | Exact fix |
+|---|---|---|---|
+| 1 **BLOCKER** | **f2914–2930 and f3010–3026** (end of T031 and of its repeat T032) | **Editor** | The Lights Out source runs past the level's end. The last 16 frames of *each* 96-frame copy are **the bright daytime room with a growing orange/purple win-orb** (luma about 190 against about 26). That is two white flashes inside the "black, only the bots' lights" pocket, and the second lands right on the payoff downbeat. This also explains concern (b): the "yes! jump →" text lives in those frames. Fix: use one *continuous* 192-frame dark range from `mn_lights_out` that ends before lights-up (source lights up at about in+80 = 1736, so in ≤ 1543, after verifying the source is dark from there), not the same 96 frames twice. **Add a QA gate:** every clip flagged `intentional_black` must have mean luma below 40 on every frame. The picture gate passed this. |
+| 2 | **f2066–2090** (proof, T018) | **Capture Engineer** (or an Editor mask) | **"the end. zzz" is back**, this time as the caretaker's speech bubble after END, right under "Fix it. Never look.". Disable the caretaker/Qubble idle speech bubbles in *all* trailer captures (check `nope, next ›` at about f1990 too), or mask them. |
+| 3 | f2114–2162 (proof beat 6) | **Capture Engineer → Editor** | The promised **"X-ray intact"** beat is not in the cut. The blankets stay opaque and the confetti plays (T018's "XRAY-DISSOLVE" is only the transition *into* the shot). Put the last 36–48 frames on the X-ray replay of the same night: blankets translucent, q2's dream restored, the silk threads visible, with the "X-ray · simulator view" tag. That is the payoff of "Never look." |
+| 4 | f818–1298 (gremlin captions) | **Motion Designer** | Concern (a): the overlap fix is genuine *for UI*. cap07's plate is clean; "Look… and it's gone." sits on pure black (f454–530); "It's #2." and "Fix it. Never look." sit on the wall; the X-ray tag (top right) touches nothing. But the gate does not know about *scene* sprites. The bottom gremlin captions run **over bot b and the q-chips**: q3's chip pokes up between "…" and "HALFWAY" at f1230, and bot b's head sits under "Ghosts" at f940. → Move these three captions to the **top-left wall** (empty in all three shots), or add a bottom gradient plate (black at 45%, 25% of the frame height). Add the q/a/b chips and character boxes to the caption gate's exclusion set. |
+| 5 | f1010–1106 (build bar 4) | **Sound Designer** | Concern (c), the build: per-bar mix RMS is −24.9 / −20.2 / −20.1 / **−21.6** / −17.4 / −17.1 dB. That is a 7.8 dB rise with a 1.5 dB sag at the Phasey→Wobbles bar. The −22 → −14 target was mine and it was too aggressive: ending the build at −14 would leave the drop (−11.2 short-term) only 3 LU of headroom. **Accept the current range.** Just fill bar 4 (+1.5 dB, or start the drop riser there) so the curve is monotonic. Polish. |
+| 6 | f1586 | **Editor** (check) | In my grid, frame 1586 shows the old full-UI layout for one frame before the split-screen crop. Confirm it is not a 1-frame flash of the uncropped capture. |
+
+**Concern (c), title letters: not lost.** The analysis files them under *design*, not *sfx*. In the 1.5–5 kHz band the design stem sits **15–28 dB above the music** for every letter window from f536 to f700. They are clearly audible.
+
+**Concern (d), true peak:** −1.8 / −2.0 dBTP: good.
+
+### Human checks (my judgement)
+1. **Fresh eyes: PASS (once fix 1 is done).** The expected answer is now "you program little robots to find which sleeping blob got messed with and fix it **without looking**". The rule card, the visible gremlins, "It's #2." and "Fix it. Never look." deliver it.
+2. **Muted: PASS.** The captions alone now carry rule → threat → method → fix → punchline.
+3. **Audio-only: PASS.** Music box → collapse → letters → rising build → silence → lone BEEP → drop (the peak) → Lights Out chord → payoff → silence → snap → chord. Fix 1 also removes the two flash moments, which are visual only.
+4. **Phone (sim): PASS.** Section RMS: build −24.3 → drop −17.6 (+6.7 dB), payoff −17.8, proof −22.5 (intentionally submerged). The BEEP and the snap survive. The user should still do one real-phone listen.
+
+**After fixes 1–3, this is a PASS from me.** Fixes 4–6 are polish and don't need another full review: a contact sheet plus the luma check over f2834–3026 will do.
+
+---
+
+## Milestone: trailer song cut: sign-off
+
+**What I checked:**
+- signalstats on all 192 frames of f2834–3025;
+- frame grids of f1580–1592, f2050–2161 (every 14 frames), f818–1297 (every 48) and f1586–2066 (every 40);
+- the QA table.
+
+### Verdict: **PASS, pending the X-ray tag**
+
+| Fix | Status | Evidence |
+|---|---|---|
+| 1. Lights Out | **Fixed** | The worst frame averages 26.3 in limited-range luma (11.4 full-range); the peak is 107 (the two red bot lights). No flash, no bubble, no "yes! jump". The `dark` gate guards it. |
+| 2. Speech bubbles | **Fixed** | No "the end. zzz" or "nope, next" anywhere in f1586–2161. |
+| 3. X-ray payoff | **Fixed** | From about f2120 the blankets go translucent with q2 restored. The proof now ends on the proof. |
+| 4. Gremlin captions | **Fixed** | Top-left on a dark plate, clear of every sprite and chip. Flipper, Phasey and Wobbles all read. |
+| 5. Build bar 4 | Accepted | per the report (monotonic) |
+| 6. f1586 | **Fixed** | f1586 is the split-screen. The cut is clean. |
+
+**What the tag needs (send me one still at about f2140, plus one at about f2080):**
+- **Contrast** ≥ 4.5:1 against its plate. Sitting clear of the "Fix it. Never look." box *and* of the q-chips, bots and caretaker.
+- **Honesty:** the "X-ray · simulator view" tag must appear **only on the frames that actually show X-ray** (about f2114–2162). The f2066–2113 frames are normal view with opaque blankets, so labelling them "simulator view" would be wrong. If the tag currently spans f2066–2162, trim it to start on the X-ray cut.
+- Same type size and style as the tags on the gremlin beats.
+
+**Polish (not blocking):** f1580–1585, the end of cap05 "You don't play it. You program it.". The text fades faster than its grey paper plate, leaving an **empty grey box for about 3–4 frames**. Fade the plate with the text (or 2 frames ahead of it). If the Editor is already re-rendering that area, take this in the same pass; otherwise, ship it.
+
+**Human checks:** unchanged from the re-review. Fresh eyes, muted, audio-only and phone-sim all PASS. The user's one real-phone listen is the only open item.

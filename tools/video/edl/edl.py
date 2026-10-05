@@ -288,6 +288,8 @@ def cut_list(edl):
         else:
             cuts.append({'frame': c['start'], 'type': tr['type'], 'on_beat': c['flags']['on_beat'],
                          'clip': c['id'], 'beat_frame': c.get('beat_frame', c['start'])})
+        if c.get('grid_waiver'):
+            cuts[-1]['grid_waiver'] = c['grid_waiver']
     return cuts
 
 

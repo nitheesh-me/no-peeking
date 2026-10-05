@@ -79,7 +79,7 @@ def gen(spec, force=False, need=None):
             vf.append("drawbox=x=iw*0.20:y=ih*0.80:w=iw*0.40:h=ih*0.16:color=0xffffff@0.92:t=fill")
     os.makedirs(OUT, exist_ok=True)
     cmd = ['ffmpeg', '-y', '-v', 'error', '-f', 'lavfi', '-i', src, '-vf', ','.join(vf) if vf else 'null', '-frames:v', str(n),
-           '-c:v', 'libx264rgb', '-threads', '6', '-qp', '0', '-preset', 'ultrafast', '-g', '60', '-pix_fmt', 'rgb24', dst + '.tmp.mkv']
+           '-c:v', 'libx264rgb', '-threads', '2', '-qp', '0', '-preset', 'ultrafast', '-g', '60', '-pix_fmt', 'rgb24', dst + '.tmp.mkv']
     subprocess.run(cmd, check=True)
     os.replace(dst + '.tmp.mkv', dst)
     events = []

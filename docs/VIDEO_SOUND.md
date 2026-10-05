@@ -269,3 +269,8 @@ The payoff stays the **loudest section** of the bed in every combination: song �
 - **Double gain.** Stems written by `mix.py` already include the master gain (`stems_scaled_by_master_gain`). The analyzer scaled them a second time, inflating every per-stem level by the master gain (about +5 dB), the 21:30 diagnosis included. Relative comparisons were unaffected.
 
 It all re-runs on any EDL change: `mix.py <edl>` → `mix_gates.py <workdir>`.
+
+**Build rises bar by bar on the full mix** (Critic polish, fix 5): `mixfirst.monotonic_build`. After the SFX are placed, the build's per-bar RMS of the whole pre-master mix (music_gate's metric) is measured. Any bar quieter than the one before it gets a music lift with 200 ms raised-cosine ramps that complete on its downbeat. A peak guard then pulls the lift back wherever it would raise the build's momentary peak, so the drop stays the peak.
+- **Result** (`mixreport.sfx_bus.build_bars`): music lifts of +2.4 dB on bar 4 (f1010, Phasey→Wobbles) and +2.0 dB on bar 6.
+- **Final-mix build bars:** before −26.4 / −21.9 / −21.3 / **−22.8** / −18.1 / −18.6; after **−26.4 / −22.0 / −21.2 / −21.2 / −18.1 / −17.4 dB** (rising; the end of the build stays well under the drop).
+- **Gates:** drop rule −12.1 → −10.0 (pass); all 9 `mix_analysis` gates pass.

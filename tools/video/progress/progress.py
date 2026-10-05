@@ -91,6 +91,8 @@ def rebuild():
             except OSError:
                 j['state'] = 'dead'
     for j in jobs:
+        # tolerate jobs that recorded outputs as bare paths (one malformed file must not break every job's board)
+        j['outputs'] = [o if isinstance(o, dict) else dict(path=str(o), label='') for o in (j.get('outputs') or [])]
         for o in j['outputs']:
             try:
                 o['v'] = int((ROOT / o['path']).stat().st_mtime * 1000)

@@ -474,7 +474,7 @@ def build_trailer(cue, music_key='song'):
     def cap_motion(text, clip_or_src, start, end, legible, position='top_third', overlay=None, style='night'):
         c = dict(text=text, start=int(start), end=int(end), legible_from=int(legible), position=position, style=style)
         c['render'] = dict(overlay) if overlay else {'baked': clip_or_src}
-        c['id'] = f'cap{len(B.e["captions"]) + 1:02d}'
+        c['id'] = f'cap{sum(1 for x in B.e["captions"] if x["id"].startswith("cap")) + 1:02d}'
         B.e['captions'].append(c)
 
     def hook_card(name, text, start, end, offset=None):
@@ -528,6 +528,10 @@ def build_trailer(cue, music_key='song'):
         cap_motion(txt, None, cap_a, b, cap_a + mk.get('text_legible', 28),
                    overlay={'fill': f'videos/motion/{card}_fill.mkv', 'matte': f'videos/motion/{card}_matte.mkv', 'in': 0,
                             'frames': motion_frames(card, b - cap_a), 'shadow': {'sigma': 24, 'gain': 2.5, 'opacity': 0.8}})
+        if sid in ('tr_gremlin_flipper', 'tr_gremlin_phasey'):
+            # the ink-blob heuristic flags the wall decor (clock, shelf, bunting) under these top-left cards at f773/f949;
+            # Director confirmed no character/bot/label there (2026-10-05). layout.json sprite boxes are still enforced.
+            B.e['captions'][-1]['decor_waiver'] = 'wall decor (clock, shelf, bunting), not characters: Director-reviewed 2026-10-05'
     # Honesty (Director): the gremlin beats are the game's X-ray replay with the HUD hidden; say so, small, top-right
     xm = motion_markers('tag_xray_alpha')
     x0, x1 = beat(24), S_['build'][1]                       # f818-1298, all three gremlin beats
@@ -535,7 +539,9 @@ def build_trailer(cue, music_key='song'):
                overlay={'fill': 'videos/final/work/motion_ext/tag_xray_alpha_fill.mkv',
                         'matte': 'videos/final/work/motion_ext/tag_xray_alpha_matte.mkv', 'in': 0,
                         'frames': motion_frames('tag_xray_alpha', 96), 'hold': True, 'offset': [640, 0],
-                        'shadow': {'sigma': 12, 'gain': 2.5, 'opacity': 0.7}})
+                        # same dark plate as the proof tag (tag_xray_proof): the soft sigma-12 glow let the light
+                        # wall through 6-8 px from the glyphs (4.29:1); this plate measures like the proof tag
+                        'shadow': {'dilate': 14, 'sigma': 6, 'gain': 4.0, 'opacity': 0.85}})
     B.e['captions'][-1]['label'] = True  # a HUD-style tag: not a competing caption (validator)
     beep = H_['bot_beep']
     # ── silence: true black (two beats of true silence) -> the antenna lights on the BEEP ──
@@ -595,13 +601,47 @@ def build_trailer(cue, music_key='song'):
     R_ = SPLIT_FRAME_DEFAULT['right']
     names = ('BOOP drag', 'HIGHFIVE', 'LISTEN a', 'LISTEN b + IFs', 'BOOP q2', 'X-ray, intact')
     assert segs[0]['start'] == P0 and segs[-1]['start'] + segs[-1]['dur'] == P1, 'proof segments must tile f1586-2162'
+    # Critic re-review fix 3: the last beat of the proof is a separate X-ray take of the same night with q2 RESTORED
+    # (pg_split_23_xray, from its 'q2-restored' mark, inside the 'xray-intact' hold: no confetti / win card).
+    # Director decision (re-review): 48 frames, f2114-2162, cut at k64.5 (off the waltz grid) under an explicit
+    # GRID WAIVER: X-ray room -> the same X-ray room, same framing and windows, so it is not perceived as a cut.
+    # In-point = the 'q2-restored' mark (322): at 306 q2 still carries the BOOP sparkle (not fully restored), so the
+    # clip runs source 322-370 inside the 'xray-intact' hold. The toast at src 341+ (css y 76-119) is above the
+    # room crop (y >= 124); the bots' BEEP badges blink in the replay (the night's syndrome record, as in T018).
+    XR = P1 - 48
+    XR_WAIVER = {'rule': '3/4 beat grid', 'reason': 'hidden cut: X-ray room -> same X-ray room (same framing and '
+                 'windows), not perceived as a cut; Director decision, trailer re-review', 'frame': XR}
+    xr_in = find_event('videos/capture/pg_split_23_xray.mkv', 'q2-restored')
     for i, g in enumerate(segs):
         wins = [dict(name='room', src=n_(*room_css), dst=L_), dict(name='bot_code', src=n_(*code_css(code_ys[i])), dst=R_, anchor_y=0.0)]
         last = i == len(segs) - 1
-        put('pg_split_23', g['start'], g['start'] + g['dur'], in_f=g['src_in'], grade='night', section='proof', windows=wins,
+        end = XR if (last and xr_in is not None) else g['start'] + g['dur']
+        put('pg_split_23', g['start'], end, in_f=g['src_in'], grade='night', section='proof', windows=wins,
             transition='xray-dissolve' if last else 'cut', note=f'proof step {i + 1}/6: {names[i]}')
         B.e['clips'][-1]['punch_native'] = True  # code window 700 px -> 696 px at 1080p (native); the 1440p master upscales it
     B.exempt_event(B.e['clips'][-1], 'xray', before=4, after=72, why='in-engine X-ray dissolve')
+    if xr_in is not None:
+        wins = [dict(name='room', src=n_(*room_css), dst=L_), dict(name='bot_code', src=n_(*code_css(code_ys[-1])), dst=R_, anchor_y=0.0)]
+        put('pg_split_23_xray', XR, P1, in_f=xr_in, grade='night', section='proof', windows=wins, on_beat=False,
+            note='proof end: X-ray replay, q2 restored (Critic re-review fix 3)')
+        B.e['clips'][-1]['punch_native'] = True
+        B.e['clips'][-1]['grid_waiver'] = XR_WAIVER
+        xm = motion_markers('tag_xray_alpha')
+        # HONESTY (Critic sign-off): the label may sit ONLY on frames that visibly show X-ray. T018 (pg_split_23 from
+        # its 'xray' mark) still shows solid blankets f2066-2113 (verified frame by frame, 05 Oct); see-through starts
+        # exactly on the cut to pg_split_23_xray (XR = f2114). Enter 8 frames into the 14-frame reveal so the tag is
+        # fully legible 6 frames after the cut (f2120). Same asset/size/style as the gremlin-beat tag (cap06).
+        x_a = XR
+        t_in = max(0, xm.get('text_legible', 14) - 6)
+        cap_motion('X-ray · simulator view', None, x_a, P1, x_a + xm.get('text_legible', 14) - t_in, position='top_third',
+                   overlay={'fill': 'videos/final/work/motion_ext/tag_xray_alpha_fill.mkv',
+                            'matte': 'videos/final/work/motion_ext/tag_xray_alpha_matte.mkv', 'in': t_in,
+                            'frames': motion_frames('tag_xray_alpha', 96), 'hold': True, 'offset': [-670, 935],
+                            'shadow': {'dilate': 14, 'sigma': 6, 'gain': 4.0, 'opacity': 0.85}})
+        # HUD tag on the empty floor, bottom-left of the room window (QA 04:16: on the pale day wall it measured 2.16:1
+        # and crowded "Fix it. Never look."); a dark plate (dilated matte) carries it on any background
+        B.e['captions'][-1]['label'] = True
+        B.e['captions'][-1]['id'] = 'tag_xray_proof'  # stable id: does not renumber the cap01..capNN that others reference
     # captions on the real action frames (Director decision): "It's #2." on the LISTEN-b BEEP·BEEP result,
     # "Fix it. Never look." landing EXACTLY on the BOOP and held to the end of the proof. Never two texts at once:
     # "It's #2." ends on the BOOP frame. Trailer reading rule: max(1.2 s, 0.3 s/word + 0.4 s) from full legibility.
@@ -654,11 +694,14 @@ def build_trailer(cue, music_key='song'):
         name='coding_groove', src='videos/audio2/score_segments/coding_groove.wav', start=P0, end=S_['montage'][1], src_in=0,
         layer='under_song', gain_db=-4.0, fade_in=0, fade_out=32, downbeats=[P0, S_['montage'][1]],
         note='REVISED 2: the game build groove + card UI sounds under the programming; Sound Designer owns the asset and the levels')]
-    # ── lights_out: black, the syndrome chord twice (the capture has it once: repeat the moment) ──
+    # ── lights_out (Critic re-review BLOCKER): ONE continuous dark stretch. The capture is dark (mean luma ~13.5)
+    #    through src f1734 and the lights come up at f1735 (measured), so the 192-frame clip must start at <= 1543. Aligning
+    #    the chord-1 mark (src 1672) to L0+129 gives src 1543..1734: dark on every frame, the chord at f2962 (k91). ──
     L0, L1 = S_['lights_out']
-    put('mn_lights_out', L0, L0 + 96, align=('chord-1', L0 + 16), grade='night', flags=['intentional_black'], section='lights_out')
-    put('mn_lights_out', L0 + 96, L1, align=('chord-1', L0 + 112), grade='night', flags=['intentional_black'], section='lights_out',
-        continuous=True, note='repeat: the chord a second time')
+    put('mn_lights_out', L0, L1, align=('chord-1', L0 + 129), grade='night', flags=['intentional_black'], section='lights_out',
+        note='one continuous dark stretch (src 1543-1734); chord-1 lands on k91 (f2962); lights come up at src 1735, never shown')
+    lo_c = B.e['clips'][-1]
+    assert lo_c['in'] + (L1 - L0) <= 1735, f'Lights Out would show the lights coming up (in {lo_c["in"]})'
     B.mark('black', L0, L1, 'Lights Out: the montage breath')
     B.mark('hold', L0, L1, 'Lights Out')
     # ── payoff: stars on the slam (push into the small win card), then the curtain call ──
@@ -784,7 +827,7 @@ def build_mechanic():
             mk = motion_markers(c['shot'])
             lf = c['start'] + mk.get('text_legible', mk.get('line_legible', 30))
             txt = "It's just a game…" if c['shot'] == 'card_justagame' else '…where you accidentally learned quantum error correction.'
-            B.e['captions'].append(dict(id=f'cap{len(B.e["captions"]) + 1:02d}', text=txt, start=c['start'] + (0 if 'card' in c['shot'] else 96),
+            B.e['captions'].append(dict(id=f'cap{sum(1 for x in B.e["captions"] if x["id"].startswith("cap")) + 1:02d}', text=txt, start=c['start'] + (0 if 'card' in c['shot'] else 96),
                                         end=c['start'] + c['dur'] if 'card' in c['shot'] else c['start'] + c['dur'] + 300,
                                         legible_from=lf, position='baked', style='night', render={'baked': c['shot']}))
     return B.done()
@@ -862,7 +905,7 @@ def build_showcase():
             mk = motion_markers(c['shot'])
             lf = c['start'] + mk.get('text_legible', mk.get('line_legible', 30))
             txt = "It's just a game…" if c['shot'] == 'card_justagame' else '…where you accidentally learned quantum error correction.'
-            B.e['captions'].append(dict(id=f'cap{len(B.e["captions"]) + 1:02d}', text=txt, start=c['start'] + (0 if 'card' in c['shot'] else 96),
+            B.e['captions'].append(dict(id=f'cap{sum(1 for x in B.e["captions"] if x["id"].startswith("cap")) + 1:02d}', text=txt, start=c['start'] + (0 if 'card' in c['shot'] else 96),
                                         end=c['start'] + c['dur'], legible_from=lf, position='baked', style='night', render={'baked': c['shot']}))
     return B.done()
 

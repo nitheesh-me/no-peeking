@@ -198,7 +198,10 @@ def validate(e, strict=False, check_sources=True):
             f = cut['beat_frame']
             k = (f - b0) / bl
             if abs(k - round(k)) * bl > 1:
-                err.append(f'{cut["clip"]}: cut at f{f} is off the beat grid (no half-bar / off-beat cuts in 3/4)')
+                if cut.get('grid_waiver'):
+                    warn.append(f'{cut["clip"]}: cut at f{f} off the beat grid: WAIVED ({cut["grid_waiver"].get("reason", "")})')
+                else:
+                    err.append(f'{cut["clip"]}: cut at f{f} is off the beat grid (no half-bar / off-beat cuts in 3/4)')
                 continue
             ks.append((int(round(k)), cut['clip']))
         kset = [k for k, _ in ks]
@@ -244,6 +247,8 @@ def validate(e, strict=False, check_sources=True):
         have = cap['end'] - lf
         if vid == 'trailer' and have < reading_frames(cap['text'], fps):
             warn.append(f'{cid}: "{cap["text"][:30]}" readable {have/fps:.2f}s: meets the Critic trailer rule, not the bible 1.6 s + 40 ms/char ({reading_frames(cap["text"], fps)/fps:.2f}s)')
+        if cap.get('label'):  # persistent HUD label (e.g. 'X-ray · simulator view'), not a caption to read once: exempt
+            need = 0
         if have < need:
             err.append(f'{cid}: "{cap["text"][:40]}" readable for {have/fps:.2f}s, needs {need/fps:.2f}s (from full legibility)')
         if cap.get('position') not in CAPTION_POS[vid]:

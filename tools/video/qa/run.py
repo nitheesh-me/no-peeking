@@ -36,7 +36,7 @@ import edl as E  # noqa: E402
 import validate as V  # noqa: E402
 
 FPS = 60
-T = '6'
+T = os.environ.get('NP_QA_THREADS', '15')  # pinned to the 8 E-cores by safe-run, so load stays <= 8 (crash #7); 2 left them idle
 REVIEW = E.rel('videos/final/review')
 OLD_CUT = E.rel('videos/mechanic.mp4')
 
@@ -126,14 +126,26 @@ def g_cuts(e, proxy, cs):
                     continue
                 if seen and b is not None and abs(seen[0] - b) > 1 and 'range' not in c:
                     beat_err.append({'clip': c['clip'], 'rendered': seen[0], 'nearest_beat': b})
+    # systematic bias: +-1 tolerance per cut must not hide a constant offset (the 1-frame chunk shift, Oct 5)
+    offs = []
+    for x in expected:
+        near = [f - x for f in det if abs(f - x) <= 1]
+        if near:
+            offs.append(min(near, key=abs))
+    bias = float(np.median(offs)) if offs else 0.0
+    biased = len(offs) >= 5 and abs(bias) >= 0.5 and sum(1 for o in offs if o == round(bias)) >= 0.6 * len(offs)
+    if biased:
+        beat_err.append({'systematic_offset_frames': bias, 'cuts_matched': len(offs)})
     hard = sum(1 for c in cuts if c['type'] in ('cut', 'xray-dissolve', 'relight') and c['on_beat'])
     ratio = hard / max(1, len(cuts))
     ok = not unexpected and not beat_err and (e['video'] != 'trailer' or ratio >= 0.8)
     # shot rhythm (Critic §7.8): no shot < 12 frames except flash/strobe
     short = [c['id'] for c in e['clips'] if c['dur'] < 12 and not c['flags']['intentional_flash']]
-    return gate('cuts', ok, {'detected': det, 'edl_cuts': [c['frame'] for c in cuts], 'unexpected_cuts': unexpected,
+    return gate('cuts', ok, {'offset_median': bias, 'offsets': offs, 'detected': det, 'edl_cuts': [c['frame'] for c in cuts], 'unexpected_cuts': unexpected,
                              'missed_cuts_warning': [(c['clip'], c['frame']) for c in missed], 'off_beat': beat_err,
-                             'hard_on_beat_ratio': round(ratio, 3), 'shots_under_12_frames': short},
+                             'hard_on_beat_ratio': round(ratio, 3), 'shots_under_12_frames': short,
+                             'waived_off_grid_cuts': [{'clip': c['clip'], 'frame': c['frame'], **c['grid_waiver']}
+                                                      for c in cuts if c.get('grid_waiver')]},
                 f'{len(det)} detected / {len(cuts)} EDL edits; {len(unexpected)} unexpected, {len(missed)} missed (warn), '
                 f'{len(beat_err)} off-beat; hard-on-beat {ratio:.0%}')
 
@@ -208,8 +220,8 @@ def g_every_event(e, rep):
 def layout_boxes(e, c, out_size, tl_a, tl_b):
     """UI boxes (output px) of a clip's layout.json active between timeline frames [tl_a, tl_b)."""
     lj = c.get('layout_json')
-    if not lj or not os.path.exists(E.rel(lj)):
-        return []
+    if not lj or not os.path.exists(E.rel(lj)) or c['src'].startswith('@') or not os.path.exists(E.rel(c['src'])):
+        return []  # no layout, or the source is being re-captured
     d = E.load_json(lj)
     m = re.search(r'multiply by ([\d.]+)', d.get('coords', ''))
     sc = float(m.group(1)) if m else 2.0
@@ -298,6 +310,20 @@ def caption_rect(e, c, capmeta, size):
     r = (capmeta or {}).get('rect')
     if r:
         return tuple(v * s for v in r)
+    rd = c.get('render') if isinstance(c.get('render'), dict) else None
+    if rd and rd.get('matte') and os.path.exists(E.rel(rd['matte'])):
+        # pre-rendered overlay: measure where its alpha actually is (bbox at full legibility) + render.offset
+        k = size[0] / 1920  # offsets are 1080p units
+        f = int(rd.get('in', 0)) + max(0, c.get('legible_from', c['start']) - c['start'])
+        try:
+            fr = grab(E.rel(rd['matte']), [f], w=size[0], h=size[1], gray=True)
+        except Exception:
+            fr = {}
+        if f in fr:
+            ys, xs = np.nonzero(fr[f] > 128)
+            if len(xs):
+                ox, oy = (rd.get('offset') or [0, 0])
+                return (xs.min() + ox * k, ys.min() + oy * k, xs.max() - xs.min() + 1, ys.max() - ys.min() + 1)
     m = motion_meta_for(c)
     if m and 'params' in m and 'y' in m['params']:
         pr = m['params']
@@ -306,7 +332,12 @@ def caption_rect(e, c, capmeta, size):
         fs = pr.get('size', 120)
         mw = pr.get('maxW', 1640)
         top = pr['y'] - 0.95 * fs  # y is the first baseline (cap height ~0.7 em above it)
-        return ((1920 - mw) / 2 * k, top * k, mw * k, (lines * 1.15 * fs + 0.35 * fs) * k)
+        x0, y0 = (1920 - mw) / 2 * k, top * k
+        off = (c.get('render') or {}).get('offset') if isinstance(c.get('render'), dict) else None
+        if off:  # the overlay is placed shifted by render.offset (work px): measure where it actually is
+            x0 += off[0] * s
+            y0 += off[1] * s
+        return (x0, y0, mw * k, (lines * 1.15 * fs + 0.35 * fs) * k)
     return (0, size[1] * 0.12, size[0], size[1] * 0.2)
 
 
@@ -345,10 +376,11 @@ def g_captions(e, final, wd):
     capsj = os.path.join(wd, 'captions.json')
     caps = json.load(open(capsj)) if os.path.exists(capsj) else {}
     size = (1920, 1080)
-    overlaps, reading, contrast = [], [], []
+    import sprites as SP
+    overlaps, reading, contrast, sprites, sprite_px = [], [], [], [], []
     frames_needed = {}
     for c in e['captions']:
-        need = V.reading_frames(c['text'], FPS, e['video'])
+        need = 0 if c.get('label') else V.reading_frames(c['text'], FPS, e['video'])  # labels: persistent HUD tags, exempt
         have = c['end'] - c['legible_from']
         if have < need:
             reading.append({'id': c['id'], 'text': c['text'], 'have_s': round(have / FPS, 2), 'need_s': round(need / FPS, 2)})
@@ -367,6 +399,29 @@ def g_captions(e, final, wd):
                     overlaps.append({'caption': c['id'], 'clip': cl['id'], 'ui': sel, 'box': [round(v) for v in (bx, by, bw, bh)]})
         span = max(1, c['end'] - 8 - c['legible_from'])
         frames_needed[c['id']] = [c['legible_from'] + int(span * u) for u in (0.05, 0.5, 0.95)]
+        # in-scene sprites as obstacles (Critic re-review): layout.json sprite:/actor: boxes, else ink-outline blobs
+        # on the caption-free frame under the caption's real footprint
+        worst_sp, src_sp = None, None
+        for f in frames_needed[c['id']]:
+            cl = next((x for x in e['clips'] if x['start'] <= f < x['start'] + x['dur']), None)
+            boxes = SP.layout_sprites(e, cl, size, f) if cl else []
+            for sel, bx, by, bw, bh in boxes:
+                if bx < rect[0] + rect[2] and rect[0] < bx + bw and by < rect[1] + rect[3] and rect[1] < by + bh:
+                    sprites.append({'caption': c['id'], 'frame': f, 'sprite': sel, 'source': 'layout.json',
+                                    'box': [round(v) for v in (bx, by, bw, bh)]})
+            mmf = card_matte(c, f, size)
+            g, _ = SP.caption_free(e, f, size)
+            if mmf is None or g is None:
+                continue
+            fp = SP.footprint(mmf)
+            frac = float((SP.ink_mask(g) & fp).sum() / max(1, fp.sum()))
+            if worst_sp is None or frac > worst_sp:
+                worst_sp, src_sp = frac, f
+        sprite_px.append({'id': c['id'], 'text': c['text'][:40], 'ink_on_footprint': None if worst_sp is None else round(worst_sp, 4),
+                          'frame': src_sp, 'status': 'unchecked' if worst_sp is None else ('FAIL' if worst_sp > SP.FRAC_FAIL else 'ok')})
+        dw = c.get('decor_waiver')  # pixel heuristic can't tell wall decor from characters: Director-reviewed waiver
+        if dw and sprite_px[-1]['status'] == 'FAIL':
+            sprite_px[-1].update(status='waived', waiver=dw)
     allf = sorted({f for fs in frames_needed.values() for f in fs})
     imgs = grab(final, allf) if os.path.exists(final) else {}
     for c in e['captions']:
@@ -393,11 +448,32 @@ def g_captions(e, final, wd):
                 hi_c, lo_c = v[v > th], v[v <= th]
                 if len(hi_c) < 50 or len(lo_c) < 50:
                     continue
-                text_is_light = len(hi_c) < len(lo_c) if c.get('style') != 'day' else False
-                if text_is_light:
-                    lt, lb = float(np.median(hi_c)), float(np.percentile(lo_c, 90))
-                else:
-                    lt, lb = float(np.median(lo_c)), float(np.percentile(hi_c, 10))
+                # Both polarities are evaluated and the better one is kept. A mis-picked polarity measures the
+                # ink outline against the fill/plate (tag_xray_proof read 1.55:1 that way, while it is ~14:1), and
+                # text that is really illegible scores low in both. Background = the 2-8 px ring around the glyphs
+                # (what each letter is read against); for plate cards it is limited to the card's own pixels so the
+                # card's icon sprite (not behind any letter) is ignored; for bare-glyph overlays (low bbox fill) the
+                # plate is the shadow pass outside the matte, so the ring may extend there.
+                ys_, xs_ = np.nonzero(mm > 0.9)
+                fill = len(xs_) / max(1, (xs_.max() - xs_.min() + 1) * (ys_.max() - ys_.min() + 1))
+                glyph_only = fill < 0.5
+                best = None
+                for text_is_light in (True, False):
+                    glyph = core & ((L > th) if text_is_light else (L <= th))
+                    if glyph.sum() < 30:
+                        continue
+                    ring = ndimage.binary_dilation(glyph, iterations=8) & ~ndimage.binary_dilation(glyph, iterations=2)
+                    if not glyph_only:
+                        ring &= (mm > 0.5)
+                    rv = L[ring] if ring.sum() >= 50 else (lo_c if text_is_light else hi_c)
+                    lt_ = float(np.median(L[glyph]))
+                    lb_ = float(np.percentile(rv, 90)) if text_is_light else float(np.percentile(rv, 10))
+                    r_ = (max(lt_, lb_) + 0.05) / (min(lt_, lb_) + 0.05)
+                    if best is None or r_ > best[0]:
+                        best = (r_, lt_, lb_)
+                if best is None:
+                    continue
+                lt, lb = best[1], best[2]
             elif mp and os.path.exists(mp):
                 mk = np.asarray(Image.open(mp).convert('RGBA').resize(size, Image.BILINEAR))[..., 3] > 200
                 core = ndimage.binary_erosion(mk, iterations=1)
@@ -434,9 +510,15 @@ def g_captions(e, final, wd):
         contrast.append({'id': c['id'], 'text': c['text'][:40], 'min_contrast': None if worst is None else round(worst, 2),
                          'pass': worst is not None and worst >= 4.5})
     bad_c = [x for x in contrast if not x['pass']]
-    ok = not overlaps and not reading and not bad_c
-    return gate('captions', ok, {'overlaps': overlaps, 'reading_time_short': reading, 'contrast': contrast},
-                f'{len(e["captions"])} captions; {len(overlaps)} UI overlaps, {len(reading)} too short, {len(bad_c)} below 4.5:1')
+    bad_sp = [x for x in sprite_px if x['status'] == 'FAIL']
+    unchk = [x['id'] for x in sprite_px if x['status'] == 'unchecked']
+    ok = not overlaps and not reading and not bad_c and not sprites and not bad_sp
+    return gate('captions', ok, {'overlaps': overlaps, 'reading_time_short': reading, 'contrast': contrast,
+                                 'sprite_boxes_layout': sprites, 'sprite_ink_pixels': sprite_px,
+                                 'sprite_rule': f'ink-outline sprite blobs (<= {SP.MAX_SPRITE}px) under the glyph footprint <= {SP.FRAC_FAIL:.0%}'},
+                f'{len(e["captions"])} captions; {len(overlaps)} UI overlaps, {len(sprites) + len(bad_sp)} on sprites'
+                f'{" (" + ", ".join(x["id"] for x in bad_sp) + ")" if bad_sp else ""}, {len(reading)} too short, {len(bad_c)} below 4.5:1'
+                + (f'; sprite check skipped for {unchk}' if unchk else ''))
 
 
 def g_picture(e, proxy):
@@ -456,6 +538,32 @@ def g_picture(e, proxy):
     return gate('picture', ok, {'black': blacks, 'unintended_black': bad_b, 'freeze': freezes, 'unintended_freeze': bad_f,
                                 'first_3s_black': first_black},
                 f'{len(blacks)} black ranges ({len(bad_b)} unintended), {len(freezes)} freezes ({len(bad_f)} unintended)')
+
+
+def g_dark(e, final):
+    """Critic re-review: every intentional_black / lights-out clip stays under luma 40 on EVERY frame of the
+    delivered render (mean frame luma, 8-bit full-range Y; also reports the 99.5th percentile)."""
+    rs = [(c['start'], c['start'] + c['dur'], c['id'], c['shot']) for c in e['clips']
+          if c['flags']['intentional_black'] or 'lights_out' in (c.get('section') or '') or 'lights_out' in c['shot']]
+    if not rs:
+        return gate('dark', True, {}, 'no dark clips', status='N/A')
+    W, H = 192, 108
+    bad, per = [], {}
+    for a, b, cid, shot in rs:
+        # frame-exact: select by decoded frame index (no -ss: long-GOP seeks can land a frame off)
+        r = subprocess.run(['ffmpeg', '-v', 'error', '-threads', T, '-i', final, '-vf',
+                            f"select='between(n,{a},{b - 1})',scale={W}:{H}:flags=area,format=gray", '-fps_mode', 'passthrough',
+                            '-f', 'rawvideo', '-'], capture_output=True)
+        fr = np.frombuffer(r.stdout, np.uint8).reshape(-1, H, W)
+        means = [float(x.mean()) for x in fr]
+        p995 = [float(np.percentile(x, 99.5)) for x in fr]
+        over = [a + i for i, m in enumerate(means) if m >= 40]
+        per[cid] = {'shot': shot, 'range': [a, b], 'frames_checked': len(fr), 'max_mean_luma': round(max(means or [0]), 1),
+                    'max_p995_luma': round(max(p995 or [0]), 1), 'frames_over_40': over[:50], 'n_over_40': len(over)}
+        if len(fr) < b - a or over:
+            bad.append(cid)
+    return gate('dark', not bad, per, f'{len(rs)} dark clip(s); ' + (f'FAIL in {bad}' if bad else
+                'every frame under luma 40 (max mean ' + str(max(v['max_mean_luma'] for v in per.values())) + ')'))
 
 
 def lap_var(g):
@@ -890,6 +998,7 @@ def main():
         gates += [g_av(e, rep), g_every_event(e, rep)]
         gates.append(g_captions(e, final, wd))
         gates.append(g_picture(e, proxy))
+        gates.append(g_dark(e, final))
         sf = sample_frames(e, 10)
         gs, base = g_sharpness(e, final, sf, proxy)
         gates.append(gs)

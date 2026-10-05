@@ -3,7 +3,9 @@
  * registered in tools/video/edl/shot_sources.json). All ?cinema=1 full-bleed at 3840×2160.
  * Every take is ≥ the frames the todo asks for (handles included); marks in <id>.meta.json give each moment's frame.
  */
-import { shot } from '../lib.mjs';
+import { shot as _shot } from '../lib.mjs';
+// Critic re-review Fix 2: no idle/caretaker speech bubbles in ANY trailer capture
+const shot = (name, opts, fn) => _shot(name, { quietBubbles: true, ...opts }, fn);
 import { BEAT } from './params.mjs';
 import { judge, prepLevel, runNight, waitSfx, waitDark } from './common.mjs';
 

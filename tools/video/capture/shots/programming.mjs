@@ -40,7 +40,8 @@ fix3:
 BOOP q3`;
 
 // ── pg_split_23: room + program; BOOP q2 dragged into the fix2 block, then the night runs with every card lit ──
-shot('pg_split_23', BASE, async (s) => {
+// quietBubbles (Critic re-review Fix 2): no caretaker think bubbles; timing is unchanged (Scene.say is pure)
+shot('pg_split_23', { ...BASE, quietBubbles: true }, async (s) => {
   await s.placeCursor({ x: 1500, y: 980 });
   await prepLevel(s, '2-3', { progs: { morning: DECODER_NO_FIX2 } });
   await s.camera('full');
@@ -67,6 +68,31 @@ shot('pg_split_23', BASE, async (s) => {
   await s.hold(3.0, 'xray-intact');
   await pad(s, 1100, 'tail');
 });
+
+// ── pg_split_23_xray: the SAME night as pg_split_23 (same seed, level, program incl. BOOP q2, input, q2 flip),
+//    seen in X-ray from before the bots answer until well after the BOOP: q2's dream back in the shared state ──
+const DECODER_FIX2 = DECODER_NO_FIX2.replace('fix2:\nEND', 'fix2:\nBOOP q2\nEND');
+shot('pg_split_23_xray', { ...BASE, quietBubbles: true, seed: 0 /* replaced below */ }, async (s) => {
+  await s.placeCursor({ x: 1240, y: 1000 });
+  await prepLevel(s, '2-3', { progs: { morning: DECODER_FIX2 } });
+  await s.offCamera(async () => {
+    await s.np((np) => np.setXray(true));
+    await s.wait(1.0);
+    await s.np((np) => np.runNight('plus', [{ kind: 'flip', t: 'q2' }]));
+    await waitSfx(s, 'gremlin_flip', { timeout: 40 });
+    await waitSfx(s, 'botNote', { timeout: 40 });
+  });
+  await s.camera([240, 124, 838, 763]); // the split-screen room window (CSS px)
+  s.mark('start-after-listen-a');
+  await waitSfx(s, 'botNote', { timeout: 40, mark: 'listen-b' });
+  await waitSfx(s, 'boop', { timeout: 40, mark: 'boop' });
+  // the BOOP animation settles ~0.5 s after the sfx: q2's swirl back in phase with q1/q3
+  await s.wait(0.5); s.mark('q2-restored');
+  await s.hold(3.0, 'xray-intact');
+});
+// same seed as pg_split_23 so every random draw matches
+{ const h = (str) => { let x = 2166136261; for (const c of str) { x ^= c.charCodeAt(0); x = Math.imul(x, 16777619); } return x >>> 0; };
+  const d = (await import('../lib.mjs')).registered().find((x) => x.name === 'pg_split_23_xray'); d.opts.seed = h('pg_split_23'); }
 
 // ── pg_drag_closeup: cards dragged into an empty column; IF conditions toggled ──
 shot('pg_drag_closeup', BASE, async (s) => {

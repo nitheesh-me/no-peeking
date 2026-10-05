@@ -335,6 +335,20 @@ function __npCaptureShim(cfg) {
     return true;
   }
   let inputLate = 0;
+  // quietBubbles: drop the playback's idle/caretaker think bubbles ("nope, next ↓", "yes! jump ↪", "the end. zzz") and
+  // idle speech quips from the scene captions. Scene.say() is pure (no RNG, no timers), so timing is unaffected;
+  // gameplay captions on creatures (BEEP!/quiet, peek results) stay. Re-applied whenever the level screen makes a new scene.
+  let bubblesDropped = 0;
+  function quietBubbles() {
+    const sc = W.__np && W.__np.scene;
+    if (!sc || sc.__capQuiet || typeof sc.say !== 'function') return;
+    const say = sc.say.bind(sc);
+    sc.say = (text, at, kind, ...rest) => {
+      if (at === 'actor' || at === 'caretaker' || kind === 'think' || kind === 'speech') { bubblesDropped++; return; }
+      return say(text, at, kind, ...rest);
+    };
+    sc.__capQuiet = true;
+  }
 
   async function step(dtMs, opts = {}) {
     if (stepping) throw new Error('re-entrant step');
@@ -361,6 +375,7 @@ function __npCaptureShim(cfg) {
       for (const cb of q.values()) call(cb, [now]);
       await hop();
       checkTyping();
+      if (cfg.quietBubbles) quietBubbles();
       if (cfg.cursorOverlay !== false) drawCursor();
       driveAnimations();
       // make sure freshly set <img> sources (portraits are data URLs) are decoded before the screenshot
@@ -388,6 +403,7 @@ function __npCaptureShim(cfg) {
     setExtraCss(s) { cfg.extraCss = s || ''; setCss(); },
     sampleLayout,
     input: () => ({ ...inp }),
+    bubblesDropped: () => bubblesDropped,
     stats: () => ({ timers: timers.size, raf: rafQ.size, anims: animCount, frames }),
     real,
   };
