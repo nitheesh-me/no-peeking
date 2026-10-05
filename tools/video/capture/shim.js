@@ -344,7 +344,11 @@ function __npCaptureShim(cfg) {
     if (!sc || sc.__capQuiet || typeof sc.say !== 'function') return;
     const say = sc.say.bind(sc);
     sc.say = (text, at, kind, ...rest) => {
-      if (at === 'actor' || at === 'caretaker' || kind === 'think' || kind === 'speech') { bubblesDropped++; return; }
+      // every scene caption is logged (type 'caption'), so bubbles can be audited from events.json
+      const idle = at === 'actor' || at === 'caretaker' || kind === 'think' || kind === 'speech';
+      const drop = !!cfg.quietBubbles && idle;
+      try { log('caption', { text: String(text), at: typeof at === 'string' ? at : 'point', kind: kind ?? 'info', idle, dropped: drop }); } catch { /* ignore */ }
+      if (drop) { bubblesDropped++; return; }
       return say(text, at, kind, ...rest);
     };
     sc.__capQuiet = true;
@@ -375,7 +379,7 @@ function __npCaptureShim(cfg) {
       for (const cb of q.values()) call(cb, [now]);
       await hop();
       checkTyping();
-      if (cfg.quietBubbles) quietBubbles();
+      quietBubbles(); // hooks scene.say: logs captions always, drops idle bubbles only with cfg.quietBubbles
       if (cfg.cursorOverlay !== false) drawCursor();
       driveAnimations();
       // make sure freshly set <img> sources (portraits are data URLs) are decoded before the screenshot

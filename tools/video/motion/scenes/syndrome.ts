@@ -39,6 +39,15 @@ function chip(ctx: Ctx, x: number, y: number, text: string, bg: string, fg: stri
   ctx.restore();
 }
 const pcache = new Map<number, Particle[]>();
+/** drawBot blinks a lit (BEEP) antenna — and its "BEEP!" tag — with sin(14·t) > -0.2. For a table that must read
+ *  at any frame, shift t to the nearest "on" phase while the light is on (both bots identically). */
+function steadyT(t: number, light: 0 | 1 | null) {
+  if (light !== 1 || Math.sin(t * 14) > -0.2) return t;
+  const per = (2 * Math.PI) / 14;
+  const ph = ((t % per) + per) % per;              // the "off" window is ph in (π+0.2014, 2π-0.2014)/14
+  const onStart = (2 * Math.PI - 0.2014) / 14;
+  return t + (onStart - ph) + 0.001;
+}
 
 export const syndrome: Scene<SyndromeParams> = {
   resolve: (p) => ({ bg: 'notebook', start: 30, rowFrames: 96, hold: 72, title: 'Two bots. Four answers.', grain: 0.03, ...p }),
@@ -89,8 +98,8 @@ export const syndrome: Scene<SyndromeParams> = {
       ctx.restore();
       // bots (light: null → answer)
       const la = u >= A_ON ? row.a : null, lb = u >= B_ON ? row.b : null;
-      art.drawBot(ctx, BOT_A, y + 62, 2.05, { light: la, action: u >= A_ON - 6 && u < A_ON + 30 ? 'listen' : 'idle', facing: 1, label: 'a' }, t);
-      art.drawBot(ctx, BOT_B, y + 62, 2.05, { light: lb, action: u >= B_ON - 6 && u < B_ON + 30 ? 'listen' : 'idle', facing: 1, label: 'b' }, t + 0.4);
+      art.drawBot(ctx, BOT_A, y + 62, 2.05, { light: la, action: u >= A_ON - 6 && u < A_ON + 30 ? 'listen' : 'idle', facing: 1, label: 'a' }, steadyT(t, la));
+      art.drawBot(ctx, BOT_B, y + 62, 2.05, { light: lb, action: u >= B_ON - 6 && u < B_ON + 30 ? 'listen' : 'idle', facing: 1, label: 'b' }, steadyT(t + 0.4, lb));
       chip(ctx, BOT_A + 150, y + 6, row.a ? 'BEEP' : 'QUIET', row.a ? PAL.red : '#e9fbf2', row.a ? '#fff' : '#1f9e66', prog(u, A_ON, A_ON + 8));
       chip(ctx, BOT_B + 150, y + 6, row.b ? 'BEEP' : 'QUIET', row.b ? PAL.red : '#e9fbf2', row.b ? '#fff' : '#1f9e66', prog(u, B_ON, B_ON + 8));
       // arrow
@@ -118,11 +127,15 @@ export const syndrome: Scene<SyndromeParams> = {
         ctx.strokeText('!', 0, 0); ctx.fillStyle = PAL.red; ctx.fillText('!', 0, 0); ctx.restore();
       }
       if (hitOn && row.target == null) {
-        const ek = ease.outBack(prog(u, TARGET, TARGET + 10), 2.5);
-        ctx.save(); ctx.translate(Q0 + QD + 70, y - 30); ctx.scale(ek, ek);
-        ctx.lineWidth = 9; ctx.strokeStyle = PAL.ink; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-        ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(-4, 14); ctx.lineTo(22, -14); ctx.stroke();
-        ctx.lineWidth = 5; ctx.strokeStyle = PAL.mint; ctx.stroke(); ctx.restore();
+        // all three are fine: a ✓ on every Qubble (staggered), so no single Qubble looks special
+        for (let q = 0; q < 3; q++) {
+          const ek = ease.outBack(prog(u, TARGET + q * 3, TARGET + q * 3 + 10), 2.5);
+          if (ek <= 0) continue;
+          ctx.save(); ctx.translate(Q0 + q * QD + 58, y - 26); ctx.scale(ek * 0.8, ek * 0.8);
+          ctx.lineWidth = 9; ctx.strokeStyle = PAL.ink; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+          ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(-4, 14); ctx.lineTo(22, -14); ctx.stroke();
+          ctx.lineWidth = 5; ctx.strokeStyle = PAL.mint; ctx.stroke(); ctx.restore();
+        }
       }
       // the fix, as a Bot Code card
       const rk = prog(u, RESULT, RESULT + 10);

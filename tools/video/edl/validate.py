@@ -15,7 +15,7 @@ import edl as E  # noqa: E402
 TARGET_S = {'trailer': (60, 80), 'mechanic': (140, 160), 'showcase': (225, 255)}
 READ_BASE_S, READ_PER_CHAR_S = 1.6, 0.040
 CAPTION_POS = {'trailer': {'top_third', 'center', 'card', 'baked'}, 'mechanic': {'strip', 'baked'}, 'showcase': {'strip', 'baked'}}
-TRANS_FRAMES = {'shatter': (10, 14), 'glitch': (4, 8), 'blanket-wipe': (16, 20)}  # baked-in Motion transitions are clip content
+TRANS_FRAMES = {'shatter': (10, 14), 'glitch': (4, 8), 'blanket-wipe': (16, 20), 'blanket-title': (60, 84)}  # baked-in Motion transitions are clip content
 
 
 def reading_frames(text, fps=60, video=None):
@@ -84,6 +84,11 @@ def validate(e, strict=False, check_sources=True):
                 err.append(f'{cid}: {t} must be {a}-{b} frames (got {tr["frames"]})')
             if t != 'glitch' and not tr.get('matte') and not tr.get('overlay'):
                 warn.append(f'{cid}: {t} has no Motion Designer matte/overlay yet (procedural placeholder)')
+            for kk in ('matte', 'overlay'):  # declared Motion files must exist before a render
+                v = tr.get(kk)
+                for pth in ([v] if isinstance(v, str) else list(v.values()) if isinstance(v, dict) else []):
+                    if pth and not os.path.exists(E.rel(pth)):
+                        (err if strict else warn).append(f'{cid}: {t} {kk} not on disk yet: {pth}')
         if t in ('xray-dissolve', 'relight') and not c.get('scdet_exempt'):
             warn.append(f'{cid}: in-engine {t} should declare scdet_exempt over the dissolve')
         if i == 0:
@@ -125,7 +130,7 @@ def validate(e, strict=False, check_sources=True):
                         if eff < 0.999:
                             (warn if waived else err).append(f'{cid}: UPSCALE at f{k["f"]} z={z} for {out["name"]}: {x1-x0:.0f}px source -> {aw}px ({eff:.2f}x)'
                                                              + (' [punch_native waiver: master only]' if waived else ''))
-                    for win in c.get('windows') or []:
+                    for win in [dict(w0, src=k[1]) for w0 in (c.get('windows') or []) for k in (w0.get('keys') or [[0, w0['src']]])]:
                         box, (dx, dy, dw, dh) = E.window_boxes(win, w, h, out['size'][0])
                         eff = (box[2] - box[0]) / dw
                         if eff < 0.999:  # same master-only waiver as the punch-ins: the 1080p delivery must stay native
@@ -160,14 +165,97 @@ def validate(e, strict=False, check_sources=True):
             k = sw / 1920
             aw, ah = E.game_area(e)[2:]
             x, y, w, hh = [v * k for v in segs[0]['rects'][0]]
-            worst = 1.0
+            if c.get('card_focus'):  # a close-up ON a card's help page (Card Guide anatomy): the card is the subject
+                continue
+            if c.get('windows'):
+                if not any(wn.get('name') == 'bot_code' for wn in c['windows']):
+                    err.append(f'{c["id"]}: split screen without a bot_code window; REVISED 2 needs the program visible')
+                continue
+            worst, worst_w, worst_h = 1.0, 1.0, 1.0
             for f in range(0, c['dur'], 15):
                 z, cx, cy = E.camera_at(c['camera'], f)
                 x0, y0, x1, y1 = E.view_box(sw, sh, aw, ah, z, cx, cy)
-                ix = max(0, min(x + w, x1) - max(x, x0)) * max(0, min(y + hh, y1) - max(y, y0))
-                worst = min(worst, ix / (w * hh))
-            if worst < 0.98:
+                iw_, ih_ = max(0, min(x + w, x1) - max(x, x0)), max(0, min(y + hh, y1) - max(y, y0))
+                worst = min(worst, iw_ * ih_ / (w * hh))
+                worst_w, worst_h = min(worst_w, iw_ / w), min(worst_h, ih_ / hh)
+            if c.get('focus'):
+                # Critic mechanic #8: on a pushed normal-layout take the rule is "the lit card and the actor are both
+                # in view" from the action frame to the clip's end (the boxes are capture CSS px)
+                fo = c['focus']
+                for f in range(fo['frame'], c['dur'], 6):
+                    z, cx, cy = E.camera_at(c['camera'], f)
+                    x0, y0, x1, y1 = E.view_box(sw, sh, aw, ah, z, cx, cy)
+                    for nm, bb in fo['boxes'].items():
+                        if not bb:
+                            continue
+                        bx0, by0, bx1, by1 = bb[0] * k, bb[1] * k, (bb[0] + bb[2]) * k, (bb[1] + bb[3]) * k
+                        if bx0 < x0 - 1 or by0 < y0 - 1 or bx1 > x1 + 1 or by1 > y1 + 1:
+                            err.append(f'{c["id"]}: focus box {nm} leaves the view at local f{f} ({c["shot"]})')
+                            break
+                    else:
+                        continue
+                    break
+                if fo['z'] < 1.25:
+                    warn.append(f'{c["id"]}: push-in {fo["z"]}x < 1.25 (the focus boxes only fit at {fo["zfit"]}x)')
+                continue
+            if c.get('program_focus'):
+                # a close-up ON the program (e.g. the decoder being written): the editor's full width and at least
+                # half its height (the part being edited) must stay in view
+                if worst_w < 0.98 or worst_h < 0.5:
+                    err.append(f'{c["id"]}: program_focus close-up shows the editor {worst_w:.0%} wide x {worst_h:.0%} tall '
+                               f'({c["shot"]}); needs >= 98% x >= 50%')
+            elif worst < 0.98:
                 err.append(f'{c["id"]}: the editor is only {worst:.0%} in view ({c["shot"]}); REVISED 2 needs the program visible')
+    if vid in ('mechanic', 'showcase'):
+        # REVISED #5 / lesson: never two texts. While an in-game dialogue line is on screen (capture layout.json
+        # '.dialogue', mapped through the edit; split windows only count if their crop contains the box) the strip
+        # may carry only a '= real term' chip, not a sentence.
+        talk = []
+        for c in clips:
+            lj = c.get('layout_json')
+            if c['src'].startswith('@') or not lj or not os.path.exists(E.rel(lj)):
+                continue
+            boxes = [(g['from'], g['to'], g['rects'][0]) for g in E.load_json(lj).get('segments', []) if g['sel'] == '.dialogue' and g.get('rects')]
+            for f0, f1, (bx, by, bw, bh) in boxes:
+                if c.get('windows'):
+                    room = next((wn for wn in c['windows'] if wn.get('name') == 'room'), None)
+                    if not room:
+                        continue
+                    rx, ry, rw, rh = room['src'][0] * 1920, room['src'][1] * 1080, room['src'][2] * 1920, room['src'][3] * 1080
+                    if bx + bw <= rx or bx >= rx + rw or by + bh <= ry or by >= ry + rh:
+                        continue  # the box is cropped out of the room window
+                # the whole on-screen interval of the line (not just its endpoints), clipped to the clip
+                a_, b_ = max(f0, c['in']), min(f1, c['out'] - 1)
+                if a_ > b_:
+                    continue
+                m = c['_map']
+                shown = [c['start'] + i for i, sf in enumerate(m) if a_ <= sf <= b_]
+                if shown:
+                    talk.append((shown[0], shown[-1]))
+        for cap in e['captions']:
+            if cap.get('position') != 'strip' or not cap.get('line') or cap.get('label'):
+                continue
+            hit = [t0 for t0, t1 in talk if t0 < cap['end'] and t1 >= cap['legible_from']]
+            if hit:
+                err.append(f'{cap["id"]}: sentence "{cap["line"][:36]}" overlaps an in-game dialogue line at f{max(hit[0], cap["legible_from"])} '
+                           f'(never two texts: use a "= term" chip there)')
+        # no duplicate content inside one explainer: the same shot's source ranges must not overlap
+        # (a deliberate reuse is marked on the later clip with reuse_ok: "why")
+        by_src = {}
+        for c in clips:
+            if c['src'].startswith('@') or c.get('reuse_ok'):
+                continue
+            for d in by_src.get(c['src'], []):
+                if c['in'] < d['out'] and d['in'] < c['out']:
+                    err.append(f'{c["id"]}: shows {c["shot"]} src {c["in"]}-{c["out"]}, already shown by {d["id"]} '
+                               f'({d["in"]}-{d["out"]}): duplicate content (mark reuse_ok if deliberate)')
+            by_src.setdefault(c['src'], []).append(c)
+    for dr in e.get('dark_ranges', []):  # night phases the QA dark gate must find dark on every rendered frame
+        host = [c for c in clips if c['start'] <= dr['start'] and dr['end'] <= c['start'] + c['dur']]
+        if not host:
+            err.append(f'dark range {dr["start"]}-{dr["end"]} is not inside one clip')
+        if not (0 < dr.get('ceiling', 0) < 255) or len(dr.get('region', [])) != 4:
+            err.append(f'dark range {dr["start"]}-{dr["end"]}: needs a ceiling (0-255) and a region [x, y, w, h]')
     for t, n in ONCE_LIMITS(vid).items():
         if once.get(t, 0) > n:
             err.append(f'{t} used {once[t]}x; allowed {n}x (REVISED #3)')
@@ -225,8 +313,18 @@ def validate(e, strict=False, check_sources=True):
         if ratio < 0.8:
             err.append(f'only {ratio:.0%} of trailer cuts are hard cuts on the beat (need >= 80%)')
 
+    if e.get('strip_overlay'):  # the paper strip + strip captions come from motion_captions.py (mechanic QA, Oct 5:
+        # a plans.py rebuild without that step rendered bare ink text on the dark extension, unreadable)
+        bare = [c['id'] for c in e['captions'] if c.get('position') == 'strip' and not isinstance(c.get('render'), dict)]
+        if bare or not any(o.get('id') == 'caption_strip' for o in e['overlays']):
+            err.append(f'strip_overlay is set but {len(bare)} strip caption(s) are unconverted'
+                       f'{"" if any(o.get("id") == "caption_strip" for o in e["overlays"]) else " and the caption_strip overlay is missing"}:'
+                       f' run tools/video/assemble/motion_captions.py {e["video"]} EDL after plans.py')
     # captions
     caps = sorted(e['captions'], key=lambda c: c['start'])
+    seen_ids = [c.get('id') for c in caps]
+    for d in sorted({i for i in seen_ids if seen_ids.count(i) > 1}):
+        err.append(f'caption id {d} is used {seen_ids.count(d)} times')
     labels = [c for c in caps if c.get('label')]  # HUD-style tags (e.g. "X-ray · simulator view"): exempt below
     caps = [c for c in caps if not c.get('label')]
     # Critic §4.3 set 7; the Critic's song-cut review (fix 3) added 3 rule-stating hook captions -> 10
@@ -236,6 +334,12 @@ def validate(e, strict=False, check_sources=True):
     for lb in labels:
         if lb['end'] <= lb['start']:
             err.append(f'{lb.get("id")}: label end <= start')
+    for cp in e['captions']:  # pre-rendered (Motion) captions/labels: their files must exist before a render
+        r = cp.get('render')
+        if isinstance(r, dict):
+            for k in ('fill', 'matte', 'src'):
+                if r.get(k) and not os.path.exists(E.rel(r[k])):
+                    (err if strict else warn).append(f'{cp.get("id")}: {k} not on disk yet: {r[k]}')
     for k, cap in enumerate(caps):
         cid = cap.get('id', f'cap{k}')
         if cap['end'] <= cap['start']:

@@ -9,5 +9,7 @@ import { circuit } from './circuit';
 import { caption } from './caption';
 import { splitframe } from './splitframe';
 import { proof } from './proof';
+import { split } from './split';
+import { label } from './label';
 
-export const SCENES: Record<string, Scene> = { logo, card, endcard, titlecollapse, shatter, glitch, blanket, syndrome, circuit, caption, splitframe, proof };
+export const SCENES: Record<string, Scene> = { logo, card, endcard, titlecollapse, shatter, glitch, blanket, syndrome, circuit, caption, splitframe, proof, split, label };

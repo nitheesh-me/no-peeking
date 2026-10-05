@@ -287,3 +287,62 @@ Fixes the public score needed:
 - **QUIET answers outside the proof** are floored at the music − 5 LU. This fixes the earlier synthetic 52/53 case, now 53/53.
 
 `music_gate.py` on the re-rendered score: pass. The song cut was re-run after the polish reorder, and all 9 gates still pass.
+
+## 13. Mechanic and showcase on the music-first path (explainer mode)
+`mix.py tools/video/edl/{mechanic,showcase}.edl.json [--out DIR]` uses the `mechanic` / `showcase` presets: `music_first`, `explainer`, integrated **−16 LUFS**, TP ≤ −1.5 on the encoded AAC.
+
+Run it with `safe-run.sh --heavy`. The Qubblese lines are rendered by the game engine in Chromium, because the line library misses lines whose logged text differs. Then run `mix_gates.py <workdir>`. Both re-run cleanly on any EDL rebuild.
+
+- **Beds** (`beds.py all --edl`): the game's own adaptive score, planned from the EDL.
+  - One scene per section (`SCENE_OF`). The sequencer switches on bar lines, so there is never a mid-phrase swap.
+  - The engine's win sting plays on every level_win the cut shows.
+  - A one-bar pre-roll (the grid is kept) means the video opens mid-flow, not from silence.
+- **Sections and grid without a cue sheet:** `explainer_sheet()` takes runs of clip `section` and the bed's bar grid (84 BPM, 4/4, first downbeat 0.08 s). It's written as `sections_sheet.json` for `analyze_mix.py`.
+- **Bed:** near-constant per-section targets (−19 post-master; open −20, close −19.5, end card fading), with 1 s boundary ramps. Polish:
+  - a subtle narrow room, so the phrase gaps carry tails;
+  - an upward leveler (+6 dB max where the momentary level falls 4 LU under the 3 s level);
+  - a gentle 2:1 compressor;
+  - a 0.15 s fade-in.
+- **SFX windows:**
+  - featured +3…+6 LU (aim +4.5);
+  - incidental 8 dB under;
+  - card accents −2…+6 (aim +3);
+  - QUIET ≥ bed − 5 LU and 4.5 LU under its BEEP (always distinguishable).
+- **Qubblese:** each line is levelled to the bed +1.5 LU, integrated over the line, so it sits under the dialogue.
+- **Coding groove:** the wood-block typing ticks in the bed's own swung 84 BPM grid (`groove.py --explainer`; no second kit). They play under the programming clips, bar-majority, with 6-frame crossfades on bar lines (`cues/{mechanic,showcase}_score.json`).
+- **Gates** (preset-aware `mix_gates.py`):
+  - `win_loudest`: no section louder than the payoff/level-win sections, +0.5 LU;
+  - spread ≤ 10 LU;
+  - the trailer's spikes/jumps/presence/silences/TP gates;
+  - loudness at the preset target;
+  - phone readability.
+- **Marks:** in explainers, featured game actions and Schrödi's line onsets are marks for the jump gate. They are the content events.
+- **Phone readability:** on the phone simulation, the mix at each featured cue is ≥ the bed alone + 1.5 LU (QUIET ≥ −2). Both signals now go through the same playback gain; `phone_sim(gain_db=...)` was normalising each input to itself.
+
+Results on the current (pre-rebuild) EDLs, outputs in `videos/audio2/mix/{mechanic,showcase}/`:
+
+| Video | Gates | Integrated / AAC TP | Jumps | Phone readability | Featured cue windows |
+|---|---|---|---|---|---|
+| mechanic | **9/9 pass** | −16.0 / −1.8 | 1 | 48/48 | 57/57 |
+| showcase | **9/9 pass** | −16.0 / −1.9 | 0 | 65/65 | 80/80 |
+
+The trailer mix is bit-identical after this work (verified).
+
+**Phone-presence rule for explainers** (Critic, mechanic render, fix 1). Phones can't reproduce notes below about 250 Hz.
+- **Low bot notes:** featured BEEPs from bot voices below B3 (bot a, the F3 marimba) take the trailer-weight `listen_beep` (2.8 kHz presence) on their frame, plus a 6 dB music dip (30 ms attack, held 200 ms, 250 ms release).
+- **Low-heavy hits** (`LOW_HEAVY`: highfive) get +6 dB presence, a 0.25 s room for body, peak-to-loudness ≤ 9 dB and the same dip. As a bare 60 ms slap, the master glue and limiter were flattening it: the stem read −21.5 and the mix −25.7 dB over the cue's 200 ms. They aim 1 LU higher in their window.
+- **Ordering:** dips are applied after levelling, and the cue's aim and window move up by the dip, so the bed steps aside instead of the cue turning down.
+- **Phone report** (`phone_sim.featured_cues.per_cue`) includes the Critic's metric (cue 200 ms RMS vs the 400 ms before): BEEPs need ≥ +6 dB, highfives ≥ +4 dB.
+- **Showcase** inherits the rule.
+
+Mechanic results (on the phone simulation, Critic metric):
+
+| Cue | Before | After |
+|---|---|---|
+| f3096 2-1 LISTEN BEEP | +0.7 | **+8.3** |
+| f2620 highfive | +3.1 | **+4.4** |
+| f1318 highfive | +1.0 | **+3.4** |
+
+f1318 sits 24 frames after the rule→threat section change, where the bed ramps up.
+
+**Groove "20 ms off" flag:** an analyzer artefact. The explainer sections sheet had no beats, so the analyzer used the trailer's beat0 (f50, 40 ms off the bed's grid), and its straight-8th fit can't read swung ticks. The onset cross-correlation of groove vs bed measures **−1 ms** in all three programming stretches. The sheet now carries the bed's beat0, and the analyzer reports the direct lag (`groove_vs_bed_onset_lag`); that lag decides the flam finding.

@@ -54,6 +54,15 @@ fi
 # Block suspend/idle-sleep while any job runs: crash #5 (17:40) was a resume-from-suspend hang mid-render.
 RUN=(systemd-inhibit --what=sleep:idle --who=npvideo --why="video job running" --mode=block
      systemd-run --user --scope -q --slice=npvideo.slice "${PROPS[@]}" -p CPUQuota="$CPU" -- taskset -c "$CPUS" nice -n 5 "$@")
+# Disk guard (2026-10-05, /home at 97 %): a heavy job that runs the disk full leaves half-written 4K files. Refuse to
+# start one with less than NP_MIN_FREE_GB (default 8) free on the videos filesystem; nested jobs are checked too.
+if (( HEAVY )) || [[ -n "${NP_RENDER_SLOT:-}" ]]; then
+  FREE_GB=$(df --output=avail -BG "$(dirname "$0")/../../videos" 2>/dev/null | tail -1 | tr -dc 0-9)
+  if [[ -n "$FREE_GB" ]] && (( FREE_GB < ${NP_MIN_FREE_GB:-8} )); then
+    echo "safe-run: only ${FREE_GB} GB free on the videos disk (< ${NP_MIN_FREE_GB:-8} GB): refusing a heavy job. Free space and retry." >&2
+    exit 75
+  fi
+fi
 if (( HEAVY )) && [[ -n "${NP_RENDER_SLOT:-}" ]]; then
   HEAVY=0  # a parent job already holds a render slot; its children run inside it (no nested slot = no self-deadlock)
 fi

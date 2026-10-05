@@ -446,3 +446,158 @@ But one new defect is a blocker, and an old one came back in a new place.
 - **Nit, not blocking:** this tag is slightly larger than the top-right tags on the gremlin shots. Accept it.
 
 **The trailer song cut is signed off by the Critic.** The only open item is the user's single real-phone listen.
+
+---
+
+## Milestone: mechanic plan (`docs/VIDEO_EDIT.md` "Mechanic plan", `mechanic.edl.json`)
+
+**What I reviewed:**
+- the plan and the EDL caption list (25 text items);
+- source stills at the planned action frames: me_21_listen src 872, me_23_drag 235, me_31_phase 949;
+- `mo_syndrome_table` at +700.
+
+### Verdict: **CHANGES**
+The plan is good, and much better prepared than the trailer was. The teaching order is right (rule → threat → can't copy → ask → syndrome → write → run → test → X-ray proof → twist → export → close). The syndrome table is the best explainer graphic in the project. The trailer's lessons are built into the validators.
+
+But there are **two physics/teaching errors**, one honesty leak, and the programming hero moment is the *shortest* beat in the video.
+
+### Ranked changes
+| # | Beat / timecode | Owner | Exact change |
+|---|---|---|---|
+| 1 | 0:38.9–0:50.9, M006 me_21_listen | **Editor** | **Don't show 2-1's BOOP.** The 2-1 program is `IF a BEEP → BOOP q2` (src still 872). With *one* bot, a BEEP says "they differ" but **not which one**, so showing a fix teaches the exact misconception the syndrome table exists to correct. End M006 on the BEEP (about tl 2950). Change cap09 to "LISTEN: BEEP = they don't match… but which one?" so it bridges into "Two bots. Four answers." |
+| 2 | 1:51–2:04, cap22 | **Editor** | **"SPIN, fix, SPIN." is the wrong order.** The program is SPIN ×3 at bedtime → night (Phasey) → SPIN ×3 in the morning → HIGHFIVE/LISTEN → IF → BOOP. Use "**SPIN · night · SPIN · then fix.**" `= phase-flip code (Hadamard basis)` |
+| 3 | 1:45.6–2:04.5, M015/M016 me_31_phase | **Capture Engineer** (or an Editor crop) | At src 949 the take shows the **"X-RAY REPLAY" chip and a strip of red ✗ nights (18/48)** while the *correct* SPIN program runs. A newcomer reads "the fix fails", and it is X-ray footage without our tag. Re-capture the 3-1 run in normal view with the test strip cleared, or crop the split's room window below the chip/strip row. If any frame is genuinely X-ray, it gets `tag_xray_alpha`. |
+| 4 | 1:04.9–1:12.1, M008 me_23_drag | **Editor + Capture** | **The programming hero beat is 7.2 s, the shortest in the video**, and it carries the 18-word cap11. Make it about **12 s** (take the 5 s from #5): show the IF card's condition chips being set (a → BEEP, b → QUIET), since that *is* the decoder, then the BOOP drops. Split cap11 into "Write the fix, card by card." (on the first drop) and "IF a BEEPs and b is QUIET → BOOP #1." (on the IF). `= decoder` |
+| 5 | 2:09.5–2:30.7, M020 mo_qiskit_stamp | **Editor** | The close is 21 s, and the Qiskit stamp repeats M017's real export from 5 s earlier. **Cut M020 (300 f)** and give the 5 s to #4. The close becomes: just-a-game → snap → morph (line legible ≥ 3.9 s) → end card. |
+| 6 | 1:12.1–1:27.1, cap14 | **Editor** | cap14 "IF a BEEP and b QUIET → BOOP #1." is word-for-word the end of cap11, only 20 s later, and only 3.8 s after cap13. Replace it with "**The program runs it: BOOP #1.**" on the lit IF and the BOOP pop. |
+| 7 | 1:27.1–1:35.2, cap16 | **Editor** | "**= verified on every night**" overclaims: the test runs random input dreams × every *single* flip, not every possible night. Use "**= tested against every single flip**". |
+| 8 | all `normal` clips | **Editor** (validator) | The normal layout at 0.88 scale repeats the trailer's first-cut mistake: the room is about 760 px wide and the card text about 16 px. Give every normal clip a **camera push of 1.25–1.4× toward the action** (the room for collapse/flip, the editor for the lit card) on its action frame. Relax the "≥ 98% of the editor in view" rule to "**the lit card and the actor are both in view**". |
+| 9 | gap Capture #3 | **Capture Engineer** | Check the idle speech bubbles **before** rendering, not on the first render: scan me_23_night, me_23_xray and me_31_phase for bubble events, or pull stills at the split crops. It's cheap, and it saves a heavy render round. |
+| 10 | gap Capture #1–#2 | **Capture Engineer** | Agreed. Re-capture me_encode (first line clear of the modal, second line held ≥ 3 s). Hold Schrödi's "Two little beeps…" ≥ 3.5 s **and then keep Flipper's line** (see Q2). |
+| 11 | 0:50.9–1:04.9, mo_syndrome_table | **Motion Designer** | Two nits. The "all good" row puts the green ✓ over **q2 only**, which reads as "q2 is special": put the ✓ on all three, or next to the row. Bot b's BEEP rows lack the "BEEP!" tag that bot a has. |
+
+### The Editor's questions
+1. **Split balance:** right in principle. Split screen *is* the "card causes action" device, so use it wherever a program is running (it already is), and use normal layout for the explain beats, **but with the push-ins from #8**. Don't make the explain beats programming-first; they're about the room.
+2. **Gremlin slang: keep one per gremlin, the line that *restates the lesson*.** For Gen Alpha it is the characters' voice, and the jokes are what they'll quote. Flipper's "HOW 😭 u didnt even look. this is so ohio" lands right after Schrödi's "…without looking at a single Qubble" (2.0 s, after Schrödi's held 3.5 s). It is the villain conceding the point. Phasey's "fr fr" line: if the take has it near 3-1's failing check (M014), use it there, because it is literally "bit checks miss phase flips". If it only exists after the pass (where the plan currently cuts), keep it there as a 1.5–2 s tag: the defeated ghost. In both, the strip shows only a `= chip`, never a sentence. Cut any slang that doesn't teach.
+3. **Day grade on mixed takes: accept.** It's the game's true look, the 2 s of darkness reads as the threat, and a LUT pop mid-take would be worse. The cut from the night-graded cold open into M002 is a location change, so the grade change is motivated.
+4. **Strip captions:** the density is fine (one per about 6.5 s), and the reading times hold. The wording is mostly excellent. Fixes are #1, #2, #4, #6 and #7. "The replay shows what the peek destroyed." is accurate; "…the dream the peek erased." is a little warmer, your choice. "SPIN turns the ghost's phase flip… into a plain flip the bots can hear." is correct (H Z H = X) and lovely: keep it.
+
+**Physics review:** apart from #1, #2 and #7, every claim checks out. That covers the encode line (α|000⟩ + β|111⟩), "LISTEN: BEEP = they don't match", the syndrome table mapping (a = q1⊕q2, b = q2⊕q3), "the bots never learned the dream", "bit checks miss phase flips" and the Hadamard-basis label.
+
+**Is the programming the hero?** It will be after #4 and #5: the drag, the IF being built, three split runs with pops, Test all, and the real Qiskit export.
+
+**Re-review need:** none on the plan once #1–#7 are in the EDL. Send me the first render's contact sheet, plus stills of M006's end, M008 and M015.
+
+---
+
+## Milestone: showcase plan (`docs/VIDEO_EDIT.md` "Showcase plan", `showcase.edl.json`, 3:45.3)
+
+**What I reviewed:**
+- the plan and the physics table;
+- source stills: sc_lv_1-1 at 8 s, sc_notebook at 12 s, sc_threshold at 6 s;
+- the S002 source resolution.
+
+### Verdict: **CHANGES** (minor; no structural rework)
+Coverage is complete. All 16 levels appear (the 4×4 cascade is a great opener), every meta beat is in, and every feature on the list is shown. The physics table is correct, and the save-joke wording fix is exactly right.
+
+The problems are proportion and legibility, not content:
+- the last 31 s are credits + close;
+- the Codex runs 17.7 s;
+- the most interesting programming feature (step-mode's measurement "snap") is shrunk into a quarter-screen;
+- the notebook and threshold chart, the pages physics-minded judges will pause on, are 1080p takes whose numbers can't be read.
+
+### Ranked changes
+| # | Beat / timecode | Owner | Exact change |
+|---|---|---|---|
+| 1 | 3:14.1–3:29.1, S031 curtain call | **Editor** | **Cut it to about 8 s (480 f).** Credits + close are 31 s (14% of the runtime) at the point where viewers drop off. Give the freed 7 s to #3 and #4. |
+| 2 | 2:18.8–2:36.5, S025 Codex | **Editor** | **17.7 s → about 12 s.** Keep the collection pan (2 s), Flipper (2 s), and the Qubble's 3D Bloch drag + Measure (about 8 s). Drop the in-between browsing. |
+| 3 | 2:59.9, S029 sc_qol4 (TR quadrant) | **Editor** | **Pull step-mode out of the 2×2** into its own 4–5 s full-frame beat (pg_step_scrub, 4K, push about 1.6× on the timeline). Scrub back through gates, then hit the measurement **"snap"**. Strip: "Rewind the night: gates run backwards, a measurement is a one-way door." It is the best programming *and* physics feature in the game, and a quarter-screen buries it. Fill the free quadrant with **Hints** (escalating hint reveal) or the win card's **"Pros call this…" link to Qiskit / IBM Quantum Learning** (`win-links.png` exists as a reference). Neither is shown anywhere yet, and both are things judges value. |
+| 4 | S024 threshold, S028 notebook | **Capture Engineer** | Q2: **schedule 4K re-takes for these two only.** In the notebook still the Bloch numbers and page text are about 9–11 px after the 0.88 scale, so the feature looks like decoration. At DSF 2, push about 1.6× on the active page (Bloch → circuit → stabilizers). For the chart, push on the curve with p = ½ marked. Skip re-takes for the win cards in strobes and for the save line (the strip carries them). |
+| 5 | 0:05–0:10, S002 sc_title_peek | **Editor** | S002 resolves to `sample-title-peek.mkv`, an old 1080p sample. That is the take with the wandering-cursor problem the trailer had to re-capture. Use **`tr_title_peek` (4K, the one-glide cursor)** with a different in-range from the trailer's (cross-video reuse is fine, see Q3). |
+| 6 | S004 label; S023 | **Motion + Editor** | **Name collision:** the hero label reads "Night Shift · 1-1…", and S023's endless mode is also "Night Shift". A viewer will think 1-1 *is* the endless mode. Label chapters as "**Ch 1 · 1-1 Dont Wake Them**" (match the in-game title spelling, since the display font has no apostrophe), and caption S023 "**Night Shift mode:** endless, randomly generated nights." |
+| 7 | hero clips S004, S010, S016, S020 | **Editor** | Q1: the Test-all heroes are fine, **but make the test the programming moment.** Start each about 1 s before the click, with the program column fully in frame (the right-anchored drift), so the click → ✓ strip reads as "run my code against every night". On the first hero (S004), put one chip: "`= your program, tested against every single flip`". |
+| 8 | S030 save joke | **Editor** | It's the settings screen anyway, so add a second strip line for 2 s: "**Judges: Settings → Unlock all content.**" Free, and useful. |
+| 9 | S017 / S019 run splits | **Capture + Motion** | Agreed as planned (4K, `quietBubbles`, marks). Apply the mechanic's lessons: the code window follows the lit card, pops and rings land on the event frames, and no in-game X-ray chip or stale ✗ strip is in the crop. For **3-3**, the strip line must land **on the LISTEN frame** where the half-flip resolves: that is the discretization moment. |
+| 10 | P2 idle bubbles | **Capture Engineer** | Check bubbles on stills **before** the render (all `sc_*` takes predate `quietBubbles`). The sc_lv_1-1 still already shows the inspector pop-up and a cursor in the bottom-left. Accept the inspector, which is a feature. Make sure no speech bubble falls in a used range. |
+
+### The Editor's questions
+1. **Hero levels:** Test-all verifications for 1-1 / 2-3 / 3-1, run splits for 3-3 and 4-1: **yes**, with #7. Three more 4K runs would duplicate the mechanic.
+2. **Push limit:** accept 1.136× for the level takes. **Re-take in 4K only the notebook and the threshold chart** (#4).
+3. **Cross-video reuse: fine.** Each video has its own job, and within the showcase nothing repeats. Just avoid the *identical* in-range of the trailer's one-beat shots, so the trailer doesn't feel like a cut-down of the showcase.
+4. **Hero title + label:** keep the blanket_title as the name. After the wipe, the HUD label shows **only the code chip** ("Ch 1 · 1-1") at small size. The name twice in a row is redundant; the code is useful orientation. The strobes keep their full labels.
+
+**Pacing:** after #1–#3, about 0:15–1:48 is levels (good), 1:48–3:07 is features with energy changes every 8–15 s, and the end is about 24 s. The 9 strobes at one beat each (0.71 s) work as rhythm, not reading, which is fine because the opening grid already shows every level.
+
+**Physics:** all nine claims check out:
+- no-cloning;
+- discretization ("a full flip or none", true after syndrome readout);
+- Shor-9 "any single-Qubble error, fixed blind";
+- 3p² − 2p³ < p ⇔ p < ½ (for independent flips: the chart's model);
+- IF = classical feed-forward;
+- the classical save, "three copies, majority vote".
+
+**Is the programming the hero?** It will be after #3 and #7: two run splits with pops, the IF anatomy close-up, step-mode full frame, the QoL quadrants, and every hero level framed as "run the tests".
+
+**Re-review:** no further plan review is needed. Send me the first render's contact sheet plus stills of S017 at the LISTEN frame, the step-mode beat, and S028.
+
+---
+
+## Milestone: mechanic render (`videos/final/mechanic.mp4`, 2:39.5)
+
+**What I reviewed:**
+- the contact sheet and the 8 critic stills (end of 2-1 f3270, decoder f4620/f4800, 3-1 failure f7120, 3-1 SPINs f7400, 3-1 bots f7950);
+- all 28 captions against the EDL and the mix report's event frames;
+- the mix analysis;
+- the phone-sim WAV, cue by cue (the cue's 200 ms RMS against the 400 ms before it).
+
+### Verdict: **FIX (minor; one sound item must land, the rest is polish)**
+This is a good explainer. The order teaches. Every caption matches its event frame: cap11 "LISTEN: BEEP…" starts at f3072 on the beep at f3096, and cap17 "The program runs it: BOOP #1." sits on the BOOP. The new decoder take shows the IF being built, including the "Jump to which spot?" picker (f4620), which is real programming on screen. The 3-1 re-take is clean: no X-ray chip, the ✗ strip only in the failure shot, and the false IF passing with ✗ while both bots BEEP (f7950). The programming is the hero.
+
+### Ranked fixes
+| # | Timecode | Owner | Exact fix |
+|---|---|---|---|
+| 1 | **f3096 (51.6 s), M008 2-1 LISTEN** | **Sound Designer** | **The most important BEEP in the video is inaudible on a phone.** In the phone sim it is only **+0.7 dB** over the preceding 400 ms (the 2-3 BEEP at f5474 is +5.4; the 3-1 BEEPs are +10/+18). Probably bot a's F3 marimba "DUM" is below a phone speaker's range, and the music sits on top. Layer the trailer-weight `listen_beep` (2.8 kHz presence) with the botNote on this cue, dip the bed 6 dB around it, and re-check for ≥ +6 dB in the phone sim. Same check for the HIGHFIVEs at f1318 (+1.0) and f2620 (+3.1). |
+| 2 | whole mix | **Sound Designer** | The analysis flags `groove_type` sitting **20 ms off the song's grid** (an audible flam on percussive hits). Shift that layer by +20 ms, or drop it. |
+| 3 | f4700–4921, M010 decoder (after the IF) | **Editor** | At f4800 the left 40% of the frame is empty floor (one corner of q3) while the action is all in the program column. Ease the camera to **program_focus** (editor centred, room off-frame or at its edge) from about f4700 to the end of M010. That is the decoder beat, so the code should fill the frame. |
+| 4 | f7294–7754, M017 3-1 SPINs | **Editor** | The split's code window clips the Morning column mid-word ("SPIN q…", "HIGHFIV…") at the right edge (f7400). Either crop to the Bedtime column only while the bedtime SPINs run, then pan to Morning, or widen the window so Morning's cards are whole. |
+| 5 | f7063–7294, M016 | *(accept)* | Schrödi's "Morning check: the dream doesn't match. 30…" is still typing under the `= bit checks miss phase flips` chip. That's fine: the chip carries the point, and the ✗ strip shows it. |
+
+**Mix-analysis flag "drop is not the peak": not applicable**. The mechanic has no drop (that check is trailer-only, and QA marks it N/A). The end-card jump at 159.1 s is the fade. LRA 3.1 LU is fine for an explainer at −16 LUFS.
+
+### Physics: every caption checks out
+- measurement collapse;
+- "The replay shows what the peek destroyed" (an X-ray view, tagged);
+- no-cloning / encoding / entanglement;
+- "A bot HIGHFIVEs two Qubbles = parity check";
+- "**Here Flipper can only reach #2**": accepted. It is true for 2-1 (`noise.targets ['q2']`) and it defuses the one-bot misconception honestly;
+- the syndrome table;
+- the decoder IF;
+- "tested against every single flip";
+- "The dream lives in all three Qubbles = entangled, not copied";
+- "the bots never learned the dream";
+- "bit checks miss phase flips";
+- SPIN (H) converting Z to X;
+- "SPIN · night · SPIN · then fix";
+- the Hadamard-basis label;
+- "Every program is a real quantum circuit: Export to Qiskit".
+
+### Human checks
+1. **Fresh eyes: PASS.** The expected answer is "you program robots that ask yes/no questions about pairs of sleeping blobs, then fix the broken one without looking". That is the mechanic.
+2. **Muted: PASS.** The paper-strip captions plus the card pops carry the whole explanation. This is an explainer built to be read.
+3. **Audio-only: not applicable / weak by design.** With no voice-over (Qubblese is gibberish), audio alone tells only the mood and the event rhythm. Acceptable for a captioned explainer, so this is not a blocker.
+4. **Phone (sim): FAIL until fix 1** (the 2-1 BEEP). Everything else reads: peek +9/+13, flips +7/+11, the 2-3 BEEP +5.4, test_pass +16/+20.
+
+**After fix 1 (and ideally 2), this is a PASS.** Fixes 3–4 are polish. For sign-off I only need the phone-sim numbers re-run at f3096/f1318/f2620 and stills at f4800 and f7400.
+
+---
+
+## Milestone: mechanic render: sign-off
+
+**Verdict: PASS.**
+- **2-1 BEEP (f3096): fixed.** It now reads +8.3 dB in the phone sim, comfortably audible.
+- **f1318 highfive at +3.4 dB: accept.** It's a bedtime HIGHFIVE in the threat beat. It is not information-carrying (the flip at f1567, +8.3, is the cue that matters), it sits on a bed ramp, and pushing it further would spike. Phone readability is 66/67, with the miss on a non-critical cue.
+- **Groove flag: accepted as an analyzer artefact** (the direct onset cross-correlation gives −1 ms).
+- **M017 (f7400): fixed.** The full Bedtime column is in the window during the SPINs, the lit card is whole, and the pops align.
+- **M010 decoder: accept at the native limit.** In my fresh pull of f4800/f4880 from the 16:43 mp4, the room still occupies the left ~40% (q3 and floor). At the 4K editor region's native maximum it can't be pushed further without upscaling, and the program column is fully legible (card text about 30 px) with the caption on it. No further work.
+
+All captions are physically correct (see the render review), and the human checks are fresh eyes PASS, muted PASS, audio-only N/A by design, phone PASS. **The mechanic video is signed off by the Critic.**

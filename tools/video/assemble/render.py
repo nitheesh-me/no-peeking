@@ -126,7 +126,8 @@ def seg_key(e, c):
     st = None
     if not src.startswith('@'):
         p = E.rel(src)
-        st = [os.path.getmtime(p), os.path.getsize(p) if os.path.isfile(p) else 0]
+        # a source still to be captured (dry runs of a planned EDL): keyed as missing, never cached as rendered
+        st = [os.path.getmtime(p), os.path.getsize(p) if os.path.isfile(p) else 0] if os.path.exists(p) else ['missing']
     keep = {k: c.get(k) for k in ('src', 'in', 'dur', 'speed', 'camera', 'grade', 'shot', 'windows')}
     return h([keep, st, e['work'], e['layout'], 'A5'])
 
@@ -179,13 +180,15 @@ def render_chunk(edl_path, cid, i0, i1, out):
                         raise RuntimeError(f'{cid}: source {src} ended at frame {cur + 1} (needed {s})')
                     cur += 1
                 if c.get('windows'):  # split screen: each window cover-crops a source rect into its destination rect
-                    if s != last_key:
+                    wins = [E.window_at(win, i0 + k) for win in c['windows']]  # keyed windows move (code follows the lit card)
+                    wkey = (s, tuple(tuple(round(v, 5) for v in w_['src']) for w_ in wins))
+                    if wkey != last_key:
                         im = Image.frombuffer('RGB', (sw, sh), buf, 'raw', 'RGB', 0, 1)
                         g = Image.new('RGB', (W, H), (242, 240, 235))  # paper; the Motion split_frame covers the margins
-                        for win in c['windows']:
+                        for win in wins:
                             box, (dx, dy, dw, dh) = E.window_boxes(win, sw, sh, W)
                             g.paste(im.resize((dw, dh), Image.LANCZOS, box=box), (dx, dy))
-                        last_out, last_key = g.tobytes(), s
+                        last_out, last_key = g.tobytes(), wkey
                     enc.stdin.write(last_out)
                     continue
                 z, cx, cy = E.camera_at(c['camera'], i0 + k)
@@ -395,8 +398,15 @@ def stage_t(e, segs, force, dry_run=False):
             last = 'xg'
         if tr.get('overlay'):
             oi = sum(1 for z in ins if z == '-i')
-            ins += ['-i', E.rel(tr['overlay'])]
-            fc.append(f'[{last}]format=yuv444p10le[xb];[{oi}:v]scale={W}:{H},scale=out_color_matrix=bt709:out_range=tv,format=yuva444p10le,trim=end_frame={k},setpts=N/{FPS}/TB[xo];'
+            ov = tr['overlay']
+            if isinstance(ov, dict):  # Motion alpha pair (fill + matte), e.g. blanket_wipe / blanket_title
+                ins += ['-i', E.rel(ov['fill']), '-i', E.rel(ov['matte'])]
+                src_ov = (f'[{oi + 1}:v]scale={W}:{H},format=gray,trim=end_frame={k},setpts=N/{FPS}/TB[xm];'
+                          f'[{oi}:v]scale={W}:{H},trim=end_frame={k},setpts=N/{FPS}/TB,format=rgba[xf];[xf][xm]alphamerge,')
+            else:
+                ins += ['-i', E.rel(ov)]
+                src_ov = f'[{oi}:v]scale={W}:{H},trim=end_frame={k},setpts=N/{FPS}/TB,'
+            fc.append(f'[{last}]format=yuv444p10le[xb];{src_ov}scale=out_color_matrix=bt709:out_range=tv,format=yuva444p10le[xo];'
                       f'[xb][xo]overlay=format=yuv444p10:eof_action=pass,format=gbrp16le[xx]')
             last = 'xx'
         fc.append(f'[{last}]format=gbrp10le[out]')
@@ -470,6 +480,10 @@ def build_chunk_graph(e, segs, caps, strip, outputs, proxy, a, b, trans=None, li
             place(fx['start'], fx['start'] + fx['dur'],
                   f'color=c={fx.get("color", "#ffffff").replace("#", "0x")}:s={W}x{H}:r={FPS}:d={fx["dur"] / FPS},scale=out_color_matrix=bt709:out_range=tv,format=yuva444p10le', f'fx{j}')
             over(f'fx{j}')
+    def eff_offset(spec):
+        r_ = spec.get('rect')
+        return [r_[0], r_[1]] if r_ else spec.get('offset')
+
     def alpha_src(spec, start, n_frames, label, src_in=0):
         """RGBA stream for timeline [start, start+n_frames): {fill, matte} pair (Motion Designer) or one RGBA file;
         `hold` pads with the last frame (cards whose text must stay up longer than the clip)."""
@@ -493,20 +507,22 @@ def build_chunk_graph(e, segs, caps, strip, outputs, proxy, a, b, trans=None, li
             src = f'[{oi}:v]'
         avail = spec.get('frames', n_frames) - src_in
         pad = max(0, n_frames - avail)
-        chain = (f'{src}trim=start_frame={src_in}:end_frame={src_in + min(avail, n_frames)},setpts=N/{FPS}/TB,scale={W}:{H},scale=out_color_matrix=bt709:out_range=tv,format=yuva444p10le'
+        r_ = spec.get('rect')  # [x, y, w, h] in 1080p units: place the overlay into a sub-rect (e.g. the strip layout's 88% game area)
+        sw_, sh_ = (round(r_[2] * W / 1920), round(r_[3] * H / 1080)) if r_ else (W, H)
+        chain = (f'{src}trim=start_frame={src_in}:end_frame={src_in + min(avail, n_frames)},setpts=N/{FPS}/TB,scale={sw_}:{sh_},scale=out_color_matrix=bt709:out_range=tv,format=yuva444p10le'
                  + (f',tpad=stop_mode=clone:stop={pad}' if pad else ''))
         if spec.get('fade_out'):
             fo = spec['fade_out']
             chain += f',fade=t=out:st={(n_frames - fo) / FPS:.4f}:d={fo / FPS:.4f}:alpha=1'
         if shadow_src:
             place(start, start + n_frames, shadow_src + chain[len(src):], label + 'sh')
-            over(label + 'sh', spec.get('offset'))  # under the card
+            over(label + 'sh', eff_offset(spec))  # under the card
         place(start, start + n_frames, chain, label)
 
     for j, o in enumerate(e['overlays']):
         if o['start'] < b and o['start'] + o['dur'] > a:
             alpha_src(o, o['start'], o['dur'], f'ov{j}', o.get('in', 0))
-            over(f'ov{j}', o.get('offset'))
+            over(f'ov{j}', eff_offset(o))
     if strip:
         si = add_input(['-thread_queue_size', '4', '-loop', '1', '-framerate', str(FPS), '-t', f'{n / FPS:.4f}', '-i', strip])
         fc.append(f'[{si}:v]scale=out_color_matrix=bt709:out_range=tv,format=yuva444p10le[strip]')
@@ -520,7 +536,7 @@ def build_chunk_graph(e, segs, caps, strip, outputs, proxy, a, b, trans=None, li
             if c['render'].get('baked'):
                 continue  # the text is part of a clip's picture (Motion card); listed for the gates only
             alpha_src(c['render'], c['start'], c['end'] - c['start'], f'c_{c["id"]}', c['render'].get('in', 0))
-            over(f'c_{c["id"]}', c['render'].get('offset'))
+            over(f'c_{c["id"]}', eff_offset(c['render']))
             continue
         else:
             dur = (c['end'] - c['start']) / FPS
@@ -800,6 +816,11 @@ def _main(a, e):
     if a.dry_run:  # report what WOULD render; renders and writes nothing but scratch concat lists
         segs = stage_a(e, os.path.abspath(a.edl), a.force, dry_run=True)
         caps = json.load(open(os.path.join(wd, 'captions.json'))) if os.path.exists(os.path.join(wd, 'captions.json')) else {}
+        pend = [c['id'] for c in e['captions'] if not isinstance(c.get('render'), dict) and c['id'] not in caps]
+        if pend:  # strip captions not yet converted by motion_captions.py (a heavy pre-render step): stand-ins for the dry run
+            print(f'dry run: {len(pend)} caption(s) not rendered yet ' +
+                  ('(run tools/video/assemble/motion_captions.py first)' if e.get('strip_overlay') else '(template PNGs)'), flush=True)
+            caps = dict(caps, **{cid: {'png': os.path.join(wd, 'cap', f'PENDING_{cid}.png')} for cid in pend})
         strip = None if e.get('strip_overlay') else render_captions(e)[1]
         trans = stage_t(e, segs, a.force, dry_run=True)
         stage_bc(e, segs, caps, strip, a.force, proxy=not a.no_proxy, trans=trans, dry_run=True)

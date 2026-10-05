@@ -86,15 +86,18 @@ def main():
         if a.plan:
             p = json.loads(Path(a.plan).read_text())
             plan = [(e['t'], e['scene'], e.get('tension', 0), e.get('harmony', 1)) for e in p]
+        PRE = 4 * 60 / 84  # one bar of pre-roll (keeps the bar grid): the video opens mid-flow, not from silence
+        plan = [(t + PRE if i else 0.0, sc, te, ha) for i, (t, sc, te, ha) in enumerate(plan)]
+        wins = [w + PRE for w in wins]
         calls = []
         for t, scene, ten, har in plan:
             calls += [{'t': t, 'k': 'scene', 'v': scene}, {'t': t + 0.01, 'k': 'tension', 'v': ten}, {'t': t + 0.02, 'k': 'harmony', 'v': har}]
         for w in wins:  # the engine's 2-bar win sting, then it returns to the section's scene by itself
             calls.append({'t': max(0.0, w - 0.05), 'k': 'scene', 'v': 'win'})
-        x, = render_jobs([{'name': f'{name} bed', 'secs': dur + 2, 'music': True, 'master': 'raw', 'dry': False, 'seed': 42,
+        x, = render_jobs([{'name': f'{name} bed', 'secs': dur + PRE + 2, 'music': True, 'master': 'raw', 'dry': False, 'seed': 42,
                            'scene0': plan[0][1], 'calls': calls}])
-        x = dsp.fit(x, int(dur * dsp.SR))
-        x = dsp.fade(dsp.highpass(x, 30, 2), 1.5, 3.0)
+        x = dsp.fit(x[int(PRE * dsp.SR):], int(dur * dsp.SR))
+        x = dsp.fade(dsp.highpass(x, 30, 2), 0.05, 3.0)
         x = dsp.limiter(x * dsp.undb(-18.0 - dsp.integrated(x)), -1.2)
         OUT.mkdir(parents=True, exist_ok=True)
         p = OUT / f'{name}_bed.wav'

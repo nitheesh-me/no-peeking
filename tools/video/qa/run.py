@@ -207,7 +207,16 @@ def g_every_event(e, rep):
     thinned = rep.get('thinned', [])
 
     def heard(ev):
-        return any(abs(q['frame'] - ev['frame']) <= 1 and (q.get('clip') in (None, ev['clip'])) for q in cues)
+        # card accents are quantised to the groove's 8ths when within 2 frames (docs/VIDEO_SOUND.md, `quantised_from`
+        # kept in the report); the A/V rule allows those +-2 frames
+        def at_ev(q):
+            if q.get('clip') not in (None, ev['clip']):
+                return False
+            if abs(q['frame'] - ev['frame']) <= 1:
+                return True
+            qf = q.get('quantised_from')
+            return qf is not None and abs(qf - ev['frame']) <= 1 and abs(q['frame'] - ev['frame']) <= 2
+        return any(at_ev(q) for q in cues)
 
     def thin(ev):
         return any(abs(t.get('frame', -99) - ev['frame']) <= 1 for t in thinned if isinstance(t, dict))
@@ -242,7 +251,7 @@ def layout_boxes(e, c, out_size, tl_a, tl_b):
         if c.get('windows'):  # split screen: only the cropped windows are on screen. Use the renderer's exact
             for x, y, w, hh in seg['rects']:  # cover-crop transform (E.window_boxes) for each window
                 bx0s, by0s, bx1s, by1s = x * sc, y * sc, (x + w) * sc, (y + hh) * sc
-                for win in c['windows']:
+                for win in [E.window_at(w0, lf) for w0 in c['windows'] for lf in sorted({a - c['start'], b - 1 - c['start']})]:
                     (x0, y0, x1, y1), (dx, dy, dw, dh) = E.window_boxes(win, sw, sh, out_size[0])
                     ix0, iy0, ix1, iy1 = max(bx0s, x0), max(by0s, y0), min(bx1s, x1), min(by1s, y1)
                     if ix1 - ix0 < 1 or iy1 - iy0 < 1:
@@ -299,6 +308,32 @@ def motion_meta_for(c):
     return None
 
 
+def place_alpha(a, r, size):
+    """Place a full-frame overlay alpha (at `size`) exactly as render.alpha_src does: `rect` [x, y, w, h]
+    (1080p units) scales the whole overlay frame into that rect; `offset` [dx, dy] shifts it."""
+    from PIL import Image
+    W_, H_ = size
+    k = W_ / 1920
+    rc = r.get('rect')
+    if rc:
+        x, y, w, h = [round(v * k) for v in rc]
+        img = np.asarray(Image.fromarray((a * 255).astype(np.uint8)).resize((max(1, w), max(1, h)), Image.BILINEAR), np.float32) / 255
+        out = np.zeros((H_, W_), np.float32)
+        sx0, sy0 = max(0, -x), max(0, -y)
+        dx0, dy0 = max(0, x), max(0, y)
+        cw, ch = min(w - sx0, W_ - dx0), min(h - sy0, H_ - dy0)
+        if cw > 0 and ch > 0:
+            out[dy0:dy0 + ch, dx0:dx0 + cw] = img[sy0:sy0 + ch, sx0:sx0 + cw]
+        return out
+    off = r.get('offset')
+    if off:
+        dx, dy = round(off[0] * k), round(off[1] * H_ / 1080)
+        sh = np.zeros_like(a)
+        sh[max(0, dy):H_ + min(0, dy), max(0, dx):W_ + min(0, dx)] = a[max(0, -dy):H_ - max(0, dy), max(0, -dx):W_ - max(0, dx)]
+        return sh
+    return a
+
+
 def caption_rect(e, c, capmeta, size):
     """Output-pixel rect of the caption's text band."""
     W, H = e['work']
@@ -320,10 +355,9 @@ def caption_rect(e, c, capmeta, size):
         except Exception:
             fr = {}
         if f in fr:
-            ys, xs = np.nonzero(fr[f] > 128)
+            ys, xs = np.nonzero(place_alpha(fr[f].astype(np.float32) / 255, rd, size) > 0.5)
             if len(xs):
-                ox, oy = (rd.get('offset') or [0, 0])
-                return (xs.min() + ox * k, ys.min() + oy * k, xs.max() - xs.min() + 1, ys.max() - ys.min() + 1)
+                return (xs.min(), ys.min(), xs.max() - xs.min() + 1, ys.max() - ys.min() + 1)
     m = motion_meta_for(c)
     if m and 'params' in m and 'y' in m['params']:
         pr = m['params']
@@ -353,21 +387,31 @@ def card_matte(c, f, size):
     g = grab(E.rel(r['matte']), [k], w=size[0], h=size[1], gray=True).get(k)
     if g is None:
         return None
-    a = g.astype(np.float32) / 255
-    off = r.get('offset')
-    if off:  # the assembler composites the card at [dx, dy] (1080p units): sample where it really is
-        dx, dy = round(off[0] * size[0] / 1920), round(off[1] * size[1] / 1080)
-        sh = np.zeros_like(a)
-        H_, W_ = a.shape
-        sh[max(0, dy):H_ + min(0, dy), max(0, dx):W_ + min(0, dx)] = a[max(0, -dy):H_ - max(0, dy), max(0, -dx):W_ - max(0, dx)]
-        a = sh
-    return a
+    return place_alpha(g.astype(np.float32) / 255, r, size)  # rect / offset exactly as the assembler places it
 
 
 def lum(rgb):
     c = rgb.astype(np.float64) / 255
     c = np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
     return 0.2126 * c[..., 0] + 0.7152 * c[..., 1] + 0.0722 * c[..., 2]
+
+
+def strip_contrast(e, L, size):
+    """WCAG contrast of a strip caption on the delivered pixels: ink glyphs (L < 0.12, eroded) vs the darkest 20% of
+    the 2-6 px ring of non-ink pixels around them (paper, an amber gloss chip, or a chip's shadow). The track's alpha
+    is the whole paper strip, so it can't serve as a glyph mask. None if no ink is in the text band."""
+    from scipy import ndimage
+    x, y, w, h = [int(round(v)) for v in E.strip_rect(e, size)]
+    band = L[y + 25:y + h - 8, x:x + w]          # below the strip's dashed rule, above the bottom edge
+    ink = band < 0.12
+    core = ndimage.binary_erosion(ink, iterations=1)
+    if core.sum() < 100:
+        return None
+    ring = ndimage.binary_dilation(ink, iterations=6) & ~ndimage.binary_dilation(ink, iterations=2) & ~ink
+    if ring.sum() < 100:
+        return None
+    lt, lb = float(np.median(band[core])), float(np.percentile(band[ring], 20))
+    return round((max(lt, lb) + 0.05) / (min(lt, lb) + 0.05), 2)
 
 
 def g_captions(e, final, wd):
@@ -385,7 +429,9 @@ def g_captions(e, final, wd):
         if have < need:
             reading.append({'id': c['id'], 'text': c['text'], 'have_s': round(have / FPS, 2), 'need_s': round(need / FPS, 2)})
         rect = caption_rect(e, c, caps.get(c['id']), size)
-        mm = card_matte(c, c['legible_from'] + (c['end'] - c['legible_from']) // 2, size)
+        # strip captions: the obstacle footprint is the strip band itself. Motion's caption-track alpha covers the
+        # whole paper strip plus its drop shadow above y=950, so its bbox would flag every UI box touching the strip.
+        mm = None if c.get('position') == 'strip' else card_matte(c, c['legible_from'] + (c['end'] - c['legible_from']) // 2, size)
         if mm is not None and (mm > 0.5).any():
             ys, xs = np.nonzero(mm > 0.5)
             rect = (xs.min(), ys.min(), xs.max() - xs.min() + 1, ys.max() - ys.min() + 1)
@@ -433,6 +479,13 @@ def g_captions(e, final, wd):
             if im is None:
                 continue
             L = lum(im)
+            if c.get('position') == 'strip':
+                r_ = strip_contrast(e, L, size)
+                if r_ is not None:
+                    worst = r_ if worst is None else min(worst, r_)
+                elif worst is None:
+                    worst = 0.0  # no ink found in the strip: the caption is not on screen
+                continue
             mm = card_matte(c, f, size)
             if mm is not None and (mm > 0.9).sum() > 200:
                 # the card's own opaque pixels (glyph fill + ink outline / paper plate): 2-class split on the RENDERED
@@ -545,10 +598,27 @@ def g_dark(e, final):
     delivered render (mean frame luma, 8-bit full-range Y; also reports the 99.5th percentile)."""
     rs = [(c['start'], c['start'] + c['dur'], c['id'], c['shot']) for c in e['clips']
           if c['flags']['intentional_black'] or 'lights_out' in (c.get('section') or '') or 'lights_out' in c['shot']]
-    if not rs:
+    drs = e.get('dark_ranges', [])
+    if not rs and not drs:
         return gate('dark', True, {}, 'no dark clips', status='N/A')
     W, H = 192, 108
     bad, per = [], {}
+    # night phases inside day takes (mechanic/showcase): the given region (1080p units: the room, not the UI)
+    # must stay under its ceiling on every frame (catches a mis-seek into the lit bedtime/morning, as in the trailer)
+    for dr in drs:
+        a, b = dr['start'], dr['end']
+        x, y, w, h = [round(v / 1920 * 1920) for v in dr['region']]
+        r = subprocess.run(['ffmpeg', '-v', 'error', '-threads', T, '-i', final, '-vf',
+                            f"select='between(n,{a},{b - 1})',crop={w}:{h}:{x}:{y},scale=96:54:flags=area,format=gray",
+                            '-fps_mode', 'passthrough', '-f', 'rawvideo', '-'], capture_output=True)
+        fr = np.frombuffer(r.stdout, np.uint8).reshape(-1, 54, 96)
+        means = [float(v.mean()) for v in fr]
+        over = [a + i for i, m in enumerate(means) if m >= dr['ceiling']]
+        key = f'{dr.get("clip", "?")}@{a}'
+        per[key] = {'range': [a, b], 'region': dr['region'], 'ceiling': dr['ceiling'], 'why': dr.get('why'), 'frames_checked': len(fr),
+                    'max_mean_luma': round(max(means or [0]), 1), 'frames_over': over[:50], 'n_over': len(over)}
+        if len(fr) < b - a or over:
+            bad.append(key)
     for a, b, cid, shot in rs:
         # frame-exact: select by decoded frame index (no -ss: long-GOP seeks can land a frame off)
         r = subprocess.run(['ffmpeg', '-v', 'error', '-threads', T, '-i', final, '-vf',
@@ -562,8 +632,8 @@ def g_dark(e, final):
                     'max_p995_luma': round(max(p995 or [0]), 1), 'frames_over_40': over[:50], 'n_over_40': len(over)}
         if len(fr) < b - a or over:
             bad.append(cid)
-    return gate('dark', not bad, per, f'{len(rs)} dark clip(s); ' + (f'FAIL in {bad}' if bad else
-                'every frame under luma 40 (max mean ' + str(max(v['max_mean_luma'] for v in per.values())) + ')'))
+    return gate('dark', not bad, per, f'{len(rs)} dark clip(s), {len(drs)} night range(s); ' + (f'FAIL in {bad}' if bad else
+                'every frame under its ceiling (max mean ' + str(max(v['max_mean_luma'] for v in per.values())) + ')'))
 
 
 def lap_var(g):
@@ -789,13 +859,16 @@ def g_loudness(final, rep):
             ok_q, why = q['margin_lu'] >= 6, f'{q["margin_lu"]:+.1f} LU (need >= 6)'
         if not ok_q:
             bad.append({'cue': q.get('id'), 'name': q['name'], 'frame': q['frame'], 'rule': q.get('window_rule'), 'why': why})
-    ok = I is not None and abs(I + 14) <= 0.5 and TP is not None and TP <= tp_ceiling and not bad
+    # target: the mix's own documented preset target (trailer -14; the explainer presets -16, docs/VIDEO_SOUND.md §13),
+    # the same rule mix_gates.py applies; -14 (the Bible) when the report has none
+    target = lz.get('target_lufs', -14.0)
+    ok = I is not None and abs(I - target) <= 0.5 and TP is not None and TP <= tp_ceiling and not bad
     if (rep or {}).get('placeholder'):
         return gate('loudness', ok, {'integrated_lufs': I, 'true_peak_dbtp': TP}, f'PLACEHOLDER mix (I={I}, TP={TP}): not judged', status='BLOCKED')
     rule = 'per-cue windows' if windowed else '>= 6 LU'
-    return gate('loudness', ok, {'integrated_lufs': I, 'true_peak_dbtp': TP, 'tp_ceiling': tp_ceiling, 'rule': rule,
+    return gate('loudness', ok, {'integrated_lufs': I, 'target_lufs': target, 'true_peak_dbtp': TP, 'tp_ceiling': tp_ceiling, 'rule': rule,
                                  'featured_cues': len(feat), 'outside_window': bad, 'documented_exceptions': exc},
-                f'I={I} LUFS, TP={TP} dBTP (ceiling {tp_ceiling}); {len(feat) - len(bad)}/{len(feat)} featured cues pass ({rule}), '
+                f'I={I} LUFS (target {target}), TP={TP} dBTP (ceiling {tp_ceiling}); {len(feat) - len(bad)}/{len(feat)} featured cues pass ({rule}), '
                 f'{len(exc)} documented exceptions')
 
 
@@ -1061,9 +1134,8 @@ def main():
         gates.append(g_loudness(final, rep))
         gates.append(g_loudness_curve(e, rep, cs))
         gates.append(g_proof_sfx(e, rep))
-        if e['video'] == 'trailer':
-            sync_ok = all(g['status'] == 'PASS' for g in gates if g['gate'] in ('av_sync', 'every_event'))
-            gates.append(g_mix_analysis(e, wd, rep, sync_ok))
+        sync_ok = all(g['status'] == 'PASS' for g in gates if g['gate'] in ('av_sync', 'every_event'))
+        gates.append(g_mix_analysis(e, wd, rep, sync_ok))  # every video (Director)
         if 'reencode' not in skip:
             gates.append(g_reencode(e, final, wd, sf, nf, base))
     gates.append(gate('human', False, {'pending': ['fresh-eyes "what do you do in this game?" (blocking; Critic as proxy)',

@@ -37,16 +37,16 @@
    "flags": {},
    "section": "open",
    "cues": [],
-   "note": "4x4: all 16 levels solving at once (precomposed)"
+   "note": "precomp v2: 16 verified solves cascade (tools/video/assemble/precomp.py)"
   },
   {
    "id": "S002",
-   "shot": "sc_title_peek",
-   "src": "videos/capture/sample-title-peek.mkv",
+   "shot": "tr_title_peek",
+   "src": "videos/capture/tr_title_peek.mkv",
    "src_kind": "alias",
    "start": 300,
-   "dur": 360,
-   "in": 50,
+   "dur": 300,
+   "in": 40,
    "speed": 1,
    "grade": "day",
    "transition": {
@@ -55,17 +55,18 @@
    "flags": {},
    "section": "open",
    "cues": [],
-   "events": "videos/capture/sample-title-peek.events.json",
-   "layout_json": "videos/capture/sample-title-peek.layout.json"
+   "note": "meta beat: the 4K one-glide take from before the glide (src 40-340; the trailer uses 125-317 from the P hit)",
+   "events": "videos/capture/tr_title_peek.events.json",
+   "layout_json": "videos/capture/tr_title_peek.layout.json"
   },
   {
    "id": "S003",
    "shot": "sc_dream_map",
    "src": "videos/capture/sc_dream_map.mkv",
    "src_kind": "alias",
-   "start": 660,
-   "dur": 378,
-   "in": 88,
+   "start": 600,
+   "dur": 408,
+   "in": 60,
    "speed": 1,
    "grade": "day",
    "transition": {
@@ -74,6 +75,22 @@
    "flags": {},
    "section": "open",
    "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 0.5,
+     "cy": 0.5,
+     "ease": "linear"
+    },
+    {
+     "f": 336,
+     "z": 1.1,
+     "cx": 0.5,
+     "cy": 0.45,
+     "ease": "inout"
+    }
+   ],
    "events": "videos/capture/sc_dream_map.events.json",
    "layout_json": "videos/capture/sc_dream_map.layout.json"
   },
@@ -82,24 +99,41 @@
    "shot": "sc_lv_1-1",
    "src": "videos/capture/sc_lv_1-1.mkv",
    "src_kind": "alias",
-   "start": 1020,
-   "dur": 720,
-   "in": 20,
-   "speed": 1.208,
+   "start": 936,
+   "dur": 605,
+   "in": 233,
+   "speed": 1,
    "grade": "night",
    "transition": {
-    "type": "blanket-wipe",
-    "frames": 18,
-    "matte": "videos/motion/blanket_wipe_reveal.mkv",
+    "type": "blanket-title",
+    "frames": 72,
+    "matte": "videos/motion/blanket_title_reveal.mkv",
     "overlay": {
-     "fill": "videos/motion/blanket_wipe_fill.mkv",
-     "matte": "videos/motion/blanket_wipe_matte.mkv"
-    }
+     "fill": "videos/motion/blanket_title_11_fill.mkv",
+     "matte": "videos/motion/blanket_title_11_matte.mkv"
+    },
+    "title": "1-1 \u00b7 Dont Wake Them"
    },
    "flags": {},
    "section": "ch1",
    "cues": [],
-   "note": "hero level at 1.208x sped up 1.208x",
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "linear"
+    },
+    {
+     "f": 605,
+     "z": 1.05,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "inout"
+    }
+   ],
+   "note": "hero 1-1: verified solve (Test all), program column in view 1 s before the click",
    "events": "videos/capture/sc_lv_1-1.events.json",
    "layout_json": "videos/capture/sc_lv_1-1.layout.json"
   },
@@ -108,8 +142,8 @@
    "shot": "sc_clone_glitch",
    "src": "videos/capture/sc_clone_glitch.mkv",
    "src_kind": "alias",
-   "start": 1740,
-   "dur": 480,
+   "start": 1541,
+   "dur": 435,
    "in": 0,
    "speed": 1,
    "grade": "day",
@@ -119,6 +153,7 @@
    "flags": {},
    "section": "ch1",
    "cues": [],
+   "note": "1-3 The Photocopier: the copy fails and the clone glitch tears the screen",
    "events": "videos/capture/sc_clone_glitch.events.json",
    "layout_json": "videos/capture/sc_clone_glitch.layout.json"
   },
@@ -127,8 +162,8 @@
    "shot": "sc_lv_0-1",
    "src": "videos/capture/sc_lv_0-1.mkv",
    "src_kind": "alias",
-   "start": 2220,
-   "dur": 36,
+   "start": 1976,
+   "dur": 43,
    "in": 615,
    "speed": 1,
    "grade": "day",
@@ -138,7 +173,7 @@
    "flags": {},
    "section": "ch1",
    "cues": [],
-   "note": "1-beat strobe: solved",
+   "note": "1-beat strobe on the bed beat: 0-1 solved",
    "events": "videos/capture/sc_lv_0-1.events.json",
    "layout_json": "videos/capture/sc_lv_0-1.layout.json"
   },
@@ -147,8 +182,8 @@
    "shot": "sc_lv_0-2",
    "src": "videos/capture/sc_lv_0-2.mkv",
    "src_kind": "alias",
-   "start": 2256,
-   "dur": 36,
+   "start": 2019,
+   "dur": 43,
    "in": 598,
    "speed": 1,
    "grade": "day",
@@ -158,7 +193,7 @@
    "flags": {},
    "section": "ch1",
    "cues": [],
-   "note": "1-beat strobe: solved",
+   "note": "1-beat strobe on the bed beat: 0-2 solved",
    "events": "videos/capture/sc_lv_0-2.events.json",
    "layout_json": "videos/capture/sc_lv_0-2.layout.json"
   },
@@ -167,8 +202,8 @@
    "shot": "sc_lv_1-2",
    "src": "videos/capture/sc_lv_1-2.mkv",
    "src_kind": "alias",
-   "start": 2292,
-   "dur": 36,
+   "start": 2062,
+   "dur": 43,
    "in": 616,
    "speed": 1,
    "grade": "night",
@@ -178,7 +213,7 @@
    "flags": {},
    "section": "ch1",
    "cues": [],
-   "note": "1-beat strobe: solved",
+   "note": "1-beat strobe on the bed beat: 1-2 solved",
    "events": "videos/capture/sc_lv_1-2.events.json",
    "layout_json": "videos/capture/sc_lv_1-2.layout.json"
   },
@@ -187,8 +222,8 @@
    "shot": "sc_lv_1-4",
    "src": "videos/capture/sc_lv_1-4.mkv",
    "src_kind": "alias",
-   "start": 2328,
-   "dur": 54,
+   "start": 2105,
+   "dur": 115,
    "in": 583,
    "speed": 1,
    "grade": "night",
@@ -198,7 +233,7 @@
    "flags": {},
    "section": "ch1",
    "cues": [],
-   "note": "1-beat strobe: solved",
+   "note": "1-beat strobe on the bed beat: 1-4 solved",
    "events": "videos/capture/sc_lv_1-4.events.json",
    "layout_json": "videos/capture/sc_lv_1-4.layout.json"
   },
@@ -207,35 +242,52 @@
    "shot": "sc_lv_2-3",
    "src": "videos/capture/sc_lv_2-3.mkv",
    "src_kind": "alias",
-   "start": 2364,
-   "dur": 840,
-   "in": 30,
-   "speed": 1.167,
+   "start": 2148,
+   "dur": 540,
+   "in": 261,
+   "speed": 1,
    "grade": "night",
    "transition": {
-    "type": "blanket-wipe",
-    "frames": 18,
-    "matte": "videos/motion/blanket_wipe_reveal.mkv",
+    "type": "blanket-title",
+    "frames": 72,
+    "matte": "videos/motion/blanket_title_reveal.mkv",
     "overlay": {
-     "fill": "videos/motion/blanket_wipe_fill.mkv",
-     "matte": "videos/motion/blanket_wipe_matte.mkv"
-    }
+     "fill": "videos/motion/blanket_title_fill.mkv",
+     "matte": "videos/motion/blanket_title_matte.mkv"
+    },
+    "title": "2-3 \u00b7 Who Got Flipped?"
    },
    "flags": {},
    "section": "ch2",
    "cues": [],
-   "note": "hero level at 1.167x sped up 1.167x",
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "linear"
+    },
+    {
+     "f": 540,
+     "z": 1.05,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "inout"
+    }
+   ],
+   "note": "hero 2-3: verified solve (Test all), program column in view 1 s before the click",
    "events": "videos/capture/sc_lv_2-3.events.json",
    "layout_json": "videos/capture/sc_lv_2-3.layout.json"
   },
   {
    "id": "S011",
-   "shot": "sc_map_flip",
-   "src": "videos/capture/sc_map_flip.mkv",
+   "shot": "sc_map_flip_solve",
+   "src": "videos/capture/sc_map_flip_solve.mkv",
    "src_kind": "alias",
-   "start": 3204,
-   "dur": 480,
-   "in": 60,
+   "start": 2688,
+   "dur": 445,
+   "in": 40,
    "speed": 1,
    "grade": "day",
    "transition": {
@@ -244,16 +296,17 @@
    "flags": {},
    "section": "ch2",
    "cues": [],
-   "events": "videos/capture/sc_map_flip.events.json",
-   "layout_json": "videos/capture/sc_map_flip.layout.json"
+   "note": "meta beat (4K): the map-bots read at 120, the tap solves it at 348, 112 f of aftermath",
+   "events": "videos/capture/sc_map_flip_solve.events.json",
+   "layout_json": "videos/capture/sc_map_flip_solve.layout.json"
   },
   {
    "id": "S012",
    "shot": "sc_lv_2-1",
    "src": "videos/capture/sc_lv_2-1.mkv",
    "src_kind": "alias",
-   "start": 3684,
-   "dur": 36,
+   "start": 3133,
+   "dur": 43,
    "in": 620,
    "speed": 1,
    "grade": "night",
@@ -263,7 +316,7 @@
    "flags": {},
    "section": "ch2",
    "cues": [],
-   "note": "1-beat strobe: solved",
+   "note": "1-beat strobe on the bed beat: 2-1 solved",
    "events": "videos/capture/sc_lv_2-1.events.json",
    "layout_json": "videos/capture/sc_lv_2-1.layout.json"
   },
@@ -272,8 +325,8 @@
    "shot": "sc_lv_2-2",
    "src": "videos/capture/sc_lv_2-2.mkv",
    "src_kind": "alias",
-   "start": 3720,
-   "dur": 36,
+   "start": 3176,
+   "dur": 43,
    "in": 603,
    "speed": 1,
    "grade": "night",
@@ -283,7 +336,7 @@
    "flags": {},
    "section": "ch2",
    "cues": [],
-   "note": "1-beat strobe: solved",
+   "note": "1-beat strobe on the bed beat: 2-2 solved",
    "events": "videos/capture/sc_lv_2-2.events.json",
    "layout_json": "videos/capture/sc_lv_2-2.layout.json"
   },
@@ -292,8 +345,8 @@
    "shot": "sc_lv_2-4",
    "src": "videos/capture/sc_lv_2-4.mkv",
    "src_kind": "alias",
-   "start": 3756,
-   "dur": 36,
+   "start": 3219,
+   "dur": 43,
    "in": 546,
    "speed": 1,
    "grade": "night",
@@ -303,7 +356,7 @@
    "flags": {},
    "section": "ch2",
    "cues": [],
-   "note": "1-beat strobe: solved",
+   "note": "1-beat strobe on the bed beat: 2-4 solved",
    "events": "videos/capture/sc_lv_2-4.events.json",
    "layout_json": "videos/capture/sc_lv_2-4.layout.json"
   },
@@ -312,8 +365,8 @@
    "shot": "sc_lv_2-5",
    "src": "videos/capture/sc_lv_2-5.mkv",
    "src_kind": "alias",
-   "start": 3792,
-   "dur": 54,
+   "start": 3262,
+   "dur": 115,
    "in": 610,
    "speed": 1,
    "grade": "night",
@@ -323,7 +376,7 @@
    "flags": {},
    "section": "ch2",
    "cues": [],
-   "note": "1-beat strobe: solved",
+   "note": "1-beat strobe on the bed beat: 2-5 solved",
    "events": "videos/capture/sc_lv_2-5.events.json",
    "layout_json": "videos/capture/sc_lv_2-5.layout.json"
   },
@@ -332,54 +385,133 @@
    "shot": "sc_lv_3-1",
    "src": "videos/capture/sc_lv_3-1.mkv",
    "src_kind": "alias",
-   "start": 3828,
-   "dur": 720,
-   "in": 20,
-   "speed": 1.208,
+   "start": 3305,
+   "dur": 654,
+   "in": 251,
+   "speed": 1,
    "grade": "night",
    "transition": {
-    "type": "blanket-wipe",
-    "frames": 18,
-    "matte": "videos/motion/blanket_wipe_reveal.mkv",
+    "type": "blanket-title",
+    "frames": 72,
+    "matte": "videos/motion/blanket_title_reveal.mkv",
     "overlay": {
-     "fill": "videos/motion/blanket_wipe_fill.mkv",
-     "matte": "videos/motion/blanket_wipe_matte.mkv"
-    }
+     "fill": "videos/motion/blanket_title_31_fill.mkv",
+     "matte": "videos/motion/blanket_title_31_matte.mkv"
+    },
+    "title": "3-1 \u00b7 Somethings Off"
    },
    "flags": {},
    "section": "ch3",
    "cues": [],
-   "note": "hero level at 1.208x sped up 1.208x",
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "linear"
+    },
+    {
+     "f": 654,
+     "z": 1.05,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "inout"
+    }
+   ],
+   "note": "hero 3-1: verified solve (Test all), program column in view 1 s before the click",
    "events": "videos/capture/sc_lv_3-1.events.json",
    "layout_json": "videos/capture/sc_lv_3-1.layout.json"
   },
   {
    "id": "S017",
-   "shot": "sc_lv_3-3",
-   "src": "videos/capture/sc_lv_3-3.mkv",
+   "shot": "sc_run_3-3",
+   "src": "videos/capture/sc_run_3-3.mkv",
    "src_kind": "alias",
-   "start": 4548,
-   "dur": 720,
-   "in": 20,
-   "speed": 1.208,
-   "grade": "night",
+   "start": 3959,
+   "dur": 674,
+   "in": 540,
+   "speed": 1,
+   "grade": "day",
    "transition": {
     "type": "cut"
    },
    "flags": {},
    "section": "ch3",
    "cues": [],
-   "note": "hero level at 1.208x sped up 1.208x",
-   "events": "videos/capture/sc_lv_3-3.events.json",
-   "layout_json": "videos/capture/sc_lv_3-3.layout.json"
+   "note": "3-3 Wobbles run, 4K split: half-flip 547, LISTEN a 1019 snaps it to no error, IFs all false split screen: room + Bot Code windows (split_frame)",
+   "windows": [
+    {
+     "name": "room",
+     "src": [
+      0.125,
+      0.11481481481481481,
+      0.43645833333333334,
+      0.7064814814814815
+     ],
+     "dst": [
+      139.84,
+      24.64,
+      989.12,
+      901.12
+     ]
+    },
+    {
+     "name": "bot_code",
+     "src": [
+      0.8177083333333334,
+      0.05925925925925926,
+      0.18229166666666666,
+      0.4413888888888889
+     ],
+     "keys": [
+      [
+       0,
+       [
+        0.8177083333333334,
+        0.05925925925925926,
+        0.18229166666666666,
+        0.4413888888888889
+       ]
+      ],
+      [
+       560,
+       [
+        0.8177083333333334,
+        0.05925925925925926,
+        0.18229166666666666,
+        0.4413888888888889
+       ]
+      ],
+      [
+       600,
+       [
+        0.8177083333333334,
+        0.2777777777777778,
+        0.18229166666666666,
+        0.4413888888888889
+       ]
+      ]
+     ],
+     "dst": [
+      1167.68,
+      91.52,
+      612.48,
+      834.24
+     ],
+     "anchor_y": 0.0
+    }
+   ],
+   "events": "videos/capture/sc_run_3-3.events.json",
+   "layout_json": "videos/capture/sc_run_3-3.layout.json"
   },
   {
    "id": "S018",
    "shot": "sc_lv_3-2",
    "src": "videos/capture/sc_lv_3-2.mkv",
    "src_kind": "alias",
-   "start": 5268,
-   "dur": 54,
+   "start": 4633,
+   "dur": 115,
    "in": 738,
    "speed": 1,
    "grade": "night",
@@ -389,44 +521,189 @@
    "flags": {},
    "section": "ch3",
    "cues": [],
-   "note": "1-beat strobe: solved",
+   "note": "1-beat strobe on the bed beat: 3-2 solved",
    "events": "videos/capture/sc_lv_3-2.events.json",
    "layout_json": "videos/capture/sc_lv_3-2.layout.json"
   },
   {
    "id": "S019",
-   "shot": "sc_lv_4-1",
-   "src": "videos/capture/sc_lv_4-1.mkv",
+   "shot": "sc_run_4-1",
+   "src": "videos/capture/sc_run_4-1.mkv",
    "src_kind": "alias",
-   "start": 5304,
-   "dur": 720,
-   "in": 40,
-   "speed": 1.444,
-   "grade": "night",
+   "start": 4676,
+   "dur": 194,
+   "in": 1426,
+   "speed": 1,
+   "grade": "day",
    "transition": {
-    "type": "blanket-wipe",
-    "frames": 18,
-    "matte": "videos/motion/blanket_wipe_reveal.mkv",
+    "type": "blanket-title",
+    "frames": 72,
+    "matte": "videos/motion/blanket_title_reveal.mkv",
     "overlay": {
-     "fill": "videos/motion/blanket_wipe_fill.mkv",
-     "matte": "videos/motion/blanket_wipe_matte.mkv"
-    }
+     "fill": "videos/motion/blanket_title_41_fill.mkv",
+     "matte": "videos/motion/blanket_title_41_matte.mkv"
+    },
+    "title": "4-1 \u00b7 Nesting Dolls"
    },
    "flags": {},
    "section": "ch4",
    "cues": [],
-   "note": "hero level at 1.444x sped up 1.444x",
+   "note": "4-1 the strike (error-1 1511), visible after the title wipe split screen: room + Bot Code windows (split_frame)",
+   "windows": [
+    {
+     "name": "room",
+     "src": [
+      0.078125,
+      0.09259259259259259,
+      0.5208333333333334,
+      0.8425925925925926
+     ],
+     "dst": [
+      139.84,
+      24.64,
+      989.12,
+      901.12
+     ]
+    },
+    {
+     "name": "bot_code",
+     "src": [
+      0.8177083333333334,
+      0.5231481481481481,
+      0.18229166666666666,
+      0.4413888888888889
+     ],
+     "keys": [
+      [
+       0,
+       [
+        0.8177083333333334,
+        0.5231481481481481,
+        0.18229166666666666,
+        0.4413888888888889
+       ]
+      ]
+     ],
+     "dst": [
+      1167.68,
+      91.52,
+      612.48,
+      834.24
+     ],
+     "anchor_y": 0.0
+    }
+   ],
+   "events": "videos/capture/sc_run_4-1.events.json",
+   "layout_json": "videos/capture/sc_run_4-1.layout.json"
+  },
+  {
+   "id": "S020",
+   "shot": "sc_run_4-1",
+   "src": "videos/capture/sc_run_4-1.mkv",
+   "src_kind": "alias",
+   "start": 4870,
+   "dur": 456,
+   "in": 2740,
+   "speed": 1,
+   "grade": "day",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "ch4",
+   "cues": [],
+   "note": "4-1 LISTEN c/d BEEP 2780/2895 -> IF Bf2 2978 -> BOOP 3154 (pops sc_pops_4_1) split screen: room + Bot Code windows (split_frame)",
+   "windows": [
+    {
+     "name": "room",
+     "src": [
+      0.078125,
+      0.09259259259259259,
+      0.5208333333333334,
+      0.8425925925925926
+     ],
+     "dst": [
+      139.84,
+      24.64,
+      989.12,
+      901.12
+     ]
+    },
+    {
+     "name": "bot_code",
+     "src": [
+      0.8177083333333334,
+      0.5231481481481481,
+      0.18229166666666666,
+      0.4413888888888889
+     ],
+     "keys": [
+      [
+       0,
+       [
+        0.8177083333333334,
+        0.5231481481481481,
+        0.18229166666666666,
+        0.4413888888888889
+       ]
+      ]
+     ],
+     "dst": [
+      1167.68,
+      91.52,
+      612.48,
+      834.24
+     ],
+     "anchor_y": 0.0
+    }
+   ],
+   "events": "videos/capture/sc_run_4-1.events.json",
+   "layout_json": "videos/capture/sc_run_4-1.layout.json"
+  },
+  {
+   "id": "S021",
+   "shot": "sc_lv_4-1",
+   "src": "videos/capture/sc_lv_4-1.mkv",
+   "src_kind": "alias",
+   "start": 5326,
+   "dur": 666,
+   "in": 394,
+   "speed": 1,
+   "grade": "night",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "ch4",
+   "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "linear"
+    },
+    {
+     "f": 666,
+     "z": 1.05,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "inout"
+    }
+   ],
+   "note": "4-1 verified: Test all (program in view 1 s before the click) + the win card",
    "events": "videos/capture/sc_lv_4-1.events.json",
    "layout_json": "videos/capture/sc_lv_4-1.layout.json"
   },
   {
-   "id": "S020",
-   "shot": "sc_lights_out_ear",
-   "src": "videos/capture/sc_lights_out_ear.mkv",
+   "id": "S022",
+   "shot": "sc_lights_out_ear_v2",
+   "src": "videos/capture/sc_lights_out_ear_v2.mkv",
    "src_kind": "alias",
-   "start": 6024,
-   "dur": 618,
-   "in": 1830,
+   "start": 5992,
+   "dur": 582,
+   "in": 1836,
    "speed": 1,
    "grade": "night",
    "transition": {
@@ -435,61 +712,153 @@
    "flags": {},
    "section": "ch4",
    "cues": [],
-   "events": "videos/capture/sc_lights_out_ear.events.json",
-   "layout_json": "videos/capture/sc_lights_out_ear.layout.json"
+   "note": "4-2 Lights Out: the program runs in the dark; solved by ear",
+   "events": "videos/capture/sc_lights_out_ear_v2.events.json",
+   "layout_json": "videos/capture/sc_lights_out_ear_v2.layout.json"
   },
   {
-   "id": "S021",
+   "id": "S023",
    "shot": "sc_gremlin_lab",
    "src": "videos/capture/sc_gremlin_lab.mkv",
    "src_kind": "alias",
-   "start": 6624,
-   "dur": 840,
+   "start": 6574,
+   "dur": 780,
    "in": 60,
    "speed": 1,
    "grade": "night",
    "transition": {
-    "type": "blanket-wipe",
-    "frames": 18,
-    "matte": "videos/motion/blanket_wipe_reveal.mkv",
-    "overlay": {
-     "fill": "videos/motion/blanket_wipe_fill.mkv",
-     "matte": "videos/motion/blanket_wipe_matte.mkv"
-    }
+    "type": "cut"
    },
    "flags": {},
    "section": "labs",
    "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "linear"
+    },
+    {
+     "f": 780,
+     "z": 1.05,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "inout"
+    }
+   ],
+   "note": "Gremlin Lab: sandbox, X-ray always on (hard cut in: a wipe would need 18 more Lights Out frames, into the idle bubble at src 2440)",
    "events": "videos/capture/sc_gremlin_lab.events.json",
    "layout_json": "videos/capture/sc_gremlin_lab.layout.json"
   },
   {
-   "id": "S022",
-   "shot": "sc_threshold",
-   "src": "videos/capture/sc_threshold.mkv",
+   "id": "S024",
+   "shot": "sc_night_shift",
+   "src": "videos/capture/sc_night_shift.mkv",
    "src_kind": "alias",
-   "start": 7464,
-   "dur": 738,
-   "in": 90,
+   "start": 7354,
+   "dur": 480,
+   "in": 230,
    "speed": 1,
-   "grade": "day",
+   "grade": "night",
    "transition": {
     "type": "cut"
    },
    "flags": {},
    "section": "labs",
    "cues": [],
-   "events": "videos/capture/sc_threshold.events.json",
-   "layout_json": "videos/capture/sc_threshold.layout.json"
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "linear"
+    },
+    {
+     "f": 480,
+     "z": 1.05,
+     "cx": 1.0,
+     "cy": 1.0,
+     "ease": "inout"
+    }
+   ],
+   "note": "Night Shift endless mode (4K): night-1 starts 255",
+   "events": "videos/capture/sc_night_shift.events.json",
+   "layout_json": "videos/capture/sc_night_shift.layout.json"
   },
   {
-   "id": "S023",
+   "id": "S025",
+   "shot": "sc_threshold_4k",
+   "src": "videos/capture/sc_threshold_4k.mkv",
+   "src_kind": "alias",
+   "start": 7834,
+   "dur": 618,
+   "in": 60,
+   "speed": 1,
+   "grade": "none",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "labs",
+   "cues": [],
+   "note": "Night Shift Lab (4K): chart opens 66, the curve reaches p = 1/2 at 288",
+   "events": "videos/capture/sc_threshold_4k.events.json",
+   "layout_json": "videos/capture/sc_threshold_4k.layout.json",
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 0.5,
+     "cy": 0.5023,
+     "ease": "linear"
+    },
+    {
+     "f": 68,
+     "z": 1.0085,
+     "cx": 0.5,
+     "cy": 0.5023,
+     "ease": "linear"
+    },
+    {
+     "f": 228,
+     "z": 1.6,
+     "cx": 0.5,
+     "cy": 0.5023,
+     "ease": "inout"
+    },
+    {
+     "f": 600,
+     "z": 1.536,
+     "cx": 0.5,
+     "cy": 0.5023,
+     "ease": "linear"
+    }
+   ],
+   "focus": {
+    "frame": 228,
+    "z": 1.6,
+    "boxes": {
+     "chart": [
+      682,
+      267,
+      556,
+      551
+     ]
+    },
+    "zfit": 1.779
+   }
+  },
+  {
+   "id": "S026",
    "shot": "sc_codex_tour",
    "src": "videos/capture/sc_codex_tour.mkv",
    "src_kind": "alias",
-   "start": 8184,
-   "dur": 1080,
-   "in": 80,
+   "start": 8434,
+   "dur": 120,
+   "in": 0,
    "speed": 1,
    "grade": "day",
    "transition": {
@@ -504,17 +873,18 @@
    "flags": {},
    "section": "codex",
    "cues": [],
+   "note": "Codex: the collection",
    "events": "videos/capture/sc_codex_tour.events.json",
    "layout_json": "videos/capture/sc_codex_tour.layout.json"
   },
   {
-   "id": "S024",
-   "shot": "sc_card_guide",
-   "src": "videos/capture/sc_card_guide.mkv",
+   "id": "S027",
+   "shot": "sc_codex_tour",
+   "src": "videos/capture/sc_codex_tour.mkv",
    "src_kind": "alias",
-   "start": 9264,
-   "dur": 498,
-   "in": 70,
+   "start": 8554,
+   "dur": 120,
+   "in": 150,
    "speed": 1,
    "grade": "day",
    "transition": {
@@ -523,19 +893,140 @@
    "flags": {},
    "section": "codex",
    "cues": [],
+   "note": "Codex: Flipper",
+   "events": "videos/capture/sc_codex_tour.events.json",
+   "layout_json": "videos/capture/sc_codex_tour.layout.json"
+  },
+  {
+   "id": "S028",
+   "shot": "sc_codex_tour",
+   "src": "videos/capture/sc_codex_tour.mkv",
+   "src_kind": "alias",
+   "start": 8674,
+   "dur": 480,
+   "in": 500,
+   "speed": 1,
+   "grade": "day",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "codex",
+   "cues": [],
+   "note": "Codex: the Qubble, its 3D Bloch sphere dragged, then Measure (770)",
+   "events": "videos/capture/sc_codex_tour.events.json",
+   "layout_json": "videos/capture/sc_codex_tour.layout.json",
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 0.5,
+     "cy": 0.4464,
+     "ease": "linear"
+    },
+    {
+     "f": 180,
+     "z": 1.0225,
+     "cx": 0.5,
+     "cy": 0.4464,
+     "ease": "linear"
+    },
+    {
+     "f": 270,
+     "z": 1.12,
+     "cx": 0.5,
+     "cy": 0.4464,
+     "ease": "inout"
+    },
+    {
+     "f": 480,
+     "z": 1.0752,
+     "cx": 0.5,
+     "cy": 0.4464,
+     "ease": "linear"
+    }
+   ],
+   "focus": {
+    "frame": 270,
+    "z": 1.12,
+    "boxes": {
+     "card": [
+      580,
+      140,
+      760,
+      560
+     ]
+    },
+    "zfit": 1.753
+   }
+  },
+  {
+   "id": "S029",
+   "shot": "sc_card_guide",
+   "src": "videos/capture/sc_card_guide.mkv",
+   "src_kind": "alias",
+   "start": 9154,
+   "dur": 170,
+   "in": 0,
+   "speed": 1,
+   "grade": "day",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "codex",
+   "cues": [],
+   "note": "the Card Guide overview (all 12 cards); its IF page is NOT used (pg_if_anatomy is)",
    "events": "videos/capture/sc_card_guide.events.json",
    "layout_json": "videos/capture/sc_card_guide.layout.json"
   },
   {
-   "id": "S025",
-   "shot": "sc_notebook",
-   "src": "videos/capture/sc_notebook.mkv",
+   "id": "S030",
+   "shot": "pg_if_anatomy",
+   "src": "videos/capture/pg_if_anatomy.mkv",
    "src_kind": "alias",
-   "start": 9744,
-   "dur": 960,
-   "in": 380,
+   "start": 9324,
+   "dur": 344,
+   "in": 76,
    "speed": 1,
    "grade": "day",
+   "transition": {
+    "type": "cut"
+   },
+   "flags": {},
+   "section": "codex",
+   "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.6,
+     "cx": 0.484,
+     "cy": 0.352,
+     "ease": "linear"
+    },
+    {
+     "f": 326,
+     "z": 1.75,
+     "cx": 0.484,
+     "cy": 0.352,
+     "ease": "inout"
+    }
+   ],
+   "note": "4K: the IF card anatomy (the trailer used src 76-172 for 1 beat; here the whole page)",
+   "card_focus": true,
+   "events": "videos/capture/pg_if_anatomy.events.json",
+   "layout_json": "videos/capture/pg_if_anatomy.layout.json"
+  },
+  {
+   "id": "S031",
+   "shot": "sc_notebook_4k",
+   "src": "videos/capture/sc_notebook_4k.mkv",
+   "src_kind": "alias",
+   "start": 9650,
+   "dur": 974,
+   "in": 318,
+   "speed": 1,
+   "grade": "none",
    "transition": {
     "type": "blanket-wipe",
     "frames": 18,
@@ -548,17 +1039,136 @@
    "flags": {},
    "section": "notebook",
    "cues": [],
-   "events": "videos/capture/sc_notebook.events.json",
-   "layout_json": "videos/capture/sc_notebook.layout.json"
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 0.3125,
+     "cy": 0.3426,
+     "ease": "linear"
+    },
+    {
+     "f": 10,
+     "z": 1.0012,
+     "cx": 0.3125,
+     "cy": 0.3426,
+     "ease": "linear"
+    },
+    {
+     "f": 120,
+     "z": 1.6,
+     "cx": 0.3125,
+     "cy": 0.3426,
+     "ease": "inout"
+    },
+    {
+     "f": 956,
+     "z": 1.536,
+     "cx": 0.3125,
+     "cy": 0.3426,
+     "ease": "linear"
+    }
+   ],
+   "note": "Schr\u00f6di's Lab Notebook (4K): state vector 330, Bloch 612, circuit 894, stabilizers 1236; ends before the toast at 1302; the room is in X-ray",
+   "events": "videos/capture/sc_notebook_4k.events.json",
+   "layout_json": "videos/capture/sc_notebook_4k.layout.json",
+   "focus": {
+    "frame": 120,
+    "z": 1.6,
+    "boxes": {
+     "page": [
+      0,
+      70,
+      300,
+      600
+     ]
+    },
+    "zfit": 1.646
+   }
   },
   {
-   "id": "S026",
-   "shot": "sc_qol_grid",
-   "src": "videos/capture/sc_qol_grid.mkv",
+   "id": "S032",
+   "shot": "pg_step_scrub",
+   "src": "videos/capture/pg_step_scrub.mkv",
    "src_kind": "alias",
-   "start": 10704,
-   "dur": 900,
-   "in": 80,
+   "start": 10606,
+   "dur": 332,
+   "in": 1110,
+   "speed": 1,
+   "grade": "day",
+   "transition": {
+    "type": "blanket-wipe",
+    "frames": 18,
+    "matte": "videos/motion/blanket_wipe_reveal.mkv",
+    "overlay": {
+     "fill": "videos/motion/blanket_wipe_fill.mkv",
+     "matte": "videos/motion/blanket_wipe_matte.mkv"
+    }
+   },
+   "flags": {},
+   "section": "qol",
+   "cues": [],
+   "note": "step mode: through the gates to the measurement snap (4K)",
+   "events": "videos/capture/pg_step_scrub.events.json",
+   "layout_json": "videos/capture/pg_step_scrub.layout.json",
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 0.6805,
+     "cy": 0.3195,
+     "ease": "linear"
+    },
+    {
+     "f": 71,
+     "z": 1.0089,
+     "cx": 0.6805,
+     "cy": 0.3195,
+     "ease": "linear"
+    },
+    {
+     "f": 271,
+     "z": 1.565,
+     "cx": 0.6805,
+     "cy": 0.3195,
+     "ease": "inout"
+    },
+    {
+     "f": 332,
+     "z": 1.5024,
+     "cx": 0.6805,
+     "cy": 0.3195,
+     "ease": "linear"
+    }
+   ],
+   "focus": {
+    "frame": 271,
+    "z": 1.565,
+    "boxes": {
+     "card": [
+      1648,
+      316,
+      262,
+      40
+     ],
+     "toast": [
+      739,
+      77,
+      443,
+      41
+     ]
+    },
+    "zfit": 1.565
+   }
+  },
+  {
+   "id": "S033",
+   "shot": "sc_qol4",
+   "src": "videos/final/work/precomp/sc_qol4.mkv",
+   "src_kind": "precomp",
+   "start": 10938,
+   "dur": 600,
+   "in": 0,
    "speed": 1,
    "grade": "none",
    "transition": {
@@ -567,15 +1177,14 @@
    "flags": {},
    "section": "qol",
    "cues": [],
-   "events": "videos/capture/sc_qol_grid.events.json",
-   "layout_json": "videos/capture/sc_qol_grid.layout.json"
+   "note": "precomp sc_qol4: snippets | win-card links (Qiskit / IBM Quantum Learning) | help slot | Export to Qiskit"
   },
   {
-   "id": "S027",
+   "id": "S034",
    "shot": "sc_save_joke",
    "src": "videos/capture/sc_save_joke.mkv",
    "src_kind": "alias",
-   "start": 11604,
+   "start": 11538,
    "dur": 288,
    "in": 0,
    "speed": 1,
@@ -586,17 +1195,33 @@
    "flags": {},
    "section": "qol",
    "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 0.62,
+     "cy": 0.62,
+     "ease": "linear"
+    },
+    {
+     "f": 270,
+     "z": 1.12,
+     "cx": 0.62,
+     "cy": 0.62,
+     "ease": "inout"
+    }
+   ],
    "events": "videos/capture/sc_save_joke.events.json",
    "layout_json": "videos/capture/sc_save_joke.layout.json"
   },
   {
-   "id": "S028",
+   "id": "S035",
    "shot": "sc_curtain_call",
    "src": "videos/capture/sc_curtain_call.mkv",
    "src_kind": "alias",
-   "start": 11874,
-   "dur": 840,
-   "in": 40,
+   "start": 11808,
+   "dur": 480,
+   "in": 0,
    "speed": 1,
    "grade": "day",
    "transition": {
@@ -611,15 +1236,31 @@
    "flags": {},
    "section": "credits",
    "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 0.35,
+     "cy": 0.55,
+     "ease": "linear"
+    },
+    {
+     "f": 480,
+     "z": 1.1,
+     "cx": 0.35,
+     "cy": 0.55,
+     "ease": "inout"
+    }
+   ],
    "events": "videos/capture/sc_curtain_call.events.json",
    "layout_json": "videos/capture/sc_curtain_call.layout.json"
   },
   {
-   "id": "S029",
+   "id": "S036",
    "shot": "card_justagame",
    "src": "videos/motion/card_justagame.mkv",
    "src_kind": "motion",
-   "start": 12714,
+   "start": 12288,
    "dur": 192,
    "in": 0,
    "speed": 1,
@@ -632,12 +1273,12 @@
    "cues": []
   },
   {
-   "id": "S030",
+   "id": "S037",
    "shot": "mo_circuit_morph",
    "src": "videos/motion/mo_circuit_morph.mkv",
    "src_kind": "alias",
-   "start": 12906,
-   "dur": 372,
+   "start": 12480,
+   "dur": 420,
    "in": 0,
    "speed": 1,
    "grade": "none",
@@ -649,18 +1290,18 @@
    "cues": [
     {
      "name": "snap",
-     "frame": 12906,
+     "frame": 12480,
      "kind": "design"
     }
    ]
   },
   {
-   "id": "S031",
+   "id": "S038",
    "shot": "mo_end_card",
    "src": "videos/motion/mo_end_card.mkv",
    "src_kind": "alias",
-   "start": 13278,
-   "dur": 300,
+   "start": 12900,
+   "dur": 360,
    "in": 0,
    "speed": 1,
    "grade": "none",
@@ -675,243 +1316,1227 @@
  "captions": [
   {
    "id": "cap01",
-   "text": "Sixteen levels. Every solution verified.",
-   "start": 18,
-   "end": 294,
-   "legible_from": 42,
+   "text": "Sixteen levels, from a majority vote to Shor's 9-qubit code.",
+   "start": 12,
+   "end": 292,
+   "legible_from": 36,
    "position": "strip",
    "style": "strip",
-   "render": "template",
-   "line": "Sixteen levels. Every solution verified.",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_matte.mkv",
+    "in": 0,
+    "frames": 30,
+    "fade_out": 8
+   },
+   "line": "Sixteen levels, from a majority vote to Shor's 9-qubit code.",
    "gloss": null,
    "gloss2": null
   },
   {
    "id": "cap02",
-   "text": "The dream map",
-   "start": 690,
-   "end": 1010,
-   "legible_from": 714,
+   "text": "Even the title collapses if you look at it.",
+   "start": 312,
+   "end": 592,
+   "legible_from": 336,
    "position": "strip",
    "style": "strip",
-   "render": "template",
-   "line": "The dream map",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_matte.mkv",
+    "in": 40,
+    "frames": 70,
+    "fade_out": 8
+   },
+   "line": "Even the title collapses if you look at it.",
    "gloss": null,
    "gloss2": null
   },
   {
    "id": "cap03",
-   "text": "1-1  Dont Wake Them = measurement",
-   "start": 1040,
-   "end": 1728,
-   "legible_from": 1064,
+   "text": "The dream map: five chapters, Day Shift to The Big Nine.",
+   "start": 612,
+   "end": 928,
+   "legible_from": 636,
    "position": "strip",
    "style": "strip",
-   "render": "template",
-   "line": "1-1  Dont Wake Them",
-   "gloss": "= measurement",
-   "gloss2": null
-  },
-  {
-   "id": "cap04",
-   "text": "You can't copy a dream. = no-cloning",
-   "start": 1760,
-   "end": 2210,
-   "legible_from": 1784,
-   "position": "strip",
-   "style": "strip",
-   "render": "template",
-   "line": "You can't copy a dream.",
-   "gloss": "= no-cloning",
-   "gloss2": null
-  },
-  {
-   "id": "cap05",
-   "text": "2-3  Who Got Flipped? = syndrome decoding",
-   "start": 2384,
-   "end": 3192,
-   "legible_from": 2408,
-   "position": "strip",
-   "style": "strip",
-   "render": "template",
-   "line": "2-3  Who Got Flipped?",
-   "gloss": "= syndrome decoding",
-   "gloss2": null
-  },
-  {
-   "id": "cap06",
-   "text": "The map flips",
-   "start": 3224,
-   "end": 3674,
-   "legible_from": 3248,
-   "position": "strip",
-   "style": "strip",
-   "render": "template",
-   "line": "The map flips",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_matte.mkv",
+    "in": 80,
+    "frames": 110,
+    "fade_out": 8
+   },
+   "line": "The dream map: five chapters, Day Shift to The Big Nine.",
    "gloss": null,
    "gloss2": null
   },
   {
-   "id": "cap07",
-   "text": "3-1  Somethings Off = phase flips",
-   "start": 3848,
-   "end": 4536,
-   "legible_from": 3872,
+   "id": "tag_lv1-1",
+   "text": "Ch 1 \u00b7 1-1",
+   "start": 990,
+   "end": 1541,
+   "legible_from": 1002,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_lv1-1_fill.mkv",
+    "matte": "videos/motion/level_tag_lv1-1_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
+  },
+  {
+   "id": "cap04",
+   "text": "= your program, tested against every single flip",
+   "start": 1068,
+   "end": 1306,
+   "legible_from": 1092,
    "position": "strip",
    "style": "strip",
-   "render": "template",
-   "line": "3-1  Somethings Off",
-   "gloss": "= phase flips",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_matte.mkv",
+    "in": 120,
+    "frames": 150,
+    "fade_out": 8
+   },
+   "line": null,
+   "gloss": "= your program, tested against every single flip",
+   "gloss2": null
+  },
+  {
+   "id": "cap05",
+   "text": "= measurement collapses a superposition",
+   "start": 1308,
+   "end": 1533,
+   "legible_from": 1332,
+   "position": "strip",
+   "style": "strip",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_matte.mkv",
+    "in": 160,
+    "frames": 190,
+    "fade_out": 8
+   },
+   "line": null,
+   "gloss": "= measurement collapses a superposition",
+   "gloss2": null
+  },
+  {
+   "id": "tag_lv1-3",
+   "text": "1-3  The Photocopier",
+   "start": 1541,
+   "end": 1961,
+   "legible_from": 1553,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_lv1-3_fill.mkv",
+    "matte": "videos/motion/level_tag_lv1-3_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
+  },
+  {
+   "id": "cap06",
+   "text": "= no-cloning: a dream can't be copied",
+   "start": 1571,
+   "end": 1953,
+   "legible_from": 1595,
+   "position": "strip",
+   "style": "strip",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_matte.mkv",
+    "in": 200,
+    "frames": 230,
+    "fade_out": 8
+   },
+   "line": null,
+   "gloss": "= no-cloning: a dream can't be copied",
+   "gloss2": null
+  },
+  {
+   "id": "tag_lv0-1",
+   "text": "0-1  Good Morning \u2713",
+   "start": 1976,
+   "end": 2019,
+   "legible_from": 1988,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_lv0-1_fill.mkv",
+    "matte": "videos/motion/level_tag_lv0-1_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
+  },
+  {
+   "id": "tag_lv0-2",
+   "text": "0-2  Threes a Crowd \u2713",
+   "start": 2019,
+   "end": 2062,
+   "legible_from": 2031,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_lv0-2_fill.mkv",
+    "matte": "videos/motion/level_tag_lv0-2_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
+  },
+  {
+   "id": "tag_lv1-2",
+   "text": "1-2  Twirl \u2713",
+   "start": 2062,
+   "end": 2105,
+   "legible_from": 2074,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_lv1-2_fill.mkv",
+    "matte": "videos/motion/level_tag_lv1-2_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
+  },
+  {
+   "id": "tag_lv1-4",
+   "text": "1-4  Twin Dreams \u2713",
+   "start": 2105,
+   "end": 2148,
+   "legible_from": 2117,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_lv1-4_fill.mkv",
+    "matte": "videos/motion/level_tag_lv1-4_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
+  },
+  {
+   "id": "tag_lv2-3",
+   "text": "Ch 2 \u00b7 2-3",
+   "start": 2202,
+   "end": 2688,
+   "legible_from": 2214,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_lv2-3_fill.mkv",
+    "matte": "videos/motion/level_tag_lv2-3_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
+  },
+  {
+   "id": "cap07",
+   "text": "= syndrome decoding",
+   "start": 2280,
+   "end": 2508,
+   "legible_from": 2304,
+   "position": "strip",
+   "style": "strip",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_matte.mkv",
+    "in": 240,
+    "frames": 270,
+    "fade_out": 8
+   },
+   "line": null,
+   "gloss": "= syndrome decoding",
    "gloss2": null
   },
   {
    "id": "cap08",
-   "text": "3-3  Wobbles = small rotations get caught too",
-   "start": 4568,
-   "end": 5256,
-   "legible_from": 4592,
+   "text": "Flipper got into the dream map. Its own bots point to the room.",
+   "start": 2700,
+   "end": 2983,
+   "legible_from": 2724,
    "position": "strip",
    "style": "strip",
-   "render": "template",
-   "line": "3-3  Wobbles",
-   "gloss": "= small rotations get caught too",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_matte.mkv",
+    "in": 280,
+    "frames": 310,
+    "fade_out": 8
+   },
+   "line": "Flipper got into the dream map. Its own bots point to the room.",
+   "gloss": null,
    "gloss2": null
+  },
+  {
+   "id": "tag_lv2-1",
+   "text": "2-1  Do You Match? \u2713",
+   "start": 3133,
+   "end": 3176,
+   "legible_from": 3145,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_lv2-1_fill.mkv",
+    "matte": "videos/motion/level_tag_lv2-1_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
+  },
+  {
+   "id": "tag_lv2-2",
+   "text": "2-2  Tuck In \u2713",
+   "start": 3176,
+   "end": 3219,
+   "legible_from": 3188,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_lv2-2_fill.mkv",
+    "matte": "videos/motion/level_tag_lv2-2_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
+  },
+  {
+   "id": "tag_lv2-4",
+   "text": "2-4  Budget Cuts \u2713",
+   "start": 3219,
+   "end": 3262,
+   "legible_from": 3231,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_lv2-4_fill.mkv",
+    "matte": "videos/motion/level_tag_lv2-4_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
+  },
+  {
+   "id": "tag_lv2-5",
+   "text": "2-5  Double Trouble \u2713",
+   "start": 3262,
+   "end": 3305,
+   "legible_from": 3274,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_lv2-5_fill.mkv",
+    "matte": "videos/motion/level_tag_lv2-5_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
+  },
+  {
+   "id": "tag_lv3-1",
+   "text": "Ch 3 \u00b7 3-1",
+   "start": 3359,
+   "end": 3959,
+   "legible_from": 3371,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_lv3-1_fill.mkv",
+    "matte": "videos/motion/level_tag_lv3-1_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
   },
   {
    "id": "cap09",
-   "text": "4-1  Nesting Dolls = the Shor 9-qubit code",
-   "start": 5324,
-   "end": 6012,
-   "legible_from": 5348,
+   "text": "= phase-flip code (Hadamard basis)",
+   "start": 3437,
+   "end": 3779,
+   "legible_from": 3461,
    "position": "strip",
    "style": "strip",
-   "render": "template",
-   "line": "4-1  Nesting Dolls",
-   "gloss": "= the Shor 9-qubit code",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_matte.mkv",
+    "in": 320,
+    "frames": 350,
+    "fade_out": 8
+   },
+   "line": null,
+   "gloss": "= phase-flip code (Hadamard basis)",
    "gloss2": null
   },
   {
+   "id": "tag_lv3-3",
+   "text": "Ch 3 \u00b7 3-3  Wobbles",
+   "start": 3959,
+   "end": 4633,
+   "legible_from": 3971,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_lv3-3_fill.mkv",
+    "matte": "videos/motion/level_tag_lv3-3_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
+  },
+  {
    "id": "cap10",
-   "text": "Lights Out: solve it by ear",
-   "start": 6044,
-   "end": 6614,
-   "legible_from": 6068,
+   "text": "Wobbles only half-flips a Qubble\u2026",
+   "start": 3971,
+   "end": 4299,
+   "legible_from": 3995,
    "position": "strip",
    "style": "strip",
-   "render": "template",
-   "line": "Lights Out: solve it by ear",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_matte.mkv",
+    "in": 360,
+    "frames": 390,
+    "fade_out": 8
+   },
+   "line": "Wobbles only half-flips a Qubble\u2026",
    "gloss": null,
    "gloss2": null
   },
   {
    "id": "cap11",
-   "text": "Gremlin Lab and Night Shift: your code against random gremlins",
-   "start": 6654,
-   "end": 7454,
-   "legible_from": 6678,
+   "text": "\u2026LISTEN snaps it to all-or-nothing. Tonight: nothing to fix. = error discretization",
+   "start": 4303,
+   "end": 4625,
+   "legible_from": 4327,
    "position": "strip",
    "style": "strip",
-   "render": "template",
-   "line": "Gremlin Lab and Night Shift: your code against random gremlins",
-   "gloss": null,
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_matte.mkv",
+    "in": 400,
+    "frames": 430,
+    "fade_out": 8
+   },
+   "line": "\u2026LISTEN snaps it to all-or-nothing. Tonight: nothing to fix.",
+   "gloss": "= error discretization",
    "gloss2": null
+  },
+  {
+   "id": "tag_lv3-2",
+   "text": "3-2  Sideways Glasses \u2713",
+   "start": 4633,
+   "end": 4676,
+   "legible_from": 4645,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_lv3-2_fill.mkv",
+    "matte": "videos/motion/level_tag_lv3-2_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
+  },
+  {
+   "id": "tag_lv4-1r",
+   "text": "Ch 4 \u00b7 4-1",
+   "start": 4730,
+   "end": 5326,
+   "legible_from": 4742,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_lv4-1r_fill.mkv",
+    "matte": "videos/motion/level_tag_lv4-1r_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
   },
   {
    "id": "cap12",
-   "text": "Codes only help when noise is rare: below p = \u00bd = threshold",
-   "start": 7484,
-   "end": 8174,
-   "legible_from": 7508,
+   "text": "Nine Qubbles, eight bots: any single error, found and fixed blind. = Shor code",
+   "start": 4736,
+   "end": 5318,
+   "legible_from": 4760,
    "position": "strip",
    "style": "strip",
-   "render": "template",
-   "line": "Codes only help when noise is rare: below p = \u00bd",
-   "gloss": "= threshold",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_matte.mkv",
+    "in": 440,
+    "frames": 470,
+    "fade_out": 8
+   },
+   "line": "Nine Qubbles, eight bots: any single error, found and fixed blind.",
+   "gloss": "= Shor code",
    "gloss2": null
+  },
+  {
+   "id": "tag_lv4-1",
+   "text": "4-1  Nesting Dolls \u2713",
+   "start": 5326,
+   "end": 5992,
+   "legible_from": 5338,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_lv4-1_fill.mkv",
+    "matte": "videos/motion/level_tag_lv4-1_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
   },
   {
    "id": "cap13",
-   "text": "The Codex: everything you meet, collected",
-   "start": 8214,
-   "end": 9254,
-   "legible_from": 8238,
+   "text": "= Shor's 9-qubit code: any single-Qubble error, fixed blind",
+   "start": 5386,
+   "end": 5842,
+   "legible_from": 5410,
    "position": "strip",
    "style": "strip",
-   "render": "template",
-   "line": "The Codex: everything you meet, collected",
-   "gloss": null,
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_matte.mkv",
+    "in": 480,
+    "frames": 510,
+    "fade_out": 8
+   },
+   "line": null,
+   "gloss": "= Shor's 9-qubit code: any single-Qubble error, fixed blind",
    "gloss2": null
+  },
+  {
+   "id": "tag_lv4-2",
+   "text": "4-2  Lights Out",
+   "start": 5992,
+   "end": 6574,
+   "legible_from": 6004,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_lv4-2_fill.mkv",
+    "matte": "videos/motion/level_tag_lv4-2_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
   },
   {
    "id": "cap14",
-   "text": "Card Guide: every card explained",
-   "start": 9284,
-   "end": 9734,
-   "legible_from": 9308,
+   "text": "Lights Out: the last level is solved by ear.",
+   "start": 6004,
+   "end": 6545,
+   "legible_from": 6028,
    "position": "strip",
    "style": "strip",
-   "render": "template",
-   "line": "Card Guide: every card explained",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_matte.mkv",
+    "in": 520,
+    "frames": 550,
+    "fade_out": 8
+   },
+   "line": "Lights Out: the last level is solved by ear.",
    "gloss": null,
    "gloss2": null
+  },
+  {
+   "id": "tag_lab",
+   "text": "Gremlin Lab",
+   "start": 6574,
+   "end": 7354,
+   "legible_from": 6586,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_lab_fill.mkv",
+    "matte": "videos/motion/level_tag_lab_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
+  },
+  {
+   "id": "tag_xray_1",
+   "text": "X-ray \u00b7 simulator view",
+   "start": 6574,
+   "end": 7354,
+   "legible_from": 6588,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/final/work/motion_ext/tag_xray_alpha_fill.mkv",
+    "matte": "videos/final/work/motion_ext/tag_xray_alpha_matte.mkv",
+    "in": 0,
+    "frames": 96,
+    "hold": true,
+    "rect": [
+     -469.8,
+     777.7,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
   },
   {
    "id": "cap15",
-   "text": "Schr\u00f6di's Lab Notebook: the real maths behind each night",
-   "start": 9774,
-   "end": 10694,
-   "legible_from": 9798,
+   "text": "Gremlin Lab: a sandbox with X-ray always on. Break things on purpose.",
+   "start": 6598,
+   "end": 7346,
+   "legible_from": 6622,
    "position": "strip",
    "style": "strip",
-   "render": "template",
-   "line": "Schr\u00f6di's Lab Notebook: the real maths behind each night",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_matte.mkv",
+    "in": 0,
+    "frames": 30,
+    "fade_out": 8
+   },
+   "line": "Gremlin Lab: a sandbox with X-ray always on. Break things on purpose.",
    "gloss": null,
    "gloss2": null
+  },
+  {
+   "id": "tag_nightshift",
+   "text": "Night Shift mode",
+   "start": 7354,
+   "end": 7834,
+   "legible_from": 7366,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_nightshift_fill.mkv",
+    "matte": "videos/motion/level_tag_nightshift_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
   },
   {
    "id": "cap16",
-   "text": "Snippets \u00b7 help slot \u00b7 step mode \u00b7 timeline",
-   "start": 10724,
-   "end": 11594,
-   "legible_from": 10748,
+   "text": "Night Shift mode: endless, randomly generated nights.",
+   "start": 7366,
+   "end": 7826,
+   "legible_from": 7390,
    "position": "strip",
    "style": "strip",
-   "render": "template",
-   "line": "Snippets \u00b7 help slot \u00b7 step mode \u00b7 timeline",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_matte.mkv",
+    "in": 40,
+    "frames": 70,
+    "fade_out": 8
+   },
+   "line": "Night Shift mode: endless, randomly generated nights.",
    "gloss": null,
    "gloss2": null
+  },
+  {
+   "id": "tag_nightlab",
+   "text": "Night Shift Lab",
+   "start": 7834,
+   "end": 8434,
+   "legible_from": 7846,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_nightlab_fill.mkv",
+    "matte": "videos/motion/level_tag_nightlab_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
   },
   {
    "id": "cap17",
-   "text": "Your save data has a 3-qubit repetition code \u2713",
-   "start": 11624,
-   "end": 11864,
-   "legible_from": 11648,
+   "text": "A code only helps when gremlins are rare: three Qubbles beat one only below p = \u00bd.",
+   "start": 7864,
+   "end": 8426,
+   "legible_from": 7888,
    "position": "strip",
    "style": "strip",
-   "render": "template",
-   "line": "Your save data has a 3-qubit repetition code \u2713",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_matte.mkv",
+    "in": 80,
+    "frames": 110,
+    "fade_out": 8
+   },
+   "line": "A code only helps when gremlins are rare: three Qubbles beat one only below p = \u00bd.",
    "gloss": null,
    "gloss2": null
   },
   {
-   "id": "cap18",
-   "text": "It's just a game\u2026",
-   "start": 12714,
-   "end": 12906,
-   "legible_from": 12747,
+   "id": "tag_codex",
+   "text": "The Codex",
+   "start": 8452,
+   "end": 9154,
+   "legible_from": 8464,
    "position": "baked",
    "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_codex_fill.mkv",
+    "matte": "videos/motion/level_tag_codex_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
+  },
+  {
+   "id": "cap18",
+   "text": "The Codex: every character, gremlin and card, and what it means in real life.",
+   "start": 8458,
+   "end": 8766,
+   "legible_from": 8482,
+   "position": "strip",
+   "style": "strip",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_matte.mkv",
+    "in": 120,
+    "frames": 150,
+    "fade_out": 8
+   },
+   "line": "The Codex: every character, gremlin and card, and what it means in real life.",
+   "gloss": null,
+   "gloss2": null
+  },
+  {
+   "id": "cap19",
+   "text": "= Bloch sphere: move the dream, then measure it",
+   "start": 8768,
+   "end": 9146,
+   "legible_from": 8792,
+   "position": "strip",
+   "style": "strip",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_matte.mkv",
+    "in": 160,
+    "frames": 190,
+    "fade_out": 8
+   },
+   "line": null,
+   "gloss": "= Bloch sphere: move the dream, then measure it",
+   "gloss2": null
+  },
+  {
+   "id": "tag_guide",
+   "text": "Card Guide",
+   "start": 9154,
+   "end": 9744,
+   "legible_from": 9166,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_guide_fill.mkv",
+    "matte": "videos/motion/level_tag_guide_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
+  },
+  {
+   "id": "cap20",
+   "text": "Every card has a guide. IF reads the bots' answers and jumps: real classical feed-forward.",
+   "start": 9166,
+   "end": 9642,
+   "legible_from": 9190,
+   "position": "strip",
+   "style": "strip",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_matte.mkv",
+    "in": 200,
+    "frames": 230,
+    "fade_out": 8
+   },
+   "line": "Every card has a guide. IF reads the bots' answers and jumps: real classical feed-forward.",
+   "gloss": null,
+   "gloss2": null
+  },
+  {
+   "id": "tag_notebook",
+   "text": "Schrodi's Lab Notebook",
+   "start": 9668,
+   "end": 10606,
+   "legible_from": 9680,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_notebook_fill.mkv",
+    "matte": "videos/motion/level_tag_notebook_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
+  },
+  {
+   "id": "tag_xray_2",
+   "text": "X-ray \u00b7 simulator view",
+   "start": 9668,
+   "end": 10606,
+   "legible_from": 9682,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/final/work/motion_ext/tag_xray_alpha_fill.mkv",
+    "matte": "videos/final/work/motion_ext/tag_xray_alpha_matte.mkv",
+    "in": 0,
+    "frames": 96,
+    "hold": true,
+    "rect": [
+     -205.8,
+     777.7,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
+  },
+  {
+   "id": "cap21",
+   "text": "= Nerd mode: state vector \u00b7 Bloch spheres \u00b7 circuit \u00b7 stabilizers",
+   "start": 9674,
+   "end": 10598,
+   "legible_from": 9698,
+   "position": "strip",
+   "style": "strip",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_matte.mkv",
+    "in": 240,
+    "frames": 270,
+    "fade_out": 8
+   },
+   "line": null,
+   "gloss": "= Nerd mode: state vector \u00b7 Bloch spheres \u00b7 circuit \u00b7 stabilizers",
+   "gloss2": null
+  },
+  {
+   "id": "cap22",
+   "text": "Rewind the night: gates run backwards, a measurement is a one-way door.",
+   "start": 10622,
+   "end": 10930,
+   "legible_from": 10646,
+   "position": "strip",
+   "style": "strip",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_matte.mkv",
+    "in": 280,
+    "frames": 310,
+    "fade_out": 8
+   },
+   "line": "Rewind the night: gates run backwards, a measurement is a one-way door.",
+   "gloss": null,
+   "gloss2": null
+  },
+  {
+   "id": "tag_stepmode",
+   "text": "Step mode",
+   "start": 10624,
+   "end": 10938,
+   "legible_from": 10636,
+   "position": "baked",
+   "style": "night",
+   "label": true,
+   "render": {
+    "fill": "videos/motion/level_tag_stepmode_fill.mkv",
+    "matte": "videos/motion/level_tag_stepmode_matte.mkv",
+    "in": 0,
+    "hold": true,
+    "rect": [
+     115.2,
+     0.0,
+     1689.6,
+     950.4
+    ],
+    "shadow": {
+     "dilate": 14,
+     "sigma": 6,
+     "gain": 4.0,
+     "opacity": 0.85
+    }
+   }
+  },
+  {
+   "id": "cap23",
+   "text": "Write it like real code: snippets, comments, help, Export to Qiskit.",
+   "start": 10962,
+   "end": 11530,
+   "legible_from": 10986,
+   "position": "strip",
+   "style": "strip",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_matte.mkv",
+    "in": 320,
+    "frames": 350,
+    "fade_out": 8
+   },
+   "line": "Write it like real code: snippets, comments, help, Export to Qiskit.",
+   "gloss": null,
+   "gloss2": null
+  },
+  {
+   "id": "cap24",
+   "text": "Even your save file is error-corrected: three copies, majority vote.",
+   "start": 11544,
+   "end": 11830,
+   "legible_from": 11568,
+   "position": "strip",
+   "style": "strip",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_matte.mkv",
+    "in": 360,
+    "frames": 390,
+    "fade_out": 8
+   },
+   "line": "Even your save file is error-corrected: three copies, majority vote.",
+   "gloss": null,
+   "gloss2": null
+  },
+  {
+   "id": "cap25",
+   "text": "Judges: Settings \u2192 Unlock all content.",
+   "start": 11832,
+   "end": 12046,
+   "legible_from": 11856,
+   "position": "strip",
+   "style": "strip",
+   "render": {
+    "fill": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_fill.mkv",
+    "matte": "videos/final/work/motion_ext/captions_showcase_1_9766a24580_matte.mkv",
+    "in": 400,
+    "frames": 430,
+    "fade_out": 8
+   },
+   "line": "Judges: Settings \u2192 Unlock all content.",
+   "gloss": null,
+   "gloss2": null
+  },
+  {
+   "id": "cap26",
+   "text": "It's just a game\u2026",
+   "start": 12298,
+   "end": 12480,
+   "legible_from": 12321,
+   "position": "baked",
+   "style": "day",
    "render": {
     "baked": "card_justagame"
    }
   },
   {
-   "id": "cap19",
+   "id": "cap27",
    "text": "\u2026where you accidentally learned quantum error correction.",
-   "start": 13002,
-   "end": 13278,
-   "legible_from": 13032,
+   "start": 12542,
+   "end": 12900,
+   "legible_from": 12572,
    "position": "baked",
    "style": "night",
    "render": {
@@ -919,7 +2544,85 @@
    }
   }
  ],
- "overlays": [],
+ "overlays": [
+  {
+   "id": "caption_strip",
+   "start": 0,
+   "dur": 13260,
+   "fill": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_fill.mkv",
+   "matte": "videos/final/work/motion_ext/captions_showcase_0_2025471efc_matte.mkv",
+   "in": 560,
+   "frames": 561
+  },
+  {
+   "id": "split_frame_S017",
+   "fill": "videos/motion/split_frame_fill.mkv",
+   "matte": "videos/motion/split_frame_matte.mkv",
+   "start": 3959,
+   "dur": 674,
+   "frames": 576,
+   "hold": true,
+   "rect": [
+    115.2,
+    0.0,
+    1689.6,
+    950.4
+   ],
+   "note": "REVISED 2 split screen, scaled into the 88% game area"
+  },
+  {
+   "id": "split_frame_S019",
+   "fill": "videos/motion/split_frame_fill.mkv",
+   "matte": "videos/motion/split_frame_matte.mkv",
+   "start": 4676,
+   "dur": 194,
+   "frames": 576,
+   "hold": true,
+   "rect": [
+    115.2,
+    0.0,
+    1689.6,
+    950.4
+   ],
+   "note": "REVISED 2 split screen, scaled into the 88% game area"
+  },
+  {
+   "id": "split_frame_S020",
+   "fill": "videos/motion/split_frame_fill.mkv",
+   "matte": "videos/motion/split_frame_matte.mkv",
+   "start": 4870,
+   "dur": 456,
+   "frames": 576,
+   "hold": true,
+   "rect": [
+    115.2,
+    0.0,
+    1689.6,
+    950.4
+   ],
+   "note": "REVISED 2 split screen, scaled into the 88% game area"
+  },
+  {
+   "id": "sc_pops_3_3",
+   "fill": "videos/motion/sc_pops_3_3_fill.mkv",
+   "matte": "videos/motion/sc_pops_3_3_matte.mkv",
+   "start": 3959,
+   "dur": 674,
+   "frames": 690,
+   "clip": "S017",
+   "note": "card pops + actor rings (final-frame coords; place at clip start, no rect)"
+  },
+  {
+   "id": "sc_pops_4_1",
+   "fill": "videos/motion/sc_pops_4_1_fill.mkv",
+   "matte": "videos/motion/sc_pops_4_1_matte.mkv",
+   "start": 4870,
+   "dur": 456,
+   "frames": 460,
+   "clip": "S020",
+   "note": "card pops + actor rings (final-frame coords; place at clip start, no rect)"
+  }
+ ],
  "fx": [],
  "marks": [],
  "audio": {
@@ -927,7 +2630,31 @@
   "mixreport": "videos/final/work/showcase/mixreport.json",
   "stems": "videos/final/work/showcase/stems"
  },
- "notes": [],
+ "notes": [
+  "sc_pops_3_3: 690 f vs clip S017 674 f",
+  "sc_pops_4_1: 460 f vs clip S020 456 f"
+ ],
  "strip_overlay": true,
- "duration": 13578
+ "program_visible": true,
+ "dark_ranges": [
+  {
+   "start": 5992,
+   "end": 6574,
+   "region": [
+    132.8,
+    70.4,
+    1100.0,
+    792.0
+   ],
+   "ceiling": 40,
+   "clip": "S022",
+   "why": "4-2 Lights Out: the room stays dark (source room mean luma <= 14.4); the program column stays lit"
+  }
+ ],
+ "beat_grid": {
+  "bpm": 84,
+  "first_downbeat_frame": 4.8,
+  "source": "beds.py explainer grid (84 BPM 4/4, 0.08 s)"
+ },
+ "duration": 13260
 }

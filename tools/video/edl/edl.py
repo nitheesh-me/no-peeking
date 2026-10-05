@@ -39,13 +39,14 @@ TRANSITIONS = {
     'shatter': (True, 12),        # A shatters (Motion overlay) to black/B. Trailer only, once.
     'glitch': (True, 6),          # RGB tear A->B. Trailer only, once (the drop).
     'blanket-wipe': (True, 18),   # quilt sweeps A->B. Showcase only.
+    'blanket-title': (True, 72),  # Motion blanket_title: cover 18 / hold 36 with a sewn-on level title / uncover 18. Showcase only.
     'xray-dissolve': (False, 0),  # in-engine, inside the incoming clip: a hard edit + exempt range
     'relight': (False, 0),        # in-engine day->night inside the clip: hard edit + exempt range
 }
 ALLOWED = {
     'trailer': {'cut', 'shatter', 'glitch', 'xray-dissolve', 'relight'},
     'mechanic': {'cut', 'xray-dissolve', 'relight'},
-    'showcase': {'cut', 'xray-dissolve', 'relight', 'blanket-wipe'},
+    'showcase': {'cut', 'xray-dissolve', 'relight', 'blanket-wipe', 'blanket-title'},
 }
 ONCE = {'trailer': {'shatter': 1, 'glitch': 1}}
 FLAGS = ('on_beat', 'intentional_black', 'intentional_flash', 'intentional_hold')
@@ -211,6 +212,29 @@ def game_area(edl, size=None):
         gw = round(W * 0.88)
         return ((W - gw) // 2, 0, gw, gh)
     return (0, 0, W, H)
+
+
+def window_at(win, t):
+    """A split-screen window at clip-local frame t. Optional win['keys'] = [[f, [x, y, w, h]], ...] (normalised
+    source rects) move the source crop over time (e.g. the code window following the lit card); each move eases
+    in-out between consecutive keys. Without keys the window is static (win['src'])."""
+    keys = win.get('keys')
+    if not keys:
+        return win
+    keys = sorted(keys, key=lambda k: k[0])
+    if t <= keys[0][0]:
+        src = keys[0][1]
+    elif t >= keys[-1][0]:
+        src = keys[-1][1]
+    else:
+        for (f0, a), (f1, b) in zip(keys, keys[1:]):
+            if f0 <= t <= f1:
+                u = _ease('inout', (t - f0) / max(1e-9, f1 - f0))
+                src = [x + (y - x) * u for x, y in zip(a, b)]
+                break
+    w = dict(win)
+    w['src'] = list(src)
+    return w
 
 
 def window_boxes(win, src_w, src_h, size_w):

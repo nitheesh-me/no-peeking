@@ -71,17 +71,30 @@ shot('me_threat', { save: judge(['2-2']), hideDialogue: true }, async (s) => {
 });
 
 // 0:38–0:50  Can't copy: 1-3 the photocopier fails (clone glitch) → 1-4 sharing with HIGHFIVE (silk threads in X-ray)
-shot('me_encode', { save: judge(['2-1']) }, async (s) => {
-  // 2-2 "Tuck In": Schrödi's checklist HIGHFIVEs share one dream across three Qubbles (silk threads in X-ray)
+shot('me_encode', { save: judge(['2-1'], { flags: { 'nerd:found': true } }), quietBubbles: true }, async (s) => {
+  // 2-2 "Tuck In": Schrödi's checklist HIGHFIVEs share one dream across three Qubbles (silk threads in X-ray).
+  // Retake: both intro lines are read with nothing over them (the Text modal opens only after line 2 is
+  // dismissed), and the win line gets a ≥ 3.5 s tail. Dialogue boxes stay on (they are the narration);
+  // quietBubbles only drops the idle think-bubble quips in the room.
   await s.placeCursor({ x: 1100, y: 760 });
-  await intro(s, '2-2', { read: 1.4 });
+  await s.goto('#level/2-2', { settle: 0.3 });
+  await s.waitFor('.dialogue', { timeout: 3 });
+  for (let i = 1; i <= 2; i++) {
+    const t = await s.waitForEvent((e) => e.type === 'dialogue_typed', { timeout: 12 });
+    s.mark(`line-${i}-typed`, { eventFrame: t.frame, text: t.text });
+    await s.wait(3.0); // Critic: ≥ 3 s after each line finishes typing
+    await s.click('.dialogue .bubble', { dur: i === 1 ? 0.7 : 0.3 });
+  }
+  await s.waitFor(() => !document.querySelector('.dialogue'), { timeout: 3 });
+  await s.wait(0.5);
   await s.loadProgram(await s.solution('2-2'), { onCamera: true });
   await s.click(XRAY, { dur: 0.6 });
   await s.click(RUN, { dur: 0.6 }); s.mark('run');
   await waitSfx(s, 'highfive', { timeout: 30, mark: 'highfive-1' });
   await waitSfx(s, 'highfive', { timeout: 30, mark: 'highfive-2' }).catch(() => {});
-  await s.wait(2);
-  await pad(s, 780);
+  const w = await s.waitForEvent((e) => e.type === 'dialogue_typed', { timeout: 60 });
+  s.mark('win-line-typed', { eventFrame: w.frame, text: w.text });
+  await s.hold(3.6, 'win-line-read');
 });
 
 // 0:50–1:15  Ask, don't look: 2-1 (~10 s used): a bot HIGHFIVEs two Qubbles, LISTEN → BEEP

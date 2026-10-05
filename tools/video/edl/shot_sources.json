@@ -115,5 +115,193 @@
   "matte": "videos/motion/card_program_alpha_160_matte.mkv",
   "meta": "videos/motion/card_program_alpha_160.json"
  },
- "pg_split_23_xray": "videos/capture/pg_split_23_xray.mkv"
+ "pg_split_23_xray": "videos/capture/pg_split_23_xray.mkv",
+ "pg_split_23_xray_hold": "videos/capture/pg_split_23_xray_hold.mkv",
+ "mo_pops_M009": {
+  "fill": "videos/motion/mo_pops_M009_fill.mkv",
+  "matte": "videos/motion/mo_pops_M009_matte.mkv",
+  "meta": "videos/motion/mo_pops_M009.json"
+ },
+ "mo_pops_M012": {
+  "fill": "videos/motion/mo_pops_M012_fill.mkv",
+  "matte": "videos/motion/mo_pops_M012_matte.mkv",
+  "meta": "videos/motion/mo_pops_M012.json"
+ },
+ "mo_pops_M013": {
+  "fill": "videos/motion/mo_pops_M013_fill.mkv",
+  "matte": "videos/motion/mo_pops_M013_matte.mkv",
+  "meta": "videos/motion/mo_pops_M013.json"
+ },
+ "me_23_xray_v2": "videos/capture/me_23_xray_v2.mkv",
+ "me_31_phase_v2": "videos/capture/me_31_phase_v2.mkv",
+ "me_23_decoder": "videos/capture/me_23_decoder.mkv",
+ "me_23_night_v2": "videos/capture/me_23_night_v2.mkv",
+ "blanket_title_reveal": {
+  "fill": "videos/motion/blanket_title_reveal_fill.mkv",
+  "matte": "videos/motion/blanket_title_reveal_matte.mkv",
+  "meta": "videos/motion/blanket_title_reveal.json"
+ },
+ "level_tag_lv1-1": {
+  "fill": "videos/motion/level_tag_lv1-1_fill.mkv",
+  "matte": "videos/motion/level_tag_lv1-1_matte.mkv",
+  "meta": "videos/motion/level_tag_lv1-1.json"
+ },
+ "level_tag_lv1-3": {
+  "fill": "videos/motion/level_tag_lv1-3_fill.mkv",
+  "matte": "videos/motion/level_tag_lv1-3_matte.mkv",
+  "meta": "videos/motion/level_tag_lv1-3.json"
+ },
+ "level_tag_lv0-1": {
+  "fill": "videos/motion/level_tag_lv0-1_fill.mkv",
+  "matte": "videos/motion/level_tag_lv0-1_matte.mkv",
+  "meta": "videos/motion/level_tag_lv0-1.json"
+ },
+ "level_tag_lv0-2": {
+  "fill": "videos/motion/level_tag_lv0-2_fill.mkv",
+  "matte": "videos/motion/level_tag_lv0-2_matte.mkv",
+  "meta": "videos/motion/level_tag_lv0-2.json"
+ },
+ "level_tag_lv1-2": {
+  "fill": "videos/motion/level_tag_lv1-2_fill.mkv",
+  "matte": "videos/motion/level_tag_lv1-2_matte.mkv",
+  "meta": "videos/motion/level_tag_lv1-2.json"
+ },
+ "level_tag_lv1-4": {
+  "fill": "videos/motion/level_tag_lv1-4_fill.mkv",
+  "matte": "videos/motion/level_tag_lv1-4_matte.mkv",
+  "meta": "videos/motion/level_tag_lv1-4.json"
+ },
+ "level_tag_lv2-3": {
+  "fill": "videos/motion/level_tag_lv2-3_fill.mkv",
+  "matte": "videos/motion/level_tag_lv2-3_matte.mkv",
+  "meta": "videos/motion/level_tag_lv2-3.json"
+ },
+ "level_tag_lv2-1": {
+  "fill": "videos/motion/level_tag_lv2-1_fill.mkv",
+  "matte": "videos/motion/level_tag_lv2-1_matte.mkv",
+  "meta": "videos/motion/level_tag_lv2-1.json"
+ },
+ "level_tag_lv2-2": {
+  "fill": "videos/motion/level_tag_lv2-2_fill.mkv",
+  "matte": "videos/motion/level_tag_lv2-2_matte.mkv",
+  "meta": "videos/motion/level_tag_lv2-2.json"
+ },
+ "level_tag_lv2-4": {
+  "fill": "videos/motion/level_tag_lv2-4_fill.mkv",
+  "matte": "videos/motion/level_tag_lv2-4_matte.mkv",
+  "meta": "videos/motion/level_tag_lv2-4.json"
+ },
+ "level_tag_lv2-5": {
+  "fill": "videos/motion/level_tag_lv2-5_fill.mkv",
+  "matte": "videos/motion/level_tag_lv2-5_matte.mkv",
+  "meta": "videos/motion/level_tag_lv2-5.json"
+ },
+ "level_tag_lv3-1": {
+  "fill": "videos/motion/level_tag_lv3-1_fill.mkv",
+  "matte": "videos/motion/level_tag_lv3-1_matte.mkv",
+  "meta": "videos/motion/level_tag_lv3-1.json"
+ },
+ "level_tag_lv3-3": {
+  "fill": "videos/motion/level_tag_lv3-3_fill.mkv",
+  "matte": "videos/motion/level_tag_lv3-3_matte.mkv",
+  "meta": "videos/motion/level_tag_lv3-3.json"
+ },
+ "level_tag_lv3-2": {
+  "fill": "videos/motion/level_tag_lv3-2_fill.mkv",
+  "matte": "videos/motion/level_tag_lv3-2_matte.mkv",
+  "meta": "videos/motion/level_tag_lv3-2.json"
+ },
+ "level_tag_lv4-1r": {
+  "fill": "videos/motion/level_tag_lv4-1r_fill.mkv",
+  "matte": "videos/motion/level_tag_lv4-1r_matte.mkv",
+  "meta": "videos/motion/level_tag_lv4-1r.json"
+ },
+ "level_tag_lv4-1": {
+  "fill": "videos/motion/level_tag_lv4-1_fill.mkv",
+  "matte": "videos/motion/level_tag_lv4-1_matte.mkv",
+  "meta": "videos/motion/level_tag_lv4-1.json"
+ },
+ "level_tag_lv4-2": {
+  "fill": "videos/motion/level_tag_lv4-2_fill.mkv",
+  "matte": "videos/motion/level_tag_lv4-2_matte.mkv",
+  "meta": "videos/motion/level_tag_lv4-2.json"
+ },
+ "level_tag_lab": {
+  "fill": "videos/motion/level_tag_lab_fill.mkv",
+  "matte": "videos/motion/level_tag_lab_matte.mkv",
+  "meta": "videos/motion/level_tag_lab.json"
+ },
+ "level_tag_nightshift": {
+  "fill": "videos/motion/level_tag_nightshift_fill.mkv",
+  "matte": "videos/motion/level_tag_nightshift_matte.mkv",
+  "meta": "videos/motion/level_tag_nightshift.json"
+ },
+ "level_tag_nightlab": {
+  "fill": "videos/motion/level_tag_nightlab_fill.mkv",
+  "matte": "videos/motion/level_tag_nightlab_matte.mkv",
+  "meta": "videos/motion/level_tag_nightlab.json"
+ },
+ "level_tag_codex": {
+  "fill": "videos/motion/level_tag_codex_fill.mkv",
+  "matte": "videos/motion/level_tag_codex_matte.mkv",
+  "meta": "videos/motion/level_tag_codex.json"
+ },
+ "level_tag_guide": {
+  "fill": "videos/motion/level_tag_guide_fill.mkv",
+  "matte": "videos/motion/level_tag_guide_matte.mkv",
+  "meta": "videos/motion/level_tag_guide.json"
+ },
+ "level_tag_stepmode": {
+  "fill": "videos/motion/level_tag_stepmode_fill.mkv",
+  "matte": "videos/motion/level_tag_stepmode_matte.mkv",
+  "meta": "videos/motion/level_tag_stepmode.json"
+ },
+ "level_tag_notebook": {
+  "fill": "videos/motion/level_tag_notebook_fill.mkv",
+  "matte": "videos/motion/level_tag_notebook_matte.mkv",
+  "meta": "videos/motion/level_tag_notebook.json"
+ },
+ "blanket_title_11": {
+  "fill": "videos/motion/blanket_title_11_fill.mkv",
+  "matte": "videos/motion/blanket_title_11_matte.mkv",
+  "meta": "videos/motion/blanket_title_11.json"
+ },
+ "blanket_title_31": {
+  "fill": "videos/motion/blanket_title_31_fill.mkv",
+  "matte": "videos/motion/blanket_title_31_matte.mkv",
+  "meta": "videos/motion/blanket_title_31.json"
+ },
+ "blanket_title_41": {
+  "fill": "videos/motion/blanket_title_41_fill.mkv",
+  "matte": "videos/motion/blanket_title_41_matte.mkv",
+  "meta": "videos/motion/blanket_title_41.json"
+ },
+ "mo_pops_M015": {
+  "fill": "videos/motion/mo_pops_M015_fill.mkv",
+  "matte": "videos/motion/mo_pops_M015_matte.mkv",
+  "meta": "videos/motion/mo_pops_M015.json"
+ },
+ "mo_pops_M016": {
+  "fill": "videos/motion/mo_pops_M016_fill.mkv",
+  "matte": "videos/motion/mo_pops_M016_matte.mkv",
+  "meta": "videos/motion/mo_pops_M016.json"
+ },
+ "sc_run_3-3": "videos/capture/sc_run_3-3.mkv",
+ "sc_run_4-1": "videos/capture/sc_run_4-1.mkv",
+ "sc_map_flip_solve": "videos/capture/sc_map_flip_solve.mkv",
+ "sc_night_shift": "videos/capture/sc_night_shift.mkv",
+ "sc_notebook_4k": "videos/capture/sc_notebook_4k.mkv",
+ "sc_threshold_4k": "videos/capture/sc_threshold_4k.mkv",
+ "sc_lights_out_ear_v2": "videos/capture/sc_lights_out_ear_v2.mkv",
+ "sc_pops_3_3": {
+  "fill": "videos/motion/sc_pops_3_3_fill.mkv",
+  "matte": "videos/motion/sc_pops_3_3_matte.mkv",
+  "meta": "videos/motion/sc_pops_3_3.json"
+ },
+ "sc_pops_4_1": {
+  "fill": "videos/motion/sc_pops_4_1_fill.mkv",
+  "matte": "videos/motion/sc_pops_4_1_matte.mkv",
+  "meta": "videos/motion/sc_pops_4_1.json"
+ },
+ "pg_win_links": "videos/capture/pg_win_links.mkv"
 }

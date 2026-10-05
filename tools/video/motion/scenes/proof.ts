@@ -21,7 +21,10 @@ export interface ProofParams {
 // window crops (capture CSS px, 1920×1080 frame) → trailer dst (split_frame windows)
 export const ROOM_SRC = [240, 124, 838, 763], ROOM_DST = [28, 28, 1124, 1024];
 export const CODE_W = 350, CODE_H = 350 * 948 / 696, CODE_X = 1570, CODE_DST = [1196, 104, 696, 948];
-const OP_COLOR: Record<string, string> = { HIGHFIVE: PAL.sunny, LISTEN: PAL.mint, IF: PAL.moony, BOOP: PAL.red, END: '#555', LABEL: '#c9c3b5' };
+/** Live geometry (the trailer's by default; the mechanic split overlays set their own via setGeometry). */
+export const G = { roomSrc: ROOM_SRC, roomDst: ROOM_DST, codeX: CODE_X, codeW: CODE_W, codeDst: CODE_DST, k: 1 };
+export function setGeometry(g: Partial<typeof G>) { Object.assign(G, g); G.k = (G.roomDst[2] / G.roomSrc[2]) / (ROOM_DST[2] / ROOM_SRC[2]); }
+export const OP_COLOR: Record<string, string> = { HIGHFIVE: PAL.sunny, LISTEN: PAL.mint, IF: PAL.moony, BOOP: PAL.red, END: '#555', LABEL: '#c9c3b5' };
 
 let EV: any = null, LAY: any = null;
 function cardRectAt(f: number): number[] | null {
@@ -33,8 +36,8 @@ function cardOpAt(f: number): string {
   for (const c of EV.cardHighlights) if (c.frame <= f) op = c.op;
   return op;
 }
-const room = (x: number, y: number) => ({ x: ROOM_DST[0] + (x - ROOM_SRC[0]) * ROOM_DST[2] / ROOM_SRC[2], y: ROOM_DST[1] + (y - ROOM_SRC[1]) * ROOM_DST[3] / ROOM_SRC[3] });
-const code = (x: number, y: number, y0: number) => { const s = CODE_DST[2] / CODE_W; return { x: CODE_DST[0] + (x - CODE_X) * s, y: CODE_DST[1] + (y - y0) * s, s }; };
+export const room = (x: number, y: number) => ({ x: G.roomDst[0] + (x - G.roomSrc[0]) * G.roomDst[2] / G.roomSrc[2], y: G.roomDst[1] + (y - G.roomSrc[1]) * G.roomDst[3] / G.roomSrc[3] });
+export const code = (x: number, y: number, y0: number) => { const s = G.codeDst[2] / G.codeW; return { x: G.codeDst[0] + (x - G.codeX) * s, y: G.codeDst[1] + (y - y0) * s, s }; };
 
 /** Which segment / capture frame is shown at overlay frame f. */
 function segAt(f: number, p: ProofParams) {
@@ -42,7 +45,7 @@ function segAt(f: number, p: ProofParams) {
   return null;
 }
 
-function drawCardPop(ctx: Ctx, r: number[], y0: number, u: number, color: string) {
+export function drawCardPop(ctx: Ctx, r: number[], y0: number, u: number, color: string) {
   const a = code(r[0], r[1], y0), b = code(r[0] + r[2], r[1] + r[3], y0);
   const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2, w = b.x - a.x, h = b.y - a.y;
   const sc = u < 6 ? lerp(1, 1.12, ease.outBack(u / 6, 2)) : lerp(1.12, 1.06, ease.outCubic(clamp((u - 6) / 10)));
@@ -66,29 +69,29 @@ function drawCardPop(ctx: Ctx, r: number[], y0: number, u: number, color: string
   ctx.restore();
   return { x: a.x - 30, y: cy };
 }
-function drawRing(ctx: Ctx, x: number, y: number, u: number, color: string) {
+export function drawRing(ctx: Ctx, x: number, y: number, u: number, color: string) {
   for (const d of [0, 7]) {
     const v = u - d;
     if (v < 0 || v > 30) continue;
     const k = v / 30;
-    const r = lerp(46, 120, ease.outCubic(k));
+    const r = lerp(46, 120, ease.outCubic(k)) * G.k;
     ctx.save();
     ctx.globalAlpha *= 1 - k;
-    ctx.lineWidth = lerp(14, 3, k);
+    ctx.lineWidth = lerp(14, 3, k) * G.k;
     ctx.strokeStyle = PAL.ink; ctx.beginPath(); ctx.ellipse(x, y, r + 3, (r + 3) * 0.72, 0, 0, TAU); ctx.stroke();
-    ctx.lineWidth = lerp(10, 2, k);
+    ctx.lineWidth = lerp(10, 2, k) * G.k;
     ctx.strokeStyle = color; ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.72, 0, 0, TAU); ctx.stroke();
     ctx.restore();
   }
   // soft glow under the actor for the first 20 frames
   if (u < 24) {
     ctx.save(); ctx.globalAlpha *= 0.5 * (1 - u / 24);
-    const g = ctx.createRadialGradient(x, y, 10, x, y, 110);
+    const g = ctx.createRadialGradient(x, y, 10, x, y, 110 * G.k);
     g.addColorStop(0, color); g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, y, 110, 80, 0, 0, TAU); ctx.fill(); ctx.restore();
+    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, y, 110 * G.k, 80 * G.k, 0, 0, TAU); ctx.fill(); ctx.restore();
   }
 }
-function drawConnector(ctx: Ctx, from: { x: number; y: number }, to: { x: number; y: number }, u: number, color: string) {
+export function drawConnector(ctx: Ctx, from: { x: number; y: number }, to: { x: number; y: number }, u: number, color: string) {
   const draw = ease.inOutCubic(clamp(u / 12));
   const fade = 1 - clamp((u - 44) / 12);
   if (fade <= 0 || draw <= 0) return;
@@ -112,7 +115,7 @@ function drawConnector(ctx: Ctx, from: { x: number; y: number }, to: { x: number
 
 
 /** A false IF: a dim grey outline sweeps once around the card (8–10 f), with a small ✗. No glow, no ▶. */
-function drawIfFalse(ctx: Ctx, r: number[], y0: number, u: number) {
+export function drawIfFalse(ctx: Ctx, r: number[], y0: number, u: number) {
   const a = code(r[0], r[1], y0), b = code(r[0] + r[2], r[1] + r[3], y0);
   const w = b.x - a.x, h = b.y - a.y;
   const k = clamp(u / 9), fade = 1 - clamp((u - 12) / 8);
@@ -130,7 +133,7 @@ function drawIfFalse(ctx: Ctx, r: number[], y0: number, u: number) {
   ctx.restore();
 }
 /** A true IF: ✓ badge + an arrow down the left gutter and out of the window ("jump to fix2"). */
-function drawIfTrue(ctx: Ctx, r: number[], y0: number, u: number) {
+export function drawIfTrue(ctx: Ctx, r: number[], y0: number, u: number) {
   const a = code(r[0], r[1], y0), b = code(r[0] + r[2], r[1] + r[3], y0);
   const fade = 1 - clamp((u - 30) / 10);
   if (fade <= 0) return;
@@ -148,7 +151,7 @@ function drawIfTrue(ctx: Ctx, r: number[], y0: number, u: number) {
   // jump arrow: from the card's left edge down the gutter to the bottom of the window
   const d = ease.inOutCubic(clamp((u - 2) / 7));
   if (d > 0) {
-    const x0 = a.x - 6, ya = (a.y + b.y) / 2, gx = CODE_DST[0] + 30, yb = CODE_DST[1] + CODE_DST[3] - 16;
+    const x0 = a.x - 6, ya = (a.y + b.y) / 2, gx = G.codeDst[0] + 30, yb = G.codeDst[1] + G.codeDst[3] - 16;
     const pts: [number, number][] = [];
     const N = 40;
     for (let i = 0; i <= N; i++) { const t = i / N; pts.push(t < 0.25 ? [lerp(x0, gx, t / 0.25), ya] : [gx, lerp(ya, yb, (t - 0.25) / 0.75)]); }
@@ -170,9 +173,9 @@ function drawIfTrue(ctx: Ctx, r: number[], y0: number, u: number) {
   ctx.restore();
 }
 /** The jump target label lights as the next segment opens: arrow in from the top of the window, then a pop. */
-function drawLabelLand(ctx: Ctx, r: number[], y0: number, u: number, text: string) {
+export function drawLabelLand(ctx: Ctx, r: number[], y0: number, u: number, text: string) {
   const a = code(r[0], r[1], y0), b = code(r[0] + r[2], r[1] + r[3], y0);
-  const gx = CODE_DST[0] + 30, top = CODE_DST[1] + 10, ya = (a.y + b.y) / 2;
+  const gx = G.codeDst[0] + 30, top = G.codeDst[1] + 10, ya = (a.y + b.y) / 2;
   const d = ease.inOutCubic(clamp(u / 10));
   const fade = 1 - clamp((u - 26) / 8);
   if (fade <= 0) return;
@@ -232,7 +235,7 @@ export const proof: Scene<ProofParams> = {
     const { s, cf } = at;
     // keep the card pops inside the bot_code window (plus a 10 px bleed into the frame margin)
     ctx.save();
-    ctx.beginPath(); ctx.rect(0, 0, CODE_DST[0] - 40, H); roundRect(ctx, CODE_DST[0] - 10, CODE_DST[1] - 10, CODE_DST[2] + 20, CODE_DST[3] + 20, 26); ctx.clip();
+    ctx.beginPath(); ctx.rect(0, 0, G.codeDst[0] - 40, H); roundRect(ctx, G.codeDst[0] - 10, G.codeDst[1] - 10, G.codeDst[2] + 20, G.codeDst[3] + 20, 26); ctx.clip();
     // IF lines: evaluated from the log — an IF is TRUE when the next executed card is not the next line (it jumped).
     const hl = EV.cardHighlights;
     for (let k = 0; k < hl.length; k++) {

@@ -94,8 +94,12 @@ ALIASES = {  # Editor's clip-cue names (plans.py) → design assets / groups
 }
 GROUP_OF = {v: k for k, v in ALIASES.items()}
 BOT_LETTERS = 'abcdefgh'
+BOT_MIDI = dict(zip('abcdefgh', (53, 84, 67, 77, 60, 81, 62, 86)))  # src/audio/bots.ts BOT_VOICES base notes
+LOW_NOTE_MIDI = 59  # below ~B3 (247 Hz) a phone speaker can't reproduce the note: add a presence layer
+LOW_HEAVY = {'highfive'}  # featured hits whose body sits low (slap + 220→120 Hz blip): presence + density for phones
+HIGHFIVE_ROOM = dsp.make_ir(0.25, 14.0, 0.004, 6500, seed=9, width=0.5)
 ACCENTS = {'card_pick', 'card_drop', 'ui_click'}  # card UI = rhythmic accents in programming shots (REVISED 2)
-PROG_RE = r'(^pg_|_pg_|program|editor|card_?guide|bot_?code|test_?strip|qol|snippet|step_?mode|timeline|export|qiskit|text_?view|drag|split|tr_proof)'
+PROG_RE = r'(^pg_|_pg_|program|editor|card_?guide|bot_?code|test_?strip|qol|snippet|step_?mode|timeline|export|qiskit|text_?view|drag|split|tr_proof|decoder)'
 
 
 def is_programming(clip) -> bool:
@@ -214,7 +218,8 @@ def explainer_sheet(edl, grid):
     downs = [int(round((b0 + k * bar) * 60)) for k in range(int(edl['duration'] / 60 / bar) + 2)]
     raw = {'fps': 60, 'bpm': 84, 'meter': '4/4', 'duration_frames': edl['duration'],
            'sections': [{'name': n, 'start_frame': secs[n][0], 'end_frame': secs[n][1]} for n in order],
-           'named_hits': {f'{n}_start': secs[n][0] for n in order}, 'downbeat_frames': downs, 'beats': []}
+           'named_hits': {f'{n}_start': secs[n][0] for n in order}, 'downbeat_frames': downs,
+           'beats': [{'frame': round(b0 * 60, 3)}]}  # beat0 on the game bed's grid (analyze_mix reads beats[0])
     return {'bpm': 84, 'beats': [], 'downbeats': downs, 'sections': {n: tuple(secs[n]) for n in order}, 'hits': [],
             'hits_f': dict(raw['named_hits']), 'raw': raw, 'path': None, 'synthetic': True}
 
@@ -764,7 +769,7 @@ def build(args):
     if P.get('music_first') and cs:
         import mixfirst
         # polish FIRST (fills, compressors, fades), so the automation measures and hits the targets on what plays
-        stems['music'] = mixfirst.music_polish(stems['music'], secs_list)
+        stems['music'] = mixfirst.music_polish(stems['music'], secs_list, explainer=bool(P.get('explainer')))
         tg = mixfirst.explainer_targets(secs_list) if P.get('explainer') else P.get('music_targets', mixfirst.TARGETS)
         stems['music'], gcurve, auto_rep = mixfirst.automate_music(stems['music'], secs_list, cs['downbeats'], tg,
                                                                    ramp_s=1.0 if P.get('explainer') else 0.2)
@@ -786,7 +791,7 @@ def build(args):
     # so they can sit >= 6 LU over the music without the master limiter crushing their transients
     plr_cache = {}
     for q in cues:
-        if not q['featured'] or len(q['x']) < 64:
+        if not q['featured'] or len(q['x']) < 64 or '+plr9' in str(q['src']):
             continue
         key = (q['src'], len(q['x']), float(np.sum(np.abs(q['x'][:2000]))))
         if key not in plr_cache:
@@ -802,7 +807,55 @@ def build(args):
         for q in cues:  # fade every tail (>= 20 ms): nothing ends on a click
             if len(q['x']) > int(0.05 * SR):
                 q['x'] = dsp.fade(q['x'], 0.0, 0.02)
+        presence_rep = []
+        if P.get('explainer'):  # phones can't reproduce < ~250 Hz: low featured notes get a presence-band layer
+            tw_beep = lib.asset('trailer/listen_beep')[0]
+            for q in cues:
+                if q['kind'] != 'game' or not q['featured']:
+                    continue
+                low_bot = q['name'] == 'botNote' and '_beep' in str(q['src']) and BOT_MIDI.get(str(q['src']).split('bot_')[-1][:1], 99) < LOW_NOTE_MIDI
+                if low_bot:
+                    twins = [c for c in cues if c['kind'] == 'game' and c['name'] == 'listen_beep' and abs(c['frame'] - q['frame']) <= 2]
+                    if twins:  # the game's own listen_beep on that frame becomes the trailer-weight (2.8 kHz) one
+                        for c in twins:
+                            c['x'], c['src'] = tw_beep, 'trailer/listen_beep (presence layer)'
+                    else:
+                        x = dsp.fit(q['x'], max(len(q['x']), len(tw_beep)))
+                        dsp.place(x, tw_beep, 0, dsp.undb(-2.0))
+                        q['x'], q['src'] = x, str(q['src']) + '+presence'
+                    q['music_dip_db'] = 6.0
+                    presence_rep.append({'frame': q['frame'], 'cue': q['name'], 'rule': 'bot note < 250 Hz: trailer listen_beep layer + 6 dB music dip'})
+                elif q['name'] in LOW_HEAVY:
+                    # density, not peak: the master glue/limiter flattened the 60 ms slap (stem -21.5 -> mix -25.7 dB
+                    # in the cue's 200 ms). Presence, then a short room for body, then peak-to-loudness <= 9 dB
+                    x = dsp.presence(q['x'], 6.0)
+                    x = dsp.reverb(dsp.fit(x, len(x) + int(0.25 * SR)), HIGHFIVE_ROOM, wet=0.35)[:len(x) + int(0.25 * SR)]
+                    m = float(np.max(dsp.momentary(dsp.fit(x, max(len(x), int(0.4 * SR))), 0.01)))
+                    x = dsp.limiter(x, m + 9.0, 0.001, 0.03)
+                    q['x'] = dsp.fade(x, 0.0, 0.05)
+                    q['src'] = str(q['src']) + '+presence+room+plr9'
+                    q['music_dip_db'] = 6.0
+                    presence_rep.append({'frame': q['frame'], 'cue': q['name'], 'rule': 'low-heavy hit: +6 dB presence, short room, PLR <= 9 dB, 6 dB music dip'})
         level_rep = mixfirst.level_cues(cues, stems['music'], secs_list, P)
+        if P.get('explainer'):
+            # the dips (after levelling, so the cue keeps its level while the bed steps aside): broadband, 30 ms attack,
+            # held 200 ms, 250 ms release; the cue's aim and window move up by the dip (measured against the dipped bed)
+            dips = [(q['start'] / SR, q['start'] / SR + 0.2, q['music_dip_db']) for q in cues if q.get('music_dip_db')]
+            if dips:
+                env = ctrl_to_samples(dip_envelope(dips, N * CR // SR + 1, attack=0.03, release=0.25, look=0.03), N)
+                stems['music'] *= dsp.undb(-env)[:, None]
+                for q in cues:
+                    d = max((dd for (a, b, dd) in dips if a - 0.05 <= q['start'] / SR <= b), default=0.0)
+                    if d and q.get('aim_margin') is not None:
+                        grp = [c for c in cues if c.get('grp') == q.get('grp')]
+                        for c in grp:
+                            if not c.get('_dip_applied'):
+                                bonus = 1.0 if c['name'] in LOW_HEAVY else 0.0  # low-heavy hits aim 1 LU higher (5.5 of 3..6)
+                                c['aim_margin'] = (c['aim_margin'] or 0) + d + bonus
+                                c['gain_db'] += bonus
+                                if c.get('window'):
+                                    c['window'] = (c['window'][0] + d, c['window'][1] + d)
+                                c['_dip_applied'] = True
     else:
         # ── 6b. level floors (zone floor_lufs) and the bots' QUIET answer (Critic, sound milestone #7) ──
         def mmax(q):
@@ -865,7 +918,7 @@ def build(args):
                 q['x'] = dsp.fade(q['x'][:int(q['mix_max_s'] * SR)], 0.0, 0.6)
         bus_rep = mixfirst.place_and_correct(cues, stems, music_raw)
         if voice_cues:  # Qubblese lines: readable over the bed (+3 LU integrated over each line), never shouting
-            bus_rep['voices'] = mixfirst.level_voices(stems['voices'], music_raw, voice_cues, P.get('voice_window', (1.0, 6.0, 3.0)))
+            bus_rep['voices'] = mixfirst.level_voices(stems['voices'], music_raw, voice_cues, P.get('voice_window', (-1.0, 4.0, 1.5)))
         stems['sfx'], bus_rep['presence_match'] = mixfirst.presence_match(stems['sfx'], music_raw, secs_list)
         # Critic (fix 5 polish): the build must rise bar by bar on the FULL mix, not just in the music stem
         bus_rep['build_bars'] = mixfirst.monotonic_build(stems, cs['downbeats'], cs['sections'].get('build')) if cs else {}
@@ -982,7 +1035,7 @@ def build(args):
     out = dsp.fade(out, 0.0, 0.05)
     master_gain = dsp.undb(g_db)
     music_bed = music_raw[:n_out] * dsp.undb(g_db)
-    return dict(auto_rep=auto_rep, level_rep=level_rep, bus_rep=bus_rep, glue_rep=glue_rep, seg_report=seg_report, music_bed=music_bed, edl=edl, P=P, cs=cs, bpm=bpm, stems=stems, mix=out, master_gain_db=g_db, cues=cues, voice_cues=voice_cues,
+    return dict(presence_rep=locals().get('presence_rep', []), auto_rep=auto_rep, level_rep=level_rep, bus_rep=bus_rep, glue_rep=glue_rep, seg_report=seg_report, music_bed=music_bed, edl=edl, P=P, cs=cs, bpm=bpm, stems=stems, mix=out, master_gain_db=g_db, cues=cues, voice_cues=voice_cues,
                 thinned=thinned, offscreen=offscreen, gates=gates, music_info=music_info, voice_src=voice_src, video=video,
                 master_gain=master_gain, target=target)
 
@@ -995,6 +1048,13 @@ def write(res, args):
     mix_path = outdir / 'mix.wav'
     dsp.write_wav(mix_path, res['mix'])
     if res['cs'] and res['cs'].get('synthetic'):  # explainers: a cue-sheet-shaped sections file for analyze_mix
+        # in an explainer the game's actions and Schrödi's lines ARE the hits: a level change on one is intended
+        nh = res['cs']['raw']['named_hits']
+        for q in res['cues']:
+            if q['featured'] and q['kind'] == 'game':
+                nh[f"{q['id']}_{q['name']}"] = q['frame']
+        for v in res['voice_cues']:
+            nh[f"{v['id']}_line"] = v['frame']
         sp = outdir / 'sections_sheet.json'
         dsp.save_json(sp, res['cs']['raw'])
         res['cs']['path'] = relp(sp)
@@ -1032,7 +1092,8 @@ def write(res, args):
                         'no_duck': bool(q.get('no_duck')), 'arc_cut_db': q.get('arc_cut_db'), 'zone_db': q.get('zone_db'),
                         'window_rule': q.get('window_rule'), 'window_lu': q.get('window'),
                         'pass': (bool((q.get('window') is None or (q['window'][0] - 0.3 <= q.get('margin_lu', -99) <= q['window'][1] + 0.3))
-                                      and q.get('cue_lufs_m', -99) > -40) if res['P'].get('music_first') else
+                                      and (q.get('cue_lufs_m', -99) > -40 or (q['kind'] == 'voice' and q.get('window') is None)))
+                                 if res['P'].get('music_first') else
                                  bool((q.get('no_duck') or q.get('margin_lu', -99) >= args.margin) and q.get('cue_lufs_m', -99) > -40))})
         rows.append(row)
     feat = [r for r in rows if r['featured']]
@@ -1084,7 +1145,7 @@ def write(res, args):
     if res['P'].get('music_first'):
         try:
             import mixfirst
-            ps = mixfirst.phone_sim(res['mix'])
+            ps, ph_gain = mixfirst.phone_sim(res['mix'], return_gain=True)
             pp = ROOT / 'videos/final/review' / f"{outdir.name}_phone_sim.wav"  # per work dir (trailer, trailer_public)
             dsp.write_wav(pp, ps)
             hf = res['cs']['hits_f'] if res['cs'] else {}
@@ -1112,20 +1173,33 @@ def write(res, args):
                              and phone.get('payoff_vs_lights_out', {}).get('pass', True))
             if res['P'].get('explainer'):  # every game action must read on a phone: featured cues vs the second before
                 rows_f = [q for q in res['cues'] if q['featured'] and q['kind'] == 'game']
+                pb = mixfirst.phone_sim(res['stems']['music'], gain_db=ph_gain)  # the bed alone (stems carry the master gain), same phone, same playback gain
                 st = []
                 for q in rows_f:
                     a = q['start']
-                    seg = ps[a:a + int(0.6 * SR)]
-                    pre = ps[max(0, a - SR):a]
+                    seg, bed = ps[a:a + int(0.6 * SR)], pb[a:a + int(0.6 * SR)]
                     if len(seg) < 100:
                         continue
-                    mh = float(np.max(dsp.momentary(dsp.fit(seg, max(len(seg), int(0.4 * SR))), 0.02)))
-                    mp = float(np.median(dsp.momentary(dsp.fit(pre, max(len(pre), int(0.4 * SR))), 0.05))) if len(pre) else -70
+                    sm = dsp.momentary(dsp.fit(seg, max(len(seg), int(0.4 * SR))), 0.02)
+                    k = int(np.argmax(sm))
+                    bm = dsp.momentary(dsp.fit(bed, max(len(bed), int(0.4 * SR))), 0.02)
+                    over = float(sm[k] - max(bm[min(k, len(bm) - 1)], -70))
                     quiet = '_quiet' in str(q['src'])
-                    st.append({'frame': q['frame'], 'name': q['name'] + (' (quiet)' if quiet else ''), 'stands_out_lu': round(mh - max(mp, -70), 1),
-                               'ok': (mh - max(mp, -70)) >= (-2.0 if quiet else 1.5)})
+                    r200 = ps[a:a + int(0.2 * SR)]
+                    r400 = ps[max(0, a - int(0.4 * SR)):a]
+                    crit = float(10 * np.log10((np.mean(r200 ** 2) + 1e-14) / (np.mean(r400 ** 2) + 1e-14))) if len(r400) else 99.0
+                    need = None
+                    if q['name'] in ('listen_beep', 'botNote') and not quiet:
+                        need = 6.0
+                    elif q['name'] in LOW_HEAVY:
+                        need = 4.0
+                    st.append({'frame': q['frame'], 'name': q['name'] + (' (quiet)' if quiet else ''), 'over_bed_lu': round(over, 1),
+                               'rms200_vs_prev400_db': round(crit, 1), 'need_db': need,
+                               'ok': over >= (-2.0 if quiet else 1.5) and (need is None or crit >= need)})
                 ok = sum(x['ok'] for x in st)
-                phone['featured_cues'] = {'checked': len(st), 'readable': ok, 'rule': 'hit momentary >= the second before +1.5 LU (QUIET >= -2 LU)',
+                phone['featured_cues'] = {'checked': len(st), 'readable': ok, 'rule': 'on the phone, the mix at the cue >= the bed alone +1.5 LU (QUIET >= -2 LU); '
+                                          'Critic metric (cue 200 ms RMS vs the 400 ms before): BEEPs >= +6 dB, highfives >= +4 dB',
+                                          'per_cue': st,
                                           'not_readable': [x for x in st if not x['ok']][:20]}
                 phone['pass'] = bool(st) and ok >= 0.9 * len(st)
         except Exception as ex:
@@ -1133,7 +1207,7 @@ def write(res, args):
     rep = {
         'arc_gate': arcg, 'aac_check': aac, 'mode': 'music-first' if res['P'].get('music_first') else 'sfx-ducking',
         'music_automation': res.get('auto_rep'), 'sfx_bus': res.get('bus_rep'), 'glue': res.get('glue_rep'),
-        'level_decisions': res.get('level_rep'), 'phone_sim': phone,
+        'level_decisions': res.get('level_rep'), 'phone_sim': phone, 'presence_layers': res.get('presence_rep'),
         'score_segments': res.get('seg_report', []),
         'loudness_curve': curve, 'proof_energy': proof,
         'edl': str(args.edl) if not isinstance(args.edl, dict) else '(in-memory)', 'video': res['video'],

@@ -47,3 +47,6 @@ Six or seven 4 GB software-GL Chromium renders ran at once and saturated all 22 
 - **Every finished job leaves something to review:** a contact sheet (`contactSheet()` / `contact_sheet()` writes `videos/review/<name>_sheet.png`), stills, or an H.264 preview MP4, registered with `.output()`. Lossless FFV1 masters don't play in a browser, so they don't count as reviewable.
 - **Record:** every finished or failed job is appended to `videos/progress/history.jsonl`.
 - **Don't idle.** If your next step depends on something not ready yet, work with what exists (placeholders, proxies, partial cuts). Placeholders get replaced when the real asset lands.
+
+## Disk guard (2026-10-05)
+`/home` reached 97 % full (the video pipeline holds about 218 GB). safe-run now refuses any heavy job, nested ones included, when the videos disk has less than `NP_MIN_FREE_GB` free (default 8). It exits with code 75, so capture/run.mjs retries for a while. Free space before relaunching. Do NOT delete captures, motion assets or render caches without asking the user; only QA by-products, logs and sample renders of finished videos may be removed.

@@ -372,15 +372,19 @@ def glue(x):
     return y, {'threshold_db': round(thr, 1), 'gr_mean_loud_db': round(float(gr[loud].mean()), 2), 'gr_max_db': round(float(gr.max()), 2)}
 
 
-def phone_sim(x):
-    """Phone-speaker proxy: mono, HPF 250 Hz (4th), LPF 7 kHz, +5 dB resonance at 1.1 kHz, light saturation."""
+def phone_sim(x, gain_db=None, return_gain=False):
+    """Phone-speaker proxy: mono, HPF 250 Hz (4th), LPF 7 kHz, +5 dB resonance at 1.1 kHz, light saturation.
+    Played ~4 dB under the input's loudness; pass `gain_db` (from a previous call) to keep two signals comparable."""
     m = x.mean(1, keepdims=True)
     y = dsp.highpass(m, 250, 4)
     y = dsp.lowpass(y, 7000, 4)
     y = dsp.eq(y, 'peak', 1100, 5.0, 1.4)
     y = np.tanh(y * 1.5) / 1.5
     y = np.repeat(y, 2, axis=1)
-    return y * dsp.undb(dsp.integrated(x) - 4 - dsp.integrated(y))  # phones play ~4 dB down
+    if gain_db is None:
+        gain_db = dsp.integrated(x) - 4 - dsp.integrated(y)  # phones play ~4 dB down
+    y = y * dsp.undb(gain_db)
+    return (y, gain_db) if return_gain else y
 
 
 def place_and_correct(cues, stems, music, iters=8, tol=0.25):
@@ -434,12 +438,30 @@ def place_and_correct(cues, stems, music, iters=8, tol=0.25):
     return reps
 
 
-def music_polish(music, sections):
+def music_polish(music, sections, explainer=False):
     """Fade in from black (0.5 s), reverb-fill the sparse sections (cold open, Lights Out pocket, closing music box) so
     their gaps don't read as level jumps, and fade the end card's last 4 s."""
     y = music.copy()
     n = len(y)
-    fi = int(0.5 * SR)
+    if explainer:  # steady and readable
+        # 1) a subtle, narrow room under the whole game bed: its phrase gaps carry tails instead of dropping out
+        irx = dsp.make_ir(1.6, 2.6, 0.02, 5000, seed=41, width=0.35)
+        y = y + signal.fftconvolve(y, irx, axes=0)[:n] * 0.22
+        # 2) upward leveler: where the momentary level falls > 4 LU under the 3 s level, lift it (<= +6 dB, 150 ms)
+        M = centred_short_term(y, hop=0.01, win=0.4)
+        S3 = centred_short_term(y, hop=0.01, win=3.0)
+        up = np.clip((S3 - 4.0) - M, 0.0, 6.0)
+        up[S3 < -50] = 0.0  # never lift true silences / fades
+        up = uniform_filter1d(np.maximum.reduce([np.roll(up, k) for k in range(-8, 9, 4)]), size=15, mode='nearest')
+        y = y * dsp.undb(np.interp(np.arange(n) / SR, np.arange(len(up)) * 0.01, up))[:, None]
+        # 3) a gentle 2:1 (30/400 ms) over the whole bed
+        e = env_db(y, 0.030, 0.400)
+        act = e > -70
+        if act.any():
+            thr = float(np.percentile(e[act], 50))
+            comp, gr = compress(y, 2.0, 0.030, 0.400, thr, 6.0)
+            y = comp * dsp.undb(float(np.median(gr[act])))
+    fi = int((0.15 if explainer else 0.5) * SR)
     y[:fi] *= (0.5 - 0.5 * np.cos(np.linspace(0, np.pi, fi)))[:, None]
     ir = dsp.make_ir(2.6, 1.8, 0.025, 4500, seed=31, width=0.35)  # narrow: mono-safe (phones)
     sec = {nm: (a / FPS, b / FPS) for nm, a, b in sections}
@@ -479,7 +501,7 @@ def music_polish(music, sections):
     return y
 
 
-def presence_match(sfx, music, sections, limit_db=4.5, max_cut=9.0, passes=2):
+def presence_match(sfx, music, sections, limit_db=4.5, max_cut=12.0, passes=3):
     """Tone: per section, if the SFX sit more than `limit_db` over the music in 2-5 kHz, cut the SFX's
     2-5 kHz (broad peak at 3.2 kHz) by the excess, with 100 ms crossfades. Returns (sfx, report)."""
     def band(x):  # same as analyze_mix: mono, 4th-order 2-5 kHz band

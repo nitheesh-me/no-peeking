@@ -126,6 +126,45 @@ Line 1 holds 150 f from f10 to the exit at f160; line 2 holds 98 f (1.63 s) from
 f92 = **trailer f3790**, holding 196 f (3.27 s) to f3986. Re-rendered: `circuit_morph`, `mo_circuit_morph` (660),
 `circuit_morph_mech`. cap07's `legible_from` becomes 3790 (start 3760).
 
+## Mechanic video (Critic "Milestone: mechanic plan")
+**Syndrome table nits fixed** (`syndrome`, `mo_syndrome_table`): the all-good row now puts a mint ✓ on all three
+Qubbles (staggered 3 f), and both bots' "BEEP!" tags stay on for the whole BEEP (drawBot blinks a lit antenna and its
+tag; the table holds the bot's t inside the "on" phase while the light is on). Mapping unchanged: a = q1 vs q2,
+b = q2 vs q3 (QUIET·QUIET → nobody, BEEP·QUIET → q1, BEEP·BEEP → q2, QUIET·BEEP → q3).
+
+**Split-clip pops — scene `split`, jobs `mo_pops_<clip>`** (alpha, final-frame coordinates: place at the clip's
+start with no rect; the game-rect 0.88 scale is already in the window dsts). Same look as `proof_overlay` (card pop +
+same-frame actor ring, connectors on the first two actions, false IF = grey sweep + ✗, true IF = pop + ✓ + jump
+arrow, then the target label lands). Card rects come from the capture's `card_current`/`.card.current` logs when it
+has them; the current 2-3 captures don't, so they use the 2-3 decoder line table (measured from pg_split_23, the
+same layout; frames read off the captures). Actor positions are measured on the capture frames.
+
+| Job | Clip (tl start, dur, src in) | Events (src → tl) |
+|---|---|---|
+| `mo_pops_M009` | 4326, 900, 600 | HIGHFIVE l1 817→4543 (connector), l2 896→4622 (connector), l3 974→4700, l4 1052→4778; LISTEN a 1153→4879; LISTEN b 1264→4990; IF l7 a BEEP·b QUIET **true** 1290→5016, lands on ⚑ fix1 1325→5051; BOOP q1 1459→5185 (caretaker + q1) |
+| `mo_pops_M012` | 5709, 360, 540 | inspector on q2 620→5789 (moony ring, no card) |
+| `mo_pops_M013` | 6069, 270, 1290 | BOOP q1 1337→6116 (caretaker + q1) |
+| `mo_pops_M015` | me_31_phase_**v2**, 460 f from src **930** | bedtime SPIN q1 979 (connector), q2 1088 (connector), q3 1197 (caretaker + target rings, SPIN blue); Phasey in the dark 1330 (phasey ring, no card) |
+| `mo_pops_M016` | me_31_phase_**v2**, 438 f from src **2210** | LISTEN a BEEP 2251, LISTEN b BEEP 2363, IF fix1 (a BEEP·b QUIET) **false** 2387 (grey sweep ✗), IF fix2 (BEEP·BEEP) **true** 2410 (pop ✓ jump), BOOP q2 2545 (caretaker + q2) |
+
+me_31_phase_v2 runs exactly **30 frames later** than v1 (botNotes 2251/2363 vs 2221/2333), so M015/M016 in-points become 930 / 2210 (v1 900 / 2180). 3-1 has no `.card.current` layout log; its card rects were measured on v2 frames (the red ▶ marker + card borders). **M016 code keys:** use `[[0,330],[185,330],[205,450],[255,450],[290,565]]` (CSS y, x 1570): with the planned 330 → 565 the true IF (fix2, y 776–894) is cut off when it fires at 2410. M015's key (x 1440, y 64) is confirmed. me_23_xray_v2 is frame-identical to v1 (IF 1166 → ⚑ fix1 1199, BOOP 1338), so M012/M013 are valid for v2. M009 stays on v1 timing until me_23_night_v2 lands (re-check then).
+
+**Code-window keys:** M012 (y 64) and M013 (y 565) confirmed. **M009 needs a change**: with the planned keys
+(64 → 250 at clip 690 → 565 at clip 855) the ⚑ fix1 label (y 750–782) and the lit BOOP q1 card (788–828) are
+outside the window from src 1325 to 1430. Use `[[0,64],[660,64],[690,250],[705,250],[722,420]]` (CSS y): the IF is
+in view when it fires (1290), the label when the jump lands (1325) and BOOP q1 from 1332 through the BOOP (1459).
+`mo_pops_M009` is rendered for these keys.
+
+**split_frame at 0.88:** checked by compositing it at the game rect (1689.6×950.4): the 3 px outline becomes 2.6 px,
+the soft inner shadow and the stitched edge hold, and the chip text is ~33 px. No separate variant is needed.
+
+## Showcase (Critic "Milestone: showcase plan")
+- **Title wipes:** `blanket_title_11` ("Dont Wake Them", chip 1-1), `blanket_title_31` ("Somethings Off", 3-1), `blanket_title_41` ("Nesting Dolls", 4-1); 72 f each (cover 18 / hold 36 / uncover 18), fill + matte, shared reveal matte `blanket_title_reveal`. 2-3 = `blanket_title`. In-game spellings (no apostrophes).
+- **HUD labels** `level_tag_<key>` (scene `label`, 30 f, alpha; pop-in over f0–10, then hold the last frame; tag at x 40, y 40 of a 1920×1080 frame, Quantum 40 px paper text with an ink outline on a 78 % dark pill, the X-ray-tag look). Heroes show only the code chip after their wipe (Critic #4/#6): **lv1-1 "Ch 1 · 1-1", lv2-3 "Ch 2 · 2-3", lv3-1 "Ch 3 · 3-1", lv4-1r "Ch 4 · 4-1"**; the run split lv3-3 "Ch 3 · 3-3  Wobbles"; strobes keep full names with a drawn mint ✓ (the font has no ✓): "0-1  Good Morning ✓" … ; features: "Gremlin Lab", **"Night Shift mode"** (was "Night Shift (endless)"), "Night Shift Lab", "The Codex", "Card Guide", "Schrödi's Lab Notebook" (renders "Schrodi's": no ö in Quantum), plus **`level_tag_stepmode` "Step mode"** for the new step-mode beat. The EDL `tag_*` texts should be updated to match.
+- **Run-split pops** (scene `split`, alpha, final-frame coordinates, place at the clip start). The run captures have no `.card.current` log; 3-3 uses the 2-3 line table (identical layout, verified by its ▶ markers), 4-1 rects were measured on frames.
+  - `sc_pops_3_3` (690 f, **proposed S017 in 540**, was 60–735, which missed the LISTENs): Wobbles' half-flip 547 (green ring), HIGHFIVE l1–l4 682/761/840/918 (connectors on the first two), **LISTEN a 1019: the discretization, a larger triple pulse**, LISTEN b 1130, IF l7/l8/l9 all false 1154/1177/1200 (grey sweeps ✗: nothing to fix, the half-flip resolved to "none"), END 1223. Code keys `[[0,64],[560,64],[600,300]]` (x 1570) so the IFs stay in view.
+  - `sc_pops_4_1` (460 f, **proposed S019 in 2740**, preceded by ~140 f of the error strike from src 1480 if the Editor wants it; the 600-f slot fits 140 + 460): LISTEN c BEEP 2780 and LISTEN d BEEP 2895 (connectors), IF Bf1 false at 2947 and IF Bf2 (c BEEP · d BEEP) true at 2978 (the 4-1 column auto-scrolls ~30 f behind execution, so the IFs pop when their cards are on screen), BOOP 3154 (caretaker + target). Code window **y 565 constant** (x 1570): the game scrolls the current card to y ≈ 880–975; the planned y 64 would never show it. Room crop as the EDL: CSS [150, 100, 1000, 910].
+
 ## Assets
 
 ### 1. Logo reveal — `logo_reveal` (198 f, 3.3 s) · **impact = clip f6 (trailer f1394)**

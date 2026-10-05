@@ -301,11 +301,47 @@ def main():
     groove = {}
     for sg in rep.get('score_segments', []):
         src = ROOT / 'videos/audio2/groove' / f"{sg['source']}.wav"
+        if sg.get('plan') and (ROOT / sg['plan']).exists():
+            srcs = json.load(open(ROOT / sg['plan'])).get('sources', {})
+            if sg['source'] in srcs:
+                src = ROOT / srcs[sg['source']]
         if sg['source'] in groove or not src.exists():
             continue
         _, gx = read(src)
         groove[sg['source']] = grid_alignment(gx, sr, bpm, beat0)
     song_align = grid_alignment(song[: len(mix)], sr, bpm, beat0) if song is not None else None
+    # Sound Designer: the 8th-grid fit above is straight; swung material (the game beds, swing 0.62) can't be read
+    # by it. The direct test of "does the groove flam against the bed" is the lag between their onset envelopes.
+    direct = {}
+    if song is not None:
+        def oenv(x):
+            y = signal.sosfilt(signal.butter(4, 4000, btype='high', fs=sr, output='sos'), x.mean(1))
+            e = np.abs(y)
+            h = sr // 1000
+            e = e[: len(e) // h * h].reshape(-1, h).mean(1)
+            return np.maximum(0, np.diff(np.log(e + 1e-7)))
+        for sg in rep.get('score_segments', []):
+            src = None
+            if sg.get('plan') and (ROOT / sg['plan']).exists():  # the plan's own source for this segment wins
+                srcs = json.load(open(ROOT / sg['plan'])).get('sources', {})
+                if sg['source'] in srcs:
+                    src = ROOT / srcs[sg['source']]
+            if src is None:
+                src = ROOT / 'videos/audio2/groove' / f"{sg['source']}.wav"
+            if not Path(src).exists():
+                continue
+            _, gx = read(src)
+            a0, a1 = int(sg['frames'][0] / FPS * sr), int(sg['frames'][1] / FPS * sr)
+            if a1 > min(len(song), len(gx)):
+                continue
+            A_, B_ = oenv(song[a0:a1]), oenv(gx[a0:a1])
+            if len(A_) < 1000 or B_.sum() < 1e-6:
+                continue
+            c = signal.correlate(A_ - A_.mean(), B_ - B_.mean(), 'full')
+            lags = np.arange(-len(B_) + 1, len(A_))
+            mwin = (lags > -60) & (lags < 60)
+            lag = int(-lags[mwin][np.argmax(c[mwin])])
+            direct.setdefault(sg['source'], []).append({'frames': sg['frames'], 'groove_late_ms': lag})
     peaks = {'true_peak_dbtp_mix': round(true_peak(mix, sr), 2), 'samples_over_-0.1dBFS': int((np.abs(mix) > 10 ** (-0.1 / 20)).sum()),
              'dc_offset': [round(float(mix[:, 0].mean()), 5), round(float(mix[:, 1].mean()), 5)]}
     prog.tick(8, stage='report + plot')
@@ -334,18 +370,22 @@ def main():
         if r['LR_correlation'] < 0.2 and r['section'] not in ('silence', 'closing_silence'):
             findings.append(f"`{r['section']}`: L/R correlation {r['LR_correlation']}: phasey/wide, may collapse in mono (phone).")
     for k, v in groove.items():
+        dl = direct.get(k)
+        if dl:  # the direct onset cross-correlation against the bed decides; the straight-grid fit is advisory
+            worst = max(dl, key=lambda d: abs(d['groove_late_ms']))
+            if abs(worst['groove_late_ms']) > 10:
+                findings.append(f"Groove layer `{k}` is {worst['groove_late_ms']} ms late against the bed's onsets (f{worst['frames'][0]}-{worst['frames'][1]}): flams.")
+            continue
         if v and abs(v['best_offset_ms']) > 15:
             findings.append(f"Groove layer `{k}` sits {v['best_offset_ms']} ms off the song's beat grid: flams against the song.")
-    if song_align and groove:
-        for k, v in groove.items():
-            if v and song_align and abs(v['best_offset_ms'] - song_align['best_offset_ms']) > 15:
-                findings.append(f"`{k}` and the song disagree on beat phase by {v['best_offset_ms'] - song_align['best_offset_ms']} ms.")
+        if v and song_align and abs(v['best_offset_ms'] - song_align['best_offset_ms']) > 15:
+            findings.append(f"`{k}` and the song disagree on beat phase by {v['best_offset_ms'] - song_align['best_offset_ms']} ms.")
     if peaks['true_peak_dbtp_mix'] > -1.0:
         findings.append(f"True peak {peaks['true_peak_dbtp_mix']} dBTP (> -1.0).")
 
     out = {'video': video, 'mix': rep['mix'], 'integrated_lufs': rep['loudness'].get('integrated_lufs'), 'lra': rep['loudness'].get('lra_lu'),
            'sections': sec, 'anticipation': curve, 'drop_rule': drop_rule, 'spikes': spikes, 'jumps': jumps, 'pumping': pumping,
-           'spectrum_stereo': spec, 'groove_alignment': groove, 'song_alignment': song_align, 'peaks': peaks, 'findings': findings}
+           'spectrum_stereo': spec, 'groove_alignment': groove, 'groove_vs_bed_onset_lag': direct, 'song_alignment': song_align, 'peaks': peaks, 'findings': findings}
     jp = work / 'mix_analysis.json'
     json.dump(out, open(jp, 'w'), indent=1)
 

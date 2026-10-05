@@ -88,7 +88,10 @@ shot('pg_split_23_xray', { ...BASE, quietBubbles: true, seed: 0 /* replaced belo
   await waitSfx(s, 'boop', { timeout: 40, mark: 'boop' });
   // the BOOP animation settles ~0.5 s after the sfx: q2's swirl back in phase with q1/q3
   await s.wait(0.5); s.mark('q2-restored');
-  await s.hold(3.0, 'xray-intact');
+  // pause the night here (the scene keeps breathing) so the restored X-ray state holds ≥ 3.5 s, with no
+  // morning check / win state / dialogue cutting in
+  await s.freeze(true);
+  await s.hold(4.0, 'xray-intact');
 });
 // same seed as pg_split_23 so every random draw matches
 { const h = (str) => { let x = 2166136261; for (const c of str) { x ^= c.charCodeAt(0); x = Math.imul(x, 16777619); } return x >>> 0; };
