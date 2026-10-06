@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="36" height="24" viewBox="0 0 36 24">
+  <!-- twin-wire binding, one repeat (tile vertically, repeat-y). Holes sit on the page side (right), wire loops over the spine edge (left). -->
+  <ellipse cx="25" cy="12" rx="3.6" ry="2.6" fill="#2b2620"/>
+  <ellipse cx="25" cy="11.4" rx="3.6" ry="2.1" fill="#4a4136"/>
+  <g fill="none" stroke-linecap="round">
+    <path d="M25 10.2 C14 9 2 9.5 3.5 13.2 C4.4 15.6 12 15.2 18 14.4" stroke="#0e0e0e" stroke-width="4.2"/>
+    <path d="M25 10.2 C14 9 2 9.5 3.5 13.2 C4.4 15.6 12 15.2 18 14.4" stroke="#9aa0a8" stroke-width="2.6"/>
+    <path d="M22 10.2 C14 9.6 6 9.9 5.2 11.6" stroke="#eef1f4" stroke-width="1" opacity="0.9"/>
+  </g>
+</svg>

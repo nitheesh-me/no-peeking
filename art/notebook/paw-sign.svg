@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="56" viewBox="0 0 64 56">
+  <!-- Schrödi's inky paw-print signature (for "Witnessed & understood by:") -->
+  <g fill="#2a2a5a" fill-opacity="0.85" transform="rotate(-12 32 28)">
+    <ellipse cx="32" cy="36" rx="13" ry="11"/>
+    <ellipse cx="14" cy="22" rx="5" ry="6.5"/>
+    <ellipse cx="25" cy="13" rx="5" ry="6.5"/>
+    <ellipse cx="39" cy="13" rx="5" ry="6.5"/>
+    <ellipse cx="50" cy="22" rx="5" ry="6.5"/>
+  </g>
+  <circle cx="54" cy="46" r="1.6" fill="#2a2a5a" fill-opacity="0.6"/>
+  <circle cx="8" cy="44" r="1.1" fill="#2a2a5a" fill-opacity="0.5"/>
+</svg>

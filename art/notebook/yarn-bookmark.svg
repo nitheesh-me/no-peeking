@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="44" height="150" viewBox="0 0 44 150">
+  <!-- yarn-ball bookmark: a wool strand hanging from the book's top edge, a little yarn ball at the end -->
+  <path d="M22 0 C18 20 27 36 21 54 S16 88 22 108" fill="none" stroke="#0e0e0e" stroke-width="4.2" stroke-linecap="round"/>
+  <path d="M22 0 C18 20 27 36 21 54 S16 88 22 108" fill="none" stroke="#ff6fa8" stroke-width="2.4" stroke-linecap="round"/>
+  <circle cx="22" cy="124" r="17" fill="#ff6fa8" stroke="#0e0e0e" stroke-width="2.4"/>
+  <g fill="none" stroke="#c23b78" stroke-width="1.4" stroke-linecap="round">
+    <path d="M8 116 C16 112 30 114 37 122"/><path d="M6 125 C16 120 30 124 38 132"/><path d="M10 135 C18 128 28 128 34 136"/>
+    <path d="M14 109 C10 118 12 132 20 140"/><path d="M26 108 C32 118 32 130 26 140"/>
+  </g>
+  <path d="M33 134 C38 140 36 146 30 148" fill="none" stroke="#ff6fa8" stroke-width="2" stroke-linecap="round"/>
+</svg>

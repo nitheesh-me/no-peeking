@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="90" viewBox="0 0 40 90">
+  <!-- shipping-box print for the spine: "this side up" arrows + a paw "fragile" glass (box ink colour) -->
+  <g fill="none" stroke="#5a2e1a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity=".75">
+    <path d="M12 26 V8 M6 14 L12 8 L18 14"/><path d="M28 26 V8 M22 14 L28 8 L34 14"/><path d="M6 30 H34"/>
+    <path d="M12 46 H28 L26 60 C25 64 15 64 14 60 Z M20 63 V76 M14 77 H26"/>
+  </g>
+</svg>

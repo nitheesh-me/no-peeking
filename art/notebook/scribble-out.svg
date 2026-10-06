@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="120" viewBox="0 0 260 120">
+  <!-- "hidden" page filler: lines of pencil notes that have been scribbled out (tile repeat-y) -->
+  <g fill="none" stroke="#3c3c46" stroke-linecap="round" stroke-opacity="0.22" stroke-width="1.4">
+    <path d="M10 18 h70 M92 18 h40 M144 18 h86"/>
+    <path d="M10 18 l8 -5 l8 10 l8 -10 l8 10 l8 -10 l8 10 l8 -10 l8 10 l8 -10 l8 10 l8 -10 l8 10 l8 -10 l8 10 l8 -10 l8 10 l8 -10 l8 10 l8 -10 l8 10 l8 -10 l8 10 l8 -10 l8 10 l8 -10 l4 4" stroke-opacity="0.32"/>
+    <path d="M10 58 h120 M142 58 h56"/>
+    <path d="M10 58 l7 -6 l7 11 l7 -11 l7 11 l7 -11 l7 11 l7 -11 l7 11 l7 -11 l7 11 l7 -11 l7 11 l7 -11 l7 11 l7 -11 l7 11 l7 -11 l7 11 l7 -11 l7 11 l7 -11 l7 11 l7 -11 l7 11 l7 -11 l7 11 l4 -3" stroke-opacity="0.32"/>
+    <path d="M10 98 h44 M66 98 h96 M174 98 h30"/>
+    <path d="M10 98 l9 -5 l9 10 l9 -10 l9 10 l9 -10 l9 10 l9 -10 l9 10 l9 -10 l9 10 l9 -10 l9 10 l9 -10 l9 10 l9 -10 l9 10 l9 -10 l9 10 l9 -10 l9 10 l9 -10 l9 4" stroke-opacity="0.32"/>
+  </g>
+</svg>

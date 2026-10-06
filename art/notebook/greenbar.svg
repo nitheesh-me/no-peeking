@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="8" height="64" viewBox="0 0 8 64" preserveAspectRatio="none">
+  <!-- continuous-form "green bar" printout: 2 lines of 16px green, 2 white (tile repeat; matches line-height 16px) -->
+  <rect width="8" height="32" fill="#d8f0dc"/>
+  <rect y="32" width="8" height="32" fill="#fbfdf8"/>
+</svg>

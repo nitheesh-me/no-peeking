@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="60" height="70" viewBox="0 0 60 70">
+  <!-- three claw scratches (torn cardboard: dark gouge + light frayed edge) -->
+  <g fill="none" stroke-linecap="round">
+    <path d="M10 6 C16 24 18 42 14 64" stroke="#3a2614" stroke-width="3.2"/>
+    <path d="M24 2 C30 22 32 42 29 66" stroke="#3a2614" stroke-width="3.6"/>
+    <path d="M38 8 C44 26 45 44 42 62" stroke="#3a2614" stroke-width="3"/>
+    <path d="M12 7 C18 25 20 42 16.5 63" stroke="#e8c79d" stroke-width="1.2" opacity=".9"/>
+    <path d="M26 3 C32 23 34 42 31.5 65" stroke="#e8c79d" stroke-width="1.2" opacity=".9"/>
+    <path d="M40 9 C46 27 47 44 44.5 61" stroke="#e8c79d" stroke-width="1.1" opacity=".9"/>
+  </g>
+</svg>

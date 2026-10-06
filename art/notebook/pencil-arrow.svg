@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="90" height="50" viewBox="0 0 90 50">
+  <!-- curly pencil arrow from a margin note to the thing it talks about (points down-right) -->
+  <path d="M4 8 C26 2 42 10 46 22 C50 34 62 42 82 40" fill="none" stroke="#3c3c46" stroke-opacity="0.85" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M72 33 L83 40 L72 46" fill="none" stroke="#3c3c46" stroke-opacity="0.85" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

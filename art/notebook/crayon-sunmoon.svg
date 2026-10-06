@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="70" viewBox="0 0 120 70">
+  <!-- crayon sun (|0⟩, Sunny) and moon (|1⟩, Moony), the way a kid draws the two dreams -->
+  <filter id="w" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="1" seed="8"/><feDisplacementMap in="SourceGraphic" scale="2.2"/></filter>
+  <g filter="url(#w)" fill="none" stroke-linecap="round">
+    <circle cx="30" cy="36" r="13" stroke="#ffb72b" stroke-width="4"/>
+    <path d="M30 14v-8M30 66v-8M8 36H2M58 36h-6M15 21l-5-5M50 56l-5-5M45 21l5-5M10 56l5-5" stroke="#ffb72b" stroke-width="3"/>
+    <path d="M100 14 C84 18 80 40 92 52 C100 60 112 58 116 52 C104 52 94 40 100 14 Z" stroke="#6c63ff" stroke-width="3.6"/>
+    <path d="M70 20 l2 5 5 1 -4 3 1 5 -4-3 -4 3 1-5 -4-3 5-1z" stroke="#6c63ff" stroke-width="1.8"/>
+  </g>
+</svg>

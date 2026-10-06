@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="34" viewBox="0 0 120 34">
+  <!-- mint-striped washi tape with torn ends -->
+  <defs>
+    <pattern id="s" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(-35)"><rect width="10" height="10" fill="#bff0da"/><rect width="4" height="10" fill="#8fe0bd"/></pattern>
+    <clipPath id="c"><path d="M4 3 L7 7 L3 10 L7 14 L2 18 L6 22 L3 26 L6 31 L116 31 L113 27 L118 23 L114 18 L118 14 L113 10 L117 6 L114 3 Z"/></clipPath>
+  </defs>
+  <rect width="120" height="34" fill="url(#s)" fill-opacity="0.8" clip-path="url(#c)"/>
+  <path d="M4 4 L114 4" stroke="#fff" stroke-opacity="0.5" stroke-width="2"/>
+</svg>
