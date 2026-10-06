@@ -653,3 +653,49 @@ Every plan change landed:
 4. **Phone (sim): PASS** at 75/77, with non-critical misses.
 
 **The showcase video is signed off by the Critic. With the trailer and the mechanic, all three deliverables are signed off.** The only open item is the user's single real-phone listen of the trailer.
+
+---
+
+## Milestone: thumbnails (`videos/final/thumbnails/`)
+
+**What I reviewed:** contact.png (including the true 168×94 row) and trailer_A / showcase_A at 1280×720.
+
+| Video | Main | A/B partner | Verdict |
+|---|---|---|---|
+| Trailer | **A** | B (after fix) | A **PASS**. B **FIX** |
+| Mechanic | **A** | B | **PASS** (both) |
+| Showcase | **A** (after fix) | a new B | **FIX** |
+
+**Trailer:**
+- **A: PASS.** "DON'T PEEK!" is the strongest mobile read of the six. The hand-drawn apostrophe is clean and sits right. The opaque blanket *is* the premise. The q2 chip ends at about x 1100, y 610, clear of the duration badge (about x > 1130, y > 640).
+- **B: FIX.** The worry about the face through the blanket is justified. The X-ray view is real game footage, but in the trailer it carries the "X-ray · simulator view" tag, and here it's untagged. Pairing it with "DON'T PEEK!" literally shows the peek, which contradicts the hook (and a tag would be illegible at 168×94 anyway). Fix: keep Flipper striking (he's the click magnet: a villain, a lightning bolt, emotion) but show q2 **opaque**: the blanket jolting (the game's flip-shake), a red "!" over it, the Zzz broken. Everything must come from the real flip frame in normal view.
+
+**Mechanic: PASS (A main, B partner).**
+- A reads as "a programming game" even at mobile size: the purple IF card and the red BOOP card are recognisable as code blocks, and "FIX IT BLIND" reads.
+- B is a genuinely different test (full-bleed room, characters). Its BEEP/quiet tags are real game UI.
+- The BOOP card's right end in A is at about 86% height, just above the badge zone. Fine, but don't move it lower.
+
+**Showcase: FIX.**
+1. **The "16" misreads.** The Quantum "1" has a flag stroke that reads as **"76"/"T6"** at full size, and worse at 168×94. Set the digits in Quicksand Bold (or draw a plain-stem "1", the way the apostrophe was drawn).
+2. **The text is too small at mobile size.** At 168×94 "16 LEVELS" is about 9 px tall and "SHOR CODE" about 8 px: legible only if you already know what it says. Scale the text block about 1.3×, shrinking the inset to fit (the inset's detail is lost at mobile size anyway). "→ SHOR CODE" means little to a general viewer, but it does to judges, and it's honest, so keep it, larger.
+3. **A and B are the same thumbnail** (same text, same blur, only the inset differs), so the A/B test measures nothing. Make B a genuinely different concept: the **4×4 grid of all 16 solved levels** (the showcase's own opening frame) with one big line, "16 LEVELS". It's the most "there's a lot here" image the game has, and it comes from real footage.
+- The hand-drawn arrow is fine. "GREML… WELCOM…" cut at the inset's edge is acceptable.
+
+**Honesty overall:** all six use real game art. The only issue is the untagged X-ray in trailer_B (fixed above). No typos.
+
+**Re-check:** only trailer_B (v2), showcase_A (v2) and showcase_B (v2), at full size plus the 168×94 row.
+
+**Thumbnails v2 re-check: PASS (all three).**
+- **trailer_B: PASS as the A/B partner.** It's honest now: an opaque blanket, the game's real flip marks ("!!", a sweat drop, shake lines), and Flipper as the normal-view silhouette. At full size it's a great "something's under there" image. At 168×94, Flipper shrinks to **two glowing dots plus a faint shape**, and the thumbnail reads as almost the same as A. That's acceptable for a partner, but if the Art Designer has 5 minutes: crop about 1.2× toward q2 + Flipper, with the text unchanged, so the silhouette's horns and bolt survive at mobile size. Optional.
+- **showcase_A: PASS.** The Quicksand "16" reads correctly, the headline is legible at mobile size ("16 LEVELS" clear, "→ SHOR CODE" readable), and nothing sits in the duration corner.
+- **showcase_B: PASS.** It is the best mobile read of the showcase pair: a big "16 LEVELS" over a wall of real solved rooms says "there's a lot of game here" instantly. The duration badge lands on the dark Lights Out tile, which is harmless.
+
+**Final picks:**
+
+| Video | Main | Partner |
+|---|---|---|
+| Trailer | **A** ("DON'T PEEK!", blanket) | B |
+| Mechanic | **A** (FIX IT BLIND + IF card) | B |
+| Showcase | **B** (16-level grid) | A |
+
+The showcase pick goes against the designer's recommendation: B wins on mobile legibility and immediacy. A's "→ SHOR CODE" is the judges' hook, so it stays as the test partner. If the upload is mainly for the judging panel, swap them; for a general audience, keep B.
