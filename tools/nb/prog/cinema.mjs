@@ -1,0 +1,16 @@
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+const { chromium } = createRequire(path.join(ROOT, 'tools/video/capture/package.json'))('playwright');
+const b = await chromium.launch({ args: ['--disable-gpu', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const p = await (await b.newContext({ viewport: { width: 1920, height: 1080 } })).newPage();
+const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+const save = { v: 1, progress: {}, programs: {}, slots: {}, homes: {}, settings: { master: 0, music: 0, sfx: 0, voice: 0, nerd: true }, flags: { unlockAll: true, 'nerd:found': true }, endlessBest: {} };
+await p.addInitScript((s) => { localStorage.clear(); for (const k of ['a', 'b', 'c']) localStorage.setItem('np.save.' + k, JSON.stringify(s)); localStorage.setItem('np.nb.open', '1'); localStorage.setItem('np.nb.page', 'circuit'); }, save);
+await p.goto('http://127.0.0.1:4420/?qa&cinema=1&nb=1#level/2-3'); await p.waitForTimeout(1500);
+await p.evaluate(() => { const L = window.__np.LEVELS.find((l) => l.id === '2-3'); window.__np.editor().setProgs(L.solution); window.__np.runNight(undefined, undefined, true); const pb = window.__np.pb(); pb.seek(Math.floor(pb.length * .7)); });
+await p.waitForTimeout(3000);
+console.log(JSON.stringify(await p.evaluate(() => ({ bench: document.querySelector('.level-main').className, dock: !!document.querySelector('.nb-dock'), nb: document.querySelector('.nerd-host > .nb')?.dataset.mode, open: document.querySelector('.nb')?.classList.contains('nb-open'), stacked: !!document.querySelector('.editor.stacked') }))), errs);
+await p.screenshot({ path: path.join(ROOT, 'tools/nb/prog/out/cinema-nb-1920.png') });
+await b.close();

@@ -1,0 +1,122 @@
+/* ───────── Lab Notebook v2 "The Bench Book": nerd-mode LAYOUT (designer; see docs/NOTEBOOK_V2.md §2–§5) ─────────
+   Imported by nerd.css. Every rule is scoped under .nerd-bench (level.ts adds it only when nerd mode is on and
+   html.cinema is off) or .editor.stacked, so nerd OFF stays pixel identical. */
+
+/* ═════════ bench grid ═════════ */
+.level-main.nerd-bench {
+  --ed-w: clamp(340px, 25vw, 400px); --nb-col: 44px;
+  position: relative; display: grid; min-height: 0;
+  grid-template-columns: minmax(0, 1fr) var(--nb-col) var(--ed-w);
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  grid-template-areas: "scene nb ed" "tl tl ed" "ctl ctl ed";
+}
+.nerd-bench > .stage { display: contents; }
+.nerd-bench .stage-scene { grid-area: scene; min-width: 0; min-height: 0; background: var(--paper2); container: room / inline-size; }
+.nerd-bench .nb-dock { grid-area: nb; min-width: 0; min-height: 0; position: relative; background: var(--nb-desk, #e2dbcc); border-left: 2px solid var(--paper3); container: nbdock / inline-size; }
+.nerd-bench .tl-row { grid-area: tl; min-width: 0; }
+.nerd-bench .controls { grid-area: ctl; min-width: 0; }
+.nerd-bench > .editor { grid-area: ed; width: auto; min-width: 0; }
+.nerd-bench[data-bench="xl"] { --ed-w: clamp(380px, 22vw, 460px); }
+.nerd-bench[data-bench="md"] { --ed-w: 300px; }
+.nerd-bench[data-nb="open"][data-bench="xl"] { --nb-col: var(--nb-w-xl, clamp(640px, 40vw, 880px)); }
+.nerd-bench[data-nb="open"][data-bench="lg"] { --nb-col: var(--nb-w, 400px); }
+.nerd-bench[data-nb="open"][data-bench="md"] { --nb-col: clamp(290px, 29vw, 360px); } /* 1024: room 427 | book 297 | code 300 */
+.nerd-bench .controls { flex-wrap: wrap; row-gap: 6px; }
+
+/* resize ghost line (drag on the binding; width applied on release) */
+.nerd-bench .nb-resize-ghost { position: absolute; top: 0; bottom: 0; width: 0; border-left: 3px dashed var(--sunny); z-index: 30; pointer-events: none; }
+
+/* ═════════ sm (< 900): one column, editor and notebook swap in the bottom sheet ═════════ */
+.level-main.nerd-bench[data-bench="sm"] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto auto auto var(--sheet-h, 46vh);
+  grid-template-areas: "scene" "tl" "ctl" "tabs" "ed";
+}
+.nerd-bench .bench-tabs { display: none; }
+.nerd-bench[data-bench="sm"] .bench-tabs { grid-area: tabs; display: flex; align-items: flex-end; gap: 6px; padding: 6px 12px 0; background: var(--nb-desk, #e2dbcc); border-top: var(--line); }
+.nerd-bench[data-bench="sm"] .nb-dock { grid-area: ed; border-left: 0; }
+.nerd-bench[data-bench="sm"][data-sheet="code"] .nb-dock,
+.nerd-bench[data-bench="sm"][data-sheet="notes"] > .editor { display: none; }
+.nerd-bench[data-bench="sm"] > .editor { border-left: 0; height: auto; border-top: 0; }
+.nerd-bench .bench-tab { font: 400 15px var(--display); border: var(--line); border-bottom: 0; border-radius: 12px 12px 0 0; padding: 6px 14px 5px; background: var(--paper2); color: var(--ink2); cursor: pointer; }
+.nerd-bench .bench-tab[aria-selected="true"] { background: var(--paper); color: var(--ink); transform: translateY(1px); }
+.nerd-bench .bench-tab.notes[aria-selected="true"] { background: var(--nb-paper, #fbf8ef); }
+.nerd-bench .bench-tab:focus-visible { outline: 3px solid var(--moony); outline-offset: 2px; }
+.nerd-bench .bench-grab { margin-left: auto; align-self: center; width: 44px; height: 6px; border-radius: 3px; background: var(--ink3); cursor: ns-resize; touch-action: none; }
+.nerd-bench .bench-grab:hover, .nerd-bench .bench-grab:focus-visible { background: var(--ink); outline: none; }
+
+/* ═════════ HUD over the narrower room: nothing clips (decision 8) ═════════ */
+.nerd-bench .stage-hud { flex-wrap: wrap; row-gap: 6px; }
+.nerd-bench .stage-hud > .phase-pill, .nerd-bench .stage-hud > .fid-meter { flex: none; }
+/* the test-strip host (last child, inline flex:1 + min-width:0) wraps to its own row instead of squeezing into a column */
+.nerd-bench .stage-hud > :last-child { flex-basis: 210px !important; }
+@container room (max-width: 520px) {
+  .nerd-bench .stage-hud { left: 8px; right: 8px; top: 8px; gap: 6px; }
+  .nerd-bench .phase-pill { font-size: 13px; padding: 4px 9px; }
+  .nerd-bench .fid-meter { padding: 3px 8px; font-size: 12px; }
+  .nerd-bench .fid-meter .bar { width: 56px; }
+}
+
+/* ═════════ stacked editor (nerd mode only) ═════════ */
+.editor.stacked .toolbox { width: 100px; padding: 8px; }
+.editor.stacked .toolbox .card { font-size: 13px; min-height: 32px; }
+.editor.stacked .columns { flex-direction: column; overflow-x: hidden; overflow-y: auto; scroll-padding-top: 48px; }
+.editor.stacked .prog-col { flex: none; min-width: 0; width: auto; border-right: 0; }
+.editor.stacked .prog-col.fixed-only { width: auto; }
+.editor.stacked .prog-col-head { position: sticky; top: 0; z-index: 3; background: var(--paper); padding-top: 8px; padding-bottom: 6px; border-bottom: 2px dashed var(--paper3); box-shadow: 0 6px 6px -6px rgba(14, 14, 14, 0.18); }
+.editor.stacked .prog-col > .slot-tabs { position: relative; z-index: 2; background: var(--paper); }
+/* nothing scrolled into view hides under the sticky head */
+.editor.stacked .fixed-phase, .editor.stacked .prog-list .card, .editor.stacked .night-divider { scroll-margin-top: 64px; }
+.editor.stacked .fixed-phase { margin-top: 10px; }
+.editor.stacked .prog-col-head .fold { border: 0; background: none; font: 700 14px var(--body); cursor: pointer; color: var(--ink2); padding: 0 4px; border-radius: 6px; }
+.editor.stacked .prog-col-head .fold:hover { background: var(--paper2); color: var(--ink); }
+.editor.stacked .prog-col-head .fold:focus-visible { outline: 2px solid var(--moony); }
+.editor.stacked .prog-list { flex: none; overflow: visible; min-height: 84px; padding-bottom: 18px; }
+.editor.stacked .prog-col:last-child .prog-list { padding-bottom: 60px; }
+.editor.stacked .prog-col.collapsed .prog-list,
+.editor.stacked .prog-col.collapsed .fixed-phase,
+.editor.stacked .prog-col.collapsed .slot-tabs { display: none; }
+.editor.stacked .prog-col.collapsed .prog-col-head { box-shadow: none; }
+.editor.stacked .prog-list .card { font-size: 14px; }
+.editor.stacked .prog-list .card .chip { font-size: 12px; padding: 0 6px; }
+.editor.stacked .night-divider {
+  flex: none; position: relative; margin: 6px 10px; height: 30px; border-radius: 15px; border: 2px solid var(--ink);
+  display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; overflow: hidden;
+  font: 700 12px var(--body); letter-spacing: 0.04em; color: #e8e4ff;
+  background: radial-gradient(1.2px 1.2px at 12% 30%, #fff 99%, transparent), radial-gradient(1px 1px at 31% 70%, #fff 99%, transparent),
+    radial-gradient(1.4px 1.4px at 58% 25%, #fff 99%, transparent), radial-gradient(1px 1px at 77% 65%, #fff 99%, transparent),
+    radial-gradient(1.2px 1.2px at 92% 35%, #fff 99%, transparent), linear-gradient(90deg, #1a1a2e, #2a2752 50%, #1a1a2e);
+}
+.editor.stacked .night-divider .gr { color: #ff9b95; }
+
+/* md: icon-chip toolbox so the room keeps >= 420px at 1024 (decision review #4) */
+.nerd-bench[data-bench="md"] .editor.stacked .toolbox { width: 76px; padding: 6px 5px; gap: 6px; }
+.nerd-bench[data-bench="md"] .editor.stacked .toolbox h5 { font-size: 12px; }
+.nerd-bench[data-bench="md"] .editor.stacked .toolbox .card { font-size: 10.5px; letter-spacing: 0; min-height: 28px; padding: 3px 5px; border-width: 2px; border-radius: 9px; justify-content: center; }
+.nerd-bench[data-bench="md"] .editor.stacked .toolbox .card .info { display: none; }
+.nerd-bench[data-bench="md"] .editor.stacked .toolbox .card small.wakes { font-size: 8px; padding: 0 3px; margin: 0; }
+
+/* footer: keeps every tool (decision 7), wraps to two compact rows */
+.editor.stacked .editor-foot { flex-wrap: wrap; gap: 6px; padding: 8px; row-gap: 6px; }
+.editor.stacked .editor-foot .trash { min-width: 0; height: 36px; padding: 0 10px; font-size: 12px; }
+.editor.stacked .editor-foot .help-slot { min-width: 0; height: 36px; padding: 0 10px; font-size: 12px; }
+.editor.stacked .editor-foot .btn.small { padding: 5px 9px; font-size: 13px; }
+.editor.stacked .editor-foot .btn.icon.small { width: 32px; height: 32px; min-height: 32px; }
+.editor.stacked .editor-foot .stats { font-size: 11px; line-height: 1.2; }
+.editor.stacked .snip-drawer { max-height: 180px; }
+
+/* card ↔ gate hover link (decision 5): sky = "this card is that gate". Distinct from .current (sunny). */
+.nerd-bench .card.card-hl { box-shadow: 0 0 0 3px var(--ink), 0 0 0 6px var(--sky); z-index: 1; }
+.nerd-bench .card.card-hl.current { box-shadow: 0 0 0 3px var(--ink), 0 0 0 6px var(--sky), 0 0 0 9px var(--sunny); }
+
+/* md: the controls row fits on one line (it spans room + book) */
+.nerd-bench[data-bench="md"] .controls { gap: 4px; padding: 8px 8px; }
+.nerd-bench[data-bench="md"] .controls .btn.small { padding: 6px 8px; font-size: 13px; }
+.nerd-bench[data-bench="md"] .controls .btn.primary, .nerd-bench[data-bench="md"] .controls .btn.go:not(.icon) { padding: 8px 10px; font-size: 14px; }
+.nerd-bench[data-bench="md"] .controls .sep { margin: 0 2px; }
+
+/* a hovered gate whose card sits in a folded phase: the phase header pulses sky (open it to see the card) */
+.editor.stacked .prog-col.collapsed.card-hl-inside .prog-col-head { animation: nbHeadPulse 1.1s ease-in-out infinite; box-shadow: inset 4px 0 0 var(--sky); }
+@keyframes nbHeadPulse { 50% { background: #dff2ff; } }
+@media (prefers-reduced-motion: reduce) { .editor.stacked .prog-col.collapsed.card-hl-inside .prog-col-head { animation: none; background: #dff2ff; } }
+.reduced .editor.stacked .prog-col.collapsed.card-hl-inside .prog-col-head { animation: none; background: #dff2ff; }

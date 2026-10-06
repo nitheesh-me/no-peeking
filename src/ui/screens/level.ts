@@ -13,6 +13,7 @@ import { isBot } from '../../core/contracts';
 import { createBloch3D, type Bloch3D } from '../bloch3d';
 import { NERD_PAGES, NOTEBOOK_UNLOCK, type NerdPageDef, type NerdPageId } from '../nerd/pages';
 import { findCreateNotebook, type NerdNotebook } from '../nerd/loader';
+import { cinema } from '../../engine/cinema';
 import { Editor, type Progs } from '../editor/editor';
 import { Dialogue } from '../dialogue';
 import { cloneGlitch, floodColor } from '../meta';
@@ -67,11 +68,18 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
   const tlTip = h('div', { class: 'tl-tip hidden' });
   const timeline = h('div', { class: 'timeline', role: 'slider', 'aria-label': 'Night timeline: click to jump' }, h('div', { class: 'segs' }), h('div', { class: 'fill' }), tlTip);
   const bXray = h('button', { class: 'btn small', title: 'X-ray: see the true dreams (X). Simulator only: a real lab can\'t see this without measuring.', onclick: () => setXray(!xray) }, 'X-ray');
-  const bNerd = h('button', { class: 'btn small hidden', title: 'Nerd mode: Schrödi\'s lab notebook', onclick: () => { save.settings.nerd = !save.settings.nerd; persist(); syncNerd(); } }, '📓 Nerd');
+  const bNerd = h('button', { class: 'btn small hidden', title: 'Nerd mode: Schrödi\'s lab notebook', onclick: () => layoutTransition(save.settings.nerd ? 'bench-off' : 'bench-on', () => { save.settings.nerd = !save.settings.nerd; persist(); syncNerd(); }) }, '📓 Nerd');
   const bRun = h('button', { class: 'btn primary', onclick: () => startRun() }, 'Run night');
   const bTest = h('button', { class: 'btn go', onclick: () => testAll() }, 'Test all');
   const controls = h('div', { class: 'controls' }, bStepMode, bRewind, bBack, bPlay, bStep, bFast, h('div', { class: 'spacer' }), bXray, bNerd, h('div', { class: 'sep' }), bRun, bTest);
-  const sceneArea = h('div', { style: 'position:relative;flex:1;min-height:0;display:flex' }, wrap, hud, nerdHost, hintsPanel, sceneTip);
+  const sceneArea = h('div', { class: 'stage-scene' }, wrap, hud, nerdHost, hintsPanel, sceneTip);
+  // nerd bench (docs/NOTEBOOK_V2.md §4): the notebook's dock column + the bottom-sheet tabs (sm). Only in the DOM while the bench is on.
+  const nbDock = h('div', { class: 'nb-dock' });
+  const tabCode = h('button', { class: 'bench-tab code', role: 'tab', 'aria-selected': 'true', type: 'button', onclick: () => { if (sheet !== 'code') layoutTransition('sheet', () => setSheet('code')); } }, '🃏 Bot Code');
+  const tabNotes = h('button', { class: 'bench-tab notes', role: 'tab', 'aria-selected': 'false', type: 'button', onclick: () => { if (sheet !== 'notes') layoutTransition('sheet', () => setSheet('notes')); } }, '📓 Lab notebook');
+  const benchGrab = h('div', { class: 'bench-grab', role: 'separator', 'aria-orientation': 'horizontal', 'aria-label': 'Resize the bottom sheet (arrow keys)', tabindex: '0', 'aria-valuemin': '30', 'aria-valuemax': '70', title: 'Drag to resize' });
+  const benchTabs = h('div', { class: 'bench-tabs', role: 'tablist', 'aria-label': 'Bottom sheet' }, tabCode, tabNotes, benchGrab);
+  for (const [a, b] of [[tabCode, tabNotes], [tabNotes, tabCode]] as const) a.addEventListener('keydown', (e) => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); b.focus(); b.click(); } });
   const tlRow = h('div', { class: 'tl-row' }, timeline);
   stage.append(sceneArea, tlRow, controls);
 
@@ -122,6 +130,7 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
         for (const ph of ['bedtime', 'morning'] as const) for (const o of p[ph] ?? []) if (!codexHas('card-' + o.op)) unlockCodex('card-' + o.op); // cards: first placement
         stopRun();
       },
+      onHoverLine: (ref) => notebook?.highlightLine?.(ref),
       beginPick: (allowed, cb) => {
         pickState = { allowed: new Set(allowed), cb };
         scene.highlight = new Set(allowed);
@@ -130,10 +139,214 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
       },
     });
     main.appendChild(editor.el);
+    if (benchOn) editor.setStacked(true);
   }
 
   const main = h('div', { class: 'level-main' }, stage);
   root.append(topbar, main);
+
+  // ───────── nerd bench layout (docs/NOTEBOOK_V2.md §2, §4): scene | notebook | stacked editor ─────────
+  type Bench = 'xl' | 'lg' | 'md' | 'sm';
+  const NBK = { w: 'np.nb.w2', wxl: 'np.nb.wxl', sheet: 'np.nb.sheet', sheetH: 'np.nb.sheetH' };
+  const lsGet = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
+  const lsSet = (k: string, v: string | null) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { /* private mode */ } };
+  let benchOn = false;
+  let bench: Bench = 'lg';
+  let sheet: 'code' | 'notes' = lsGet(NBK.sheet) === 'notes' ? 'notes' : 'code';
+  const benchOf = (w: number): Bench => (w >= 1720 ? 'xl' : w >= 1200 ? 'lg' : w >= 900 ? 'md' : 'sm');
+  const mainW = () => main.getBoundingClientRect().width || window.innerWidth;
+  /** drag range of the notebook column (lg/xl): keeps the room ≥ 480 / 560 px */
+  function nbRange(b: Bench): { min: number; max: number; def: number } {
+    const W = mainW(), ed = editor?.el.getBoundingClientRect().width || 400;
+    if (b === 'xl') { const min = 560; return { min, max: Math.max(min, Math.min(1000, W - ed - 560)), def: Math.max(640, Math.min(880, 0.4 * window.innerWidth)) }; }
+    const min = 320; return { min, max: Math.max(min, Math.min(720, W - ed - 480)), def: 400 };
+  }
+  const clampN = (v: number, r: { min: number; max: number }) => Math.round(Math.max(r.min, Math.min(r.max, v)));
+  /** CSS vars from the remembered sizes, clamped to what fits now (never persisted by the clamp) */
+  function applyBenchVars() {
+    if (!benchOn) return;
+    for (const [b, k, v] of [['lg', NBK.w, '--nb-w'], ['xl', NBK.wxl, '--nb-w-xl']] as const) {
+      const saved = Number(lsGet(k));
+      if (saved > 0 && (bench === b)) main.style.setProperty(v, clampN(saved, nbRange(b)) + 'px');
+      else if (saved > 0) main.style.setProperty(v, saved + 'px');
+      else main.style.removeProperty(v);
+    }
+    const sh = Number(lsGet(NBK.sheetH));
+    if (sh >= 30 && sh <= 70) main.style.setProperty('--sheet-h', sh + 'vh'); else main.style.removeProperty('--sheet-h');
+    syncBindingAria();
+  }
+  function syncBindingAria() {
+    const bind = nbDock.querySelector('.nb-binding'); if (!bind) return;
+    if (bench !== 'lg' && bench !== 'xl') { ['aria-valuemin', 'aria-valuemax', 'aria-valuenow'].forEach((a) => bind.removeAttribute(a)); bind.setAttribute('aria-disabled', 'true'); return; }
+    const r = nbRange(bench);
+    bind.removeAttribute('aria-disabled');
+    bind.setAttribute('aria-valuemin', String(r.min)); bind.setAttribute('aria-valuemax', String(r.max));
+    bind.setAttribute('aria-valuenow', String(Math.round(nbDock.getBoundingClientRect().width) || r.def));
+  }
+  const motionOK = () => !document.documentElement.classList.contains('reduced') && !(typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  /**
+   * Every bench layout change goes through here (notebook open/close, bench on/off, breakpoint, sm tab, resize release).
+   * View Transitions when available: the room, the book, the editor, the timeline and the controls get a
+   * view-transition-name for the duration only, so they morph from the old layout to the new one; <html data-vt=kind>
+   * lets the CSS tune each kind. The DOM changes ONCE, so the scene canvas re-fits once (its ResizeObserver), and the
+   * live "new" snapshot keeps its aspect ratio while it morphs (no stretched frame). Fallback: translate/opacity FLIP on the
+   * book and the editor, opacity only on the room (a transform on the canvas' ancestors would be measured by Scene.resize).
+   * Reduced motion: instant.
+   */
+  const VT: [() => HTMLElement | null | undefined, string][] = [[() => sceneArea, 'nb-room'], [() => nbDock, 'nb-book'], [() => editor?.el, 'nb-editor'], [() => tlRow, 'nb-timeline'], [() => controls, 'nb-controls'], [() => benchTabs, 'nb-sheettabs']];
+  type VTDoc = Document & { startViewTransition?: (cb: () => void) => { finished: Promise<void>; skipTransition(): void } };
+  function nameVT(on: boolean) {
+    for (const [f, n] of VT) {
+      const e = f(); if (!e) continue;
+      if (on && e.isConnected) e.style.setProperty('view-transition-name', n);
+      else { e.style.removeProperty('view-transition-name'); if (!e.getAttribute('style')) e.removeAttribute('style'); }
+    }
+  }
+  let vtSeq = 0;
+  function layoutTransition(kind: string, mutate: () => void) {
+    // instant under reduced motion, and under the capture shim (its frozen clock never finishes a view transition)
+    if (!motionOK() || !main.isConnected || (window as unknown as { __cap?: unknown }).__cap) { mutate(); return; }
+    const d = document as VTDoc, html = document.documentElement;
+    if (typeof d.startViewTransition === 'function') {
+      const my = ++vtSeq;
+      nameVT(true); html.dataset.vt = kind;
+      let ran = false;
+      // name what appeared in the new state too, and re-fit the canvas NOW so the new room snapshot is the real buffer
+      const run = () => { if (ran) return; ran = true; mutate(); nameVT(true); scene.resize(); };
+      try {
+        const t = d.startViewTransition(run);
+        t.finished.catch(() => {}).finally(() => { if (my === vtSeq) { nameVT(false); delete html.dataset.vt; } });
+      } catch { run(); nameVT(false); delete html.dataset.vt; }
+      return;
+    }
+    // FLIP fallback (the canvas re-fits through its ResizeObserver; nothing here transforms the room)
+    const before = new Map<HTMLElement, DOMRect>();
+    for (const e of [nbDock, editor?.el]) if (e?.isConnected) before.set(e, e.getBoundingClientRect());
+    mutate();
+    const opt: KeyframeAnimationOptions = { duration: 280, easing: 'cubic-bezier(.2, .8, .3, 1)' };
+    for (const [e, r0] of before) {
+      if (!e.isConnected || typeof e.animate !== 'function') continue;
+      const r1 = e.getBoundingClientRect(); const dx = r0.left - r1.left;
+      if (Math.abs(dx) > 1) e.animate([{ transform: `translateX(${dx}px)` }, { transform: 'none' }], opt);
+    }
+    for (const e of [nbDock, editor?.el]) if (e?.isConnected && !before.has(e) && typeof e.animate === 'function') e.animate([{ opacity: 0 }, { opacity: 1 }], opt);
+    if (typeof wrap.animate === 'function') wrap.animate([{ opacity: 0.6 }, { opacity: 1 }], opt);
+  }
+  function setSheet(s: 'code' | 'notes', focus = false) {
+    sheet = s; lsSet(NBK.sheet, s);
+    if (benchOn) main.dataset.sheet = s;
+    tabCode.setAttribute('aria-selected', String(s === 'code')); tabNotes.setAttribute('aria-selected', String(s === 'notes'));
+    tabCode.tabIndex = s === 'code' ? 0 : -1; tabNotes.tabIndex = s === 'notes' ? 0 : -1;
+    if (focus) (s === 'code' ? tabCode : tabNotes).focus();
+    afterLayout();
+  }
+  function syncNbAttr() {
+    if (!benchOn) return;
+    const nb = bench === 'sm' || notebook?.isOpen?.() ? 'open' : 'closed';
+    main.dataset.nb = nb;
+    afterLayout();
+  }
+  let layoutRaf = 0;
+  /** the grid changed: Scene refits itself (ResizeObserver on its canvas); the editor's gutter arrows need a redraw */
+  function afterLayout() {
+    if (layoutRaf) return;
+    layoutRaf = requestAnimationFrame(() => { layoutRaf = 0; editor?.relayout(); syncBindingAria(); });
+  }
+  function setBench(b: Bench) {
+    bench = b;
+    main.dataset.bench = b;
+    notebook?.setMode?.(b === 'sm' ? 'sheet' : 'column');
+    applyBenchVars();
+    syncNbAttr();
+  }
+  let pendingBench: Bench | null = null;
+  const benchRO = new ResizeObserver(() => {
+    if (!benchOn) return;
+    const b = benchOf(mainW());
+    if (b !== bench) { if (b !== pendingBench) { pendingBench = b; layoutTransition('breakpoint', () => { pendingBench = null; if (benchOf(mainW()) === b) setBench(b); }); } }
+    else applyBenchVars();
+  });
+  benchRO.observe(main);
+  cleanups.push(() => benchRO.disconnect());
+  /** turn the bench on / off: nerd mode on and not ?cinema. Off = today's DOM and layout, untouched. */
+  function syncBench() {
+    const on = nerdOn() && !cinema.on;
+    if (on === benchOn) return;
+    benchOn = on;
+    main.classList.toggle('nerd-bench', on);
+    if (on) {
+      bench = benchOf(mainW());
+      main.dataset.bench = bench;
+      sceneArea.after(nbDock);
+      main.insertBefore(benchTabs, editor?.el ?? null);
+      setSheet(sheet);
+      applyBenchVars();
+    } else {
+      nbDock.remove(); benchTabs.remove();
+      for (const a of ['bench', 'nb', 'sheet']) delete main.dataset[a];
+      for (const v of ['--nb-w', '--nb-w-xl', '--sheet-h']) main.style.removeProperty(v);
+      if (!main.getAttribute('style')) main.removeAttribute('style');
+    }
+    editor?.setStacked(on);
+    afterLayout();
+  }
+
+  // ── resize: drag the binding (lg/xl). A ghost line follows the pointer; the width is applied once, on release. ──
+  function nbWidthSet(w: number | null) {
+    if (bench !== 'lg' && bench !== 'xl') return;
+    const k = bench === 'xl' ? NBK.wxl : NBK.w;
+    layoutTransition('resize', () => { lsSet(k, w == null ? null : String(Math.round(w))); applyBenchVars(); afterLayout(); });
+  }
+  nbDock.addEventListener('pointerdown', (e) => {
+    const bind = (e.target as HTMLElement).closest('.nb-binding') as HTMLElement | null;
+    if (!bind || e.button > 0 || (bench !== 'lg' && bench !== 'xl')) return;
+    e.preventDefault();
+    bind.setPointerCapture(e.pointerId);
+    const nbEl = nbDock.querySelector('.nb'); nbEl?.classList.add('nb-resizing');
+    const mr = main.getBoundingClientRect(), dr = nbDock.getBoundingClientRect(), r = nbRange(bench);
+    const x0 = e.clientX, w0 = dr.width;
+    let w = w0;
+    const ghost = h('div', { class: 'nb-resize-ghost', 'aria-hidden': 'true' });
+    const place = () => { ghost.style.left = `${dr.right - w - mr.left}px`; };
+    place(); main.appendChild(ghost);
+    const mv = (ev: PointerEvent) => { w = clampN(w0 + (x0 - ev.clientX), r); place(); };
+    const up = () => {
+      bind.removeEventListener('pointermove', mv); bind.removeEventListener('pointerup', up); bind.removeEventListener('pointercancel', up);
+      ghost.remove(); nbEl?.classList.remove('nb-resizing');
+      if (Math.abs(w - w0) >= 2) nbWidthSet(w);
+    };
+    bind.addEventListener('pointermove', mv); bind.addEventListener('pointerup', up); bind.addEventListener('pointercancel', up);
+  });
+  nbDock.addEventListener('keydown', (e) => {
+    if (!(e.target as HTMLElement).classList?.contains('nb-binding') || (bench !== 'lg' && bench !== 'xl')) return;
+    const r = nbRange(bench), cur = nbDock.getBoundingClientRect().width;
+    let w: number | null = null;
+    if (e.key === 'ArrowLeft') w = cur + 24; else if (e.key === 'ArrowRight') w = cur - 24; // the binding is on the room side: ← = wider
+    else if (e.key === 'Home') w = r.min; else if (e.key === 'End') w = r.max; else return;
+    e.preventDefault(); e.stopPropagation();
+    nbWidthSet(clampN(w, r));
+  });
+  nbDock.addEventListener('dblclick', (e) => { if ((e.target as HTMLElement).closest('.nb-binding')) nbWidthSet(null); });
+  // ── resize the bottom sheet (sm): vertical drag on the grab bar, applied on release; ↑/↓ = ±4vh ──
+  benchGrab.addEventListener('pointerdown', (e) => {
+    if (e.button > 0) return;
+    e.preventDefault(); benchGrab.setPointerCapture(e.pointerId);
+    const mr = main.getBoundingClientRect(), vh = window.innerHeight / 100;
+    let v = Number(lsGet(NBK.sheetH)) || 46;
+    const ghost = h('div', { class: 'nb-resize-ghost', 'aria-hidden': 'true', style: 'left:0;right:0;bottom:auto;width:auto;height:0;border-left:0;border-top:3px dashed var(--sunny)' });
+    const place = (y: number) => { v = Math.round(Math.max(30, Math.min(70, (mr.bottom - y) / vh))); ghost.style.top = `${mr.bottom - v * vh - mr.top}px`; };
+    place(e.clientY); main.appendChild(ghost);
+    const mv = (ev: PointerEvent) => place(ev.clientY);
+    const up = () => { benchGrab.removeEventListener('pointermove', mv); benchGrab.removeEventListener('pointerup', up); benchGrab.removeEventListener('pointercancel', up); ghost.remove(); layoutTransition('resize', () => { lsSet(NBK.sheetH, String(v)); applyBenchVars(); afterLayout(); }); };
+    benchGrab.addEventListener('pointermove', mv); benchGrab.addEventListener('pointerup', up); benchGrab.addEventListener('pointercancel', up);
+  });
+  benchGrab.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+    e.preventDefault(); e.stopPropagation();
+    const v = Math.max(30, Math.min(70, (Number(lsGet(NBK.sheetH)) || 46) + (e.key === 'ArrowUp' ? 4 : -4)));
+    lsSet(NBK.sheetH, String(v)); benchGrab.setAttribute('aria-valuenow', String(v)); applyBenchVars(); afterLayout();
+  });
+
   makeEditor();
 
   function initialSnap(): Snapshot | null {
@@ -158,7 +371,9 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     scene.nerd = on;
     bNerd.classList.toggle('hidden', !nerdUnlocked());
     bNerd.classList.toggle('on', on);
-    if (on) mountNotebook(); else unmountNotebook();
+    if (!on) unmountNotebook();
+    syncBench();
+    if (on) mountNotebook();
     if (on && !was && pb && !pb.night.steps[0]?.snap.nerd) refreshNerdNight();
   }
   setXray(xray); scene.xray = scene.xrayTarget;
@@ -189,10 +404,20 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     if (notebook) return;
     const create = findCreateNotebook();
     if (!create) return; // the notebook module hasn't landed yet: nerd mode shows only hover numbers + the inspector
-    nerdHost.innerHTML = '';
+    nerdHost.innerHTML = ''; nbDock.innerHTML = '';
     try {
-      notebook = create(nerdHost, { level, isUnlocked: pageUnlocked, onDump: () => onDump(), prog: () => progs() });
+      notebook = create(benchOn ? nbDock : nerdHost, {
+        level, isUnlocked: pageUnlocked, onDump: () => onDump(), prog: () => progs(),
+        mode: !benchOn ? 'overlay' : bench === 'sm' ? 'sheet' : 'column',
+        defaultOpen: benchOn ? bench === 'xl' || bench === 'lg' : false, // md: a first-ever visit starts closed (decision 1)
+        onOpenChange: (open) => { if (benchOn && bench === 'sm') { if (open && sheet !== 'notes') layoutTransition('sheet', () => setSheet('notes')); } else syncNbAttr(); },
+        onSheetClose: () => layoutTransition('sheet', () => setSheet('code', true)),
+        transition: (kind, mutate) => layoutTransition(kind, mutate),
+        escCloses: () => !benchOn || bench === 'md' || bench === 'sm',
+        onGateHover: (ref) => editor.highlightLine(ref),
+      });
     } catch (e) { console.error(e); notebook = null; return; }
+    syncNbAttr();
     nbKey = '';
     // surprise beats: pages unlocked since the notebook was last open
     for (const pg of NERD_PAGES) {
@@ -201,14 +426,22 @@ export function levelScreen(root: HTMLElement, nav: Nav, arg: unknown): () => vo
     persist();
     updateNotebook();
   }
-  function unmountNotebook() { notebook?.destroy(); notebook = null; nerdHost.innerHTML = ''; }
+  function unmountNotebook() { notebook?.destroy(); notebook = null; nerdHost.innerHTML = ''; nbDock.innerHTML = ''; editor?.highlightLine(null); }
   function updateNotebook() {
     if (!notebook) return;
     const snap = currentSnap();
-    const key = `${pb ? pb.night.seed ?? 0 : -1}|${pb?.i ?? 0}|${xray}|${snapId(snap)}`;
+    const key = `${pb ? pb.night.seed ?? 0 : -1}|${pb?.i ?? 0}|${xray}|${snapId(snap)}|${report ? snapId(report as unknown as Snapshot) : 0}`;
     if (key === nbKey) return;
     nbKey = key;
-    try { notebook.update({ night: pb?.night ?? null, step: pb?.i ?? 0, snap, xray, lightsOut: scene.lightsOut }); } catch (e) { console.error(e); }
+    const ni = nightOfReport(pb?.night ?? null);
+    try { notebook.update({ night: pb?.night ?? null, step: pb?.i ?? 0, snap, xray, lightsOut: scene.lightsOut, nightIndex: ni?.[0], nightCount: ni?.[1], report: report?.nights ?? null }); } catch (e) { console.error(e); }
+  }
+  /** which night of the last test report is on screen (replays re-simulate, so match by seed + input + gremlins) */
+  function nightOfReport(n: NightResult | null): [number, number] | null {
+    if (!n || !report) return null;
+    let i = report.nights.indexOf(n as NightX);
+    if (i < 0) { const sig = (x: NightResult) => JSON.stringify([x.seed, x.input, x.errors]); const s0 = sig(n); i = report.nights.findIndex((x) => sig(x) === s0); }
+    return i >= 0 ? [i + 1, report.nights.length] : null;
   }
   function snapId(s: Snapshot | null): number { if (!s) return 0; let v = snapIds.get(s); if (!v) { v = ++snapSeq; snapIds.set(s, v); } return v; }
   /** nerd turned on mid-run: re-simulate the shown night with NerdInfo (same seed → same trace), keep the position */

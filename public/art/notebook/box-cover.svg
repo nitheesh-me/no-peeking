@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160">
+  <!-- Schrödi's cardboard box: corrugated flutes showing through, fibre noise -->
+  <filter id="f" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.05 0.7" numOctaves="3" seed="9" stitchTiles="stitch"/>
+    <feColorMatrix type="matrix" values="0 0 0 0 0.32  0 0 0 0 0.21  0 0 0 0 0.11  0 0 0 0.5 0"/>
+  </filter>
+  <rect width="160" height="160" fill="#b98a5a"/>
+  <g stroke="#a47646" stroke-width="3" opacity=".55"><path d="M0 4H160M0 14H160M0 24H160M0 34H160M0 44H160M0 54H160M0 64H160M0 74H160M0 84H160M0 94H160M0 104H160M0 114H160M0 124H160M0 134H160M0 144H160M0 154H160"/></g>
+  <rect width="160" height="160" filter="url(#f)"/>
+</svg>

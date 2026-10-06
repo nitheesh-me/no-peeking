@@ -149,6 +149,8 @@ describe('exporter', () => {
     expect(py).toContain('level nerd-test'); expect(py).toContain('seed=11');
     const noErr = toQiskit(bitLvl, bitNight, { includeErrors: false });
     expect(noErr).toContain('# gremlin error omitted');
+    expect(noErr).toContain('# WARNING: the gremlin errors are omitted');
+    expect(toQiskit(bitLvl, bitNight, { includeErrors: false, prog: { morning: R.BITFLIP_CORRECT }, dynamic: true })).not.toContain('WARNING');
   });
 
   it('OpenQASM 3 executed path', () => {

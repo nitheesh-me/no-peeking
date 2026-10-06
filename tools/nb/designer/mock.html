@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bench Book mock</title>
+<!-- Static designer mock of Lab Notebook v2. Serve through the dev server:
+     http://127.0.0.1:4420/tools/nb/designer/mock.html?page=circuit&pin=stabilizers&nb=open&sheet=notes
+     Uses the real main.css + the v2 draft css. Data is fake (shape only); the real numbers come from Snapshot.nerd. -->
+<link rel="stylesheet" href="/src/styles/main.css">
+<link rel="stylesheet" href="/src/styles/nerd.css">
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  #app { position: absolute; inset: 0; }
+  .stage-scene { position: relative; flex: 1; min-height: 0; display: flex; }
+  .stage-hud { position: absolute; }
+  .fake-scene { position: absolute; inset: 0; background: url('/tools/nb/designer/current-1920x1080-2-3-circuit.png') no-repeat -330px -110px / 1920px 1080px; }
+</style>
+</head>
+<body>
+<div id="app">
+<div class="screen level-screen">
+  <div class="topbar">
+    <button class="btn small">◂ Map</button><span class="lvl-badge">2-3</span>
+    <div style="min-width:0"><div class="title">Who Got Flipped?</div><div class="sub">Two bots. Four answers.</div></div>
+    <div class="spacer"></div><button class="btn small">💡 Hints</button><button class="btn icon small">⚙</button>
+  </div>
+  <div class="level-main nerd-bench" id="main" data-nb="open" data-sheet="notes">
+    <div class="stage">
+      <div class="stage-scene"><div class="stage-canvas-wrap fake-scene"></div><div class="stage-hud"><div class="phase-pill night">Night</div><div class="phase-pill xray-pill">X-RAY</div><div class="fid-meter">dream<div class="bar"><i style="width:72%"></i></div><span>72%</span></div><div style="flex:1;display:flex;justify-content:flex-end;min-width:0"><div class="test-strip"><span class="summary">3/4</span><div class="night-card">☀</div><div class="night-card">🌙</div><div class="night-card">↻</div></div></div></div></div>
+      <div class="nb-dock" id="dock"></div>
+      <div class="tl-row"><div class="timeline" style="height:22px;border:2px solid #0e0e0e;border-radius:11px;background:linear-gradient(90deg,#bfe0f5 0 14%,#fff0c4 14% 30%,#e3defc 30% 42%,#d9f7e8 42%)"></div></div>
+      <div class="controls">
+        <button class="btn small">Step mode</button><button class="btn icon">⏮</button><button class="btn icon go">▶</button><button class="btn icon">⏩</button>
+        <div class="spacer"></div><button class="btn small on">X-ray</button><button class="btn small on">📓 Nerd</button><div class="sep"></div>
+        <button class="btn primary">Run night</button><button class="btn go">Test all</button>
+      </div>
+    </div>
+    <div class="bench-tabs" role="tablist" aria-label="Bottom sheet">
+      <button class="bench-tab code" role="tab" aria-selected="false">🃏 Bot Code</button>
+      <button class="bench-tab notes" role="tab" aria-selected="true">📓 Lab notebook</button>
+      <div class="bench-grab" role="separator" aria-label="Resize sheet"></div>
+    </div>
+    <div class="editor stacked">
+      <div class="editor-body">
+        <div class="toolbox"><h5>Cards</h5>
+          <div class="card op-BOOP">BOOP</div><div class="card op-SPIN">SPIN</div><div class="card op-HIGHFIVE">HIGHFIVE</div><div class="card op-LISTEN">LISTEN</div>
+          <div class="card op-PEEK">PEEK</div><div class="card op-IF">IF</div><div class="card op-JUMP">JUMP</div><div class="card op-END">END</div><div class="card op-NOTE">COMMENT</div>
+        </div>
+        <div class="columns">
+          <div class="prog-col fixed-only">
+            <div class="prog-col-head"><span class="ttl">Bedtime</span><span class="cnt">2 fixed <button class="fold" aria-expanded="true">▾</button></span></div>
+            <div class="fixed-phase open"><div class="fp-head">🐾 Schrödi's checklist · 2 cards</div>
+              <div class="fp-list"><div class="card op-HIGHFIVE">HIGHFIVE <span class="chip">q1</span><span class="arrow">→</span><span class="chip">q2</span></div><div class="card op-HIGHFIVE">HIGHFIVE <span class="chip">q1</span><span class="arrow">→</span><span class="chip">q3</span></div></div></div>
+          </div>
+          <div class="night-divider" role="separator">🌙 night falls <span class="gr">· gremlins prowl</span></div>
+          <div class="prog-col">
+            <div class="prog-col-head"><span class="ttl">Morning</span><span class="cnt">15 lines <button class="fold" aria-expanded="true">▾</button></span></div>
+            <div class="prog-list" data-phase="morning" id="morning"></div>
+          </div>
+        </div>
+      </div>
+      <div class="editor-foot"><div class="trash">🗑 trash</div><div class="help-slot">❓ help</div><button class="btn icon small">↶</button><button class="btn icon small">↷</button><button class="btn small">Text</button><button class="btn small">Clear</button><button class="btn small">📚 Snippets</button><div class="stats">15 lines<br>par 15</div></div>
+    </div>
+  </div>
+</div>
+</div>
+<script>
+const Q = new URLSearchParams(location.search);
+const W = innerWidth, bench = Q.get('bench') || (W >= 1720 ? 'xl' : W >= 1200 ? 'lg' : W >= 900 ? 'md' : 'sm');
+const main = document.getElementById('main'); main.dataset.bench = bench; main.dataset.nb = Q.get('nb') || 'open'; main.dataset.sheet = Q.get('sheet') || 'notes';
+document.querySelectorAll('.bench-tab').forEach((b) => b.setAttribute('aria-selected', String(b.classList.contains(main.dataset.sheet))));
+// morning program
+const M = [['HIGHFIVE','q1','a'],['HIGHFIVE','q2','a'],['HIGHFIVE','q2','b'],['HIGHFIVE','q3','b'],['LISTEN','a'],['LISTEN','b']];
+const ml = document.getElementById('morning');
+M.forEach((c, i) => ml.insertAdjacentHTML('beforeend', `<div class="card op-${c[0]}${i === 4 ? ' current' : ''}${i === 1 ? ' card-hl' : ''}"><span class="line-no">${i + 1}</span>${c[0]} <span class="chip">${c[1]}</span>${c[2] ? `<span class="arrow">→</span><span class="chip">${c[2]}</span>` : ''}</div>`));
+ml.insertAdjacentHTML('beforeend', `<div class="card op-IF"><span class="line-no">7</span>IF <span class="arrow">→</span><span class="chip">fix1</span><div class="conds"><span class="chip">a</span><span class="chip beep">BEEP</span><span class="kw">and</span><span class="chip">b</span><span class="chip quiet">QUIET</span></div></div><div class="card op-END"><span class="line-no">8</span>END</div><div class="card op-LABEL"><span class="line-no">9</span>⚑ fix1</div><div class="card op-BOOP"><span class="line-no">10</span>BOOP <span class="chip">q1</span></div>`);
+
+// ── the book ──
+const PAGES = [['state','ψ','State'],['bloch','◐','Bloch'],['entangle','∞','Entangle'],['circuit','⊕','Circuit'],['stabilizers','ZZ','Checks'],['threshold','p*','Threshold'],['density','ρ','ρ matrix'],['export','⇪','Export'],['dump','{ }','DUMP']];
+const sealed = new Set((Q.get('sealed') || 'dump').split(','));
+const page = Q.get('page') || (bench === 'xl' ? 'stabilizers' : bench === 'md' ? 'state' : bench === 'sm' ? 'bloch' : 'circuit');
+const pin = Q.get('pin') || 'circuit';
+const TITLES = { state: ['State vector', 'Every possible dream at once, with how much of each.', 'Amplitudes, not probabilities. Square them and the phases vanish. That is the whole trick.'],
+  bloch: ['Bloch spheres', 'Each Qubble on its own: where its arrow points, and how sure it is.', 'A short arrow means the Qubble is sharing. Not sick. Sharing.'],
+  circuit: ['Circuit', 'Your Bot Code is a quantum circuit. Here it is.', 'Same thing, different hat. Cards on the right, gates on the left.'],
+  stabilizers: ['Stabilizers & syndrome', 'The "do you match?" questions, and what the bots heard.', 'Asking "do you match?" never tells you what they are. That is the point.'],
+  export: ['Export', 'Take this night to a real quantum computer.', 'Real hardware is noisier than my gremlins. Good luck.'],
+  threshold: ['Threshold', 'When a code helps, and when it hurts.', 'Below one half, three beats one. Above it, don\'t bother.'] };
+function circuitSVG() {
+  const wires = ['q1','q2','q3','a','b'], WY = 40, CW = 38, T = 26, L = 8;
+  const cols = [['cnot','q1','q2'],['cnot','q1','q3'],['bar','NIGHT'],['err','q2','X'],['bar','MORNING'],['cnot','q1','a'],['cnot','q2','a'],['cnot','q2','b'],['cnot','q3','b'],['m','a',1],['m','b',1],['cx','q2',['a','b']]];
+  const y = (q) => T + wires.indexOf(q) * WY + WY / 2, Wd = L + cols.length * CW + 16, H = T + wires.length * WY + 8;
+  let s = wires.map((q) => `<line x1="0" x2="${Wd}" y1="${y(q)}" y2="${y(q)}" class="nb-wire${q[0] === 'q' ? '' : ' bot'}"/>`).join('');
+  const cur = 9; s += `<rect x="${L + cur * CW + 2}" y="${T - 12}" width="${CW - 4}" height="${H - T + 6}" rx="4" class="nb-cursor"/>`;
+  cols.forEach((c, i) => { const x = L + i * CW + CW / 2, fut = i > cur ? ' style="opacity:.35"' : '';
+    if (c[0] === 'bar') s += `<line x1="${x}" x2="${x}" y1="${T - 6}" y2="${H - 4}" class="nb-barrier"/><text x="${x}" y="${T - 10}" text-anchor="middle" class="nb-svgt nb-phase">${c[1]}</text>`;
+    else if (c[0] === 'cnot') { const a = y(c[1]), b = y(c[2]); s += `<g class="nb-g${i === 6 ? ' gate-hl' : ''}"${fut}><line x1="${x}" x2="${x}" y1="${a}" y2="${b}" stroke="#0e0e0e" stroke-width="2"/><circle cx="${x}" cy="${a}" r="4.5" fill="#0e0e0e"/><circle cx="${x}" cy="${b}" r="9" fill="#fff" stroke="#0e0e0e" stroke-width="2"/><path d="M${x - 9} ${b}h18M${x} ${b - 9}v18" stroke="#0e0e0e" stroke-width="2"/></g>`; }
+    else if (c[0] === 'err') { const a = y(c[1]); s += `<rect x="${x - 12}" y="${a - 12}" width="24" height="24" rx="4" class="nb-err"/><text x="${x}" y="${a + 4}" text-anchor="middle" class="nb-svgt nb-errt" font-size="11">X</text>`; }
+    else if (c[0] === 'm') { const a = y(c[1]); s += `<g${fut}><rect x="${x - 13}" y="${a - 12}" width="26" height="24" rx="4" class="nb-box gM"/><path d="M${x - 8} ${a + 5} a8 8 0 0 1 16 0" fill="none" stroke="#0e0e0e" stroke-width="1.6"/><line x1="${x}" y1="${a + 5}" x2="${x + 6}" y2="${a - 5}" stroke="#0e0e0e" stroke-width="1.6"/><text x="${x + 13}" y="${a + 21}" text-anchor="end" class="nb-svgt nb-bit b1">1</text></g>`; }
+    else if (c[0] === 'cx') { const t = y(c[1]); s += `<g${fut}>` + c[2].map((q) => `<line x1="${x - 2}" x2="${x - 2}" y1="${y(q)}" y2="${t}" class="nb-cl"/><line x1="${x + 2}" x2="${x + 2}" y1="${y(q)}" y2="${t}" class="nb-cl"/><circle cx="${x}" cy="${y(q)}" r="4" fill="#fff" stroke="#0e0e0e" stroke-width="1.6"/>`).join('') + `<rect x="${x - 12}" y="${t - 12}" width="24" height="24" rx="4" class="nb-box gX"/><text x="${x}" y="${t + 5}" text-anchor="middle" class="nb-gt">X</text></g>`; } });
+  const lab = `<svg viewBox="0 0 30 ${H}" width="30" height="${H}">${wires.map((q) => `<text x="26" y="${y(q) + 4}" text-anchor="end" class="nb-svgt" style="font:700 18px var(--nb-hand)">${q}</text>`).join('')}</svg>`;
+  return `<p class="nb-big">Your Bot Code is a quantum circuit.</p><div class="nb-taped nb-circcard"><div class="nb-cwrap" style="display:flex"><div>${lab}</div><div class="nb-cscroll"><svg viewBox="0 0 ${Wd} ${H}" width="${Wd}" height="${H}" class="nb-circ">${s}</svg></div></div></div>
+   <div class="nb-clegend"><span><b class="nb-cchip op-BOOP">BOOP</b> = X</span><span><b class="nb-cchip op-SHUSH">SHUSH</b> = Z</span><span><b class="nb-cchip op-SPIN">SPIN</b> = H</span><span class="gate-hl"><b class="nb-cchip op-HIGHFIVE">HIGHFIVE</b> = CNOT</span><span><b class="nb-cchip op-LISTEN">LISTEN</b> = meter</span><span><b class="nb-cchip op-RESET">RESET</b> = |0⟩</span><span><b class="nb-cchip op-IF">IF BEEP</b> = ═ control</span><span class="err"><b>red</b> = gremlin (X-ray)</span></div>`;
+}
+const BODY = {
+  circuit: circuitSVG,
+  stabilizers: () => `<table class="nb-table"><thead><tr><th>check</th><th>value</th><th></th></tr></thead><tbody><tr><td>⟨Z₁Z₂⟩</td><td class="nb-num">−1.000</td><td><span class="nb-badge m">−1</span></td></tr><tr><td>⟨Z₂Z₃⟩</td><td class="nb-num">−1.000</td><td><span class="nb-badge m">−1</span></td></tr></tbody></table>
+    <div class="nb-sub">Measurement record</div><div class="nb-chips"><span class="nb-chip b1">a:BEEP</span><span class="nb-chip b1">b:BEEP</span></div>
+    <div class="nb-sub">Syndrome table (built from your runs)</div><table class="nb-table"><thead><tr><th>bots heard</th><th>gremlin</th><th>result</th></tr></thead><tbody><tr><td><code>00</code></td><td>none</td><td><span class="nb-badge p">3✓</span></td></tr><tr><td><code>10</code></td><td>X·q1</td><td><span class="nb-badge p">2✓</span></td></tr><tr><td><code>11</code></td><td>X·q2</td><td><span class="nb-badge p">4✓</span></td></tr></tbody></table>
+    <div class="nb-sub">Logical fidelity</div><div class="nb-fid"><span class="nb-abar"><i style="width:100%;background:#3ddc97"></i></span><span class="nb-num">1.0000</span></div>
+    <div class="nb-survived slap">LOGICAL QUBIT<br>SURVIVED ✓</div>`,
+  state: () => `<div class="nb-hidden"><div class="nb-stamp">🙈</div><p>State hidden: the Qubbles are asleep. Turn on X-ray to read my notes.</p></div>`,
+  bloch: () => `<div class="nb-bgrid">${['q1','q2','q3','a','b'].map((q, i) => `<figure class="nb-bcard${i === 1 ? ' focus' : ''}"><figcaption>${q}</figcaption><svg viewBox="0 0 100 100" width="110" height="110"><circle cx="50" cy="50" r="40" fill="#eef0ff" stroke="#0e0e0e" stroke-width="2"/><ellipse cx="50" cy="50" rx="40" ry="12" fill="none" stroke="#8a867d" stroke-dasharray="3 3"/><line x1="50" y1="50" x2="${50 + 25 * Math.cos(i)}" y2="${50 - 30 * Math.sin(i + 1)}" stroke="#6c63ff" stroke-width="3" stroke-linecap="round"/></svg><div class="nb-bnums">⟨X⟩ +0.00 · ⟨Y⟩ +0.00 · ⟨Z⟩ ${i < 3 ? '+0.31' : '−1.00'}<br>Tr ρ² ${i < 3 ? '0.548' : '1.000'} · S ${i < 3 ? '0.954' : '0.000'} bit</div></figure>`).join('')}</div>`,
+  export: () => `<div class="nb-export"><div class="nb-row"><button class="btn small sun">Qiskit (Python)</button><button class="btn small">OpenQASM 3</button><button class="btn small">Copy</button></div><div class="nb-printout"><div class="nb-clip"></div><pre class="nb-code"><code>from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+q = QuantumRegister(3, 'q'); anc = QuantumRegister(2, 'bot')
+c = ClassicalRegister(2, 'syndrome')
+qc = QuantumCircuit(q, anc, c)
+qc.cx(q[0], q[1]); qc.cx(q[0], q[2])   # bedtime
+qc.barrier()                           # night
+qc.cx(q[0], anc[0]); qc.cx(q[1], anc[0])
+qc.cx(q[1], anc[1]); qc.cx(q[2], anc[1])
+qc.measure(anc, c)
+with qc.if_test((c, 0b11)):
+    qc.x(q[1])</code></pre></div><span class="nb-cap">the exact path this night executed</span></div>`,
+  threshold: () => `<p class="nb-cap">(threshold plot here, taped in)</p>`,
+};
+function sheet(id, n, pinned) {
+  const t = TITLES[id] || [id, '', ''];
+  return `<section class="nb-sheet" data-page="${id}">${pinned ? '' : ''}<h3 class="nb-ptitle">${t[0]}</h3><p class="nb-plain">${t[1]}</p><div class="nb-body">${(BODY[id] || (() => ''))()}</div>
+    <aside class="nb-margin${id === 'stabilizers' ? ' nb-new-note' : ''}">${t[2]}</aside>
+    <footer class="nb-foot ${id === 'stabilizers' || id === 'circuit' ? 'signed' : ''}"><span class="pg">p. ${String(n).padStart(2, '0')}</span><span class="wit">witnessed &amp; understood by</span></footer></section>`;
+}
+const spread = (bench === 'xl' && main.dataset.nb === 'open') || Q.get('spread') === '1';
+const idx = (id) => PAGES.findIndex((p) => p[0] === id) + 1;
+document.getElementById('dock').innerHTML = `<div class="nb nb-v2 ${main.dataset.nb === 'open' ? 'nb-open' : ''}" data-spread="${spread ? 1 : 0}" data-mode="${bench === 'sm' ? 'sheet' : 'column'}">
+  <button class="nb-spine" aria-expanded="false"><span class="lbl">📓 Lab notebook</span><span class="ticks">${PAGES.filter((p) => !sealed.has(p[0])).map((p) => `<i style="--c:${getTabColor(p[0])}"></i>`).join('')}</span></button>
+  <div class="nb-book">
+    <div class="nb-binding" role="separator" aria-orientation="vertical" aria-label="Resize notebook" tabindex="0"></div>
+    <header class="nb-head"><h2 class="nb-title">Schrödi's Lab Notebook</h2>
+      <div class="nb-runhead"><span class="nb-field">step<b>17/22</b></span><span class="nb-field">night<b>4 of 9</b></span><span class="nb-field">exp.<b>2-3</b></span></div>
+      <button class="nb-close" aria-label="Close notebook">×</button></header>
+    <div class="nb-spread">${sheet(page, idx(page))}${spread ? `<div class="nb-gutter"></div>${sheet(pin, idx(pin), true)}` : ''}<div class="nb-turn" aria-hidden="true"></div></div>
+    <nav class="nb-tabs" role="tablist" aria-orientation="vertical">${PAGES.map((p) => `<button class="nb-tab${p[0] === page ? ' on' : ''}${spread && p[0] === pin ? ' pinned' : ''}${sealed.has(p[0]) ? ' sealed' : ''}" data-id="${p[0]}" role="tab" title="${p[2]}"><span class="g">${p[1]}</span><span class="t">${p[2]}</span></button>`).join('')}</nav>
+  </div></div>`;
+function getTabColor(id) { return { state: '#ffd6e0', bloch: '#fff0b8', entangle: '#e6dcff', circuit: '#c7ecff', stabilizers: '#c9f5df', threshold: '#ffdcc0', density: '#f3d9ff', export: '#dcf2d6' }[id] || '#fff'; }
+if (Q.get('turn')) document.querySelector('.nb-turn').classList.add(Q.get('turn'));
+</script>
+</body>
+</html>

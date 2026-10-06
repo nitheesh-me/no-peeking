@@ -1,0 +1,247 @@
+/* ───────── Lab Notebook v2 "The Bench Book": DRAFT styles (designer, phase 1) ─────────
+   Port target: layout rules → src/styles/nerd-layout.css, book rules → src/styles/nerd.css.
+   Asset URLs are root-absolute (/art/notebook/..., like the main.css fonts); the mock is served by the Vite dev server.
+   EVERYTHING is scoped under .nerd-bench / .nb-v2 so nerd-off stays pixel identical. */
+
+:root {
+  --nb-paper: #fbf8ef; --nb-paper-edge: #efe6d2; --nb-desk: #e2dbcc;
+  --nb-graphite: #3c3c46; --nb-hand: 'Caveat', 'Patrick Hand', 'Segoe Print', cursive; --nb-hand2: 'Patrick Hand', 'Caveat', cursive;
+  --nb-math: 'Cambria Math', 'STIX Two Math', 'Times New Roman', serif;
+  --nb-art: '/art/notebook/';
+}
+@font-face { font-family: 'Caveat'; src: url('/fonts/Caveat.woff2') format('woff2'); font-weight: 400 700; font-display: swap; }
+@font-face { font-family: 'Patrick Hand'; src: url('/fonts/PatrickHand.woff2') format('woff2'); font-display: swap; }
+
+/* ═════════ 1. BENCH LAYOUT (programmer adds .nerd-bench + data-bench on .level-main) ═════════ */
+.level-main.nerd-bench {
+  --ed-w: clamp(340px, 25vw, 400px); --nb-col: 44px;
+  display: grid; min-height: 0;
+  grid-template-columns: minmax(0, 1fr) var(--nb-col) var(--ed-w);
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  grid-template-areas: "scene nb ed" "tl tl ed" "ctl ctl ed";
+}
+.nerd-bench > .stage { display: contents; }
+.nerd-bench .stage-scene { grid-area: scene; min-width: 0; background: var(--paper2); }
+.nerd-bench .nb-dock { grid-area: nb; min-width: 0; min-height: 0; position: relative; background: var(--nb-desk); border-left: 2px solid var(--paper3); }
+.nerd-bench .tl-row { grid-area: tl; }
+.nerd-bench .controls { grid-area: ctl; }
+.nerd-bench > .editor { grid-area: ed; width: auto; min-width: 0; }
+.nerd-bench[data-bench="xl"] { --ed-w: clamp(380px, 22vw, 460px); }
+.nerd-bench[data-bench="md"] { --ed-w: 340px; }
+.nerd-bench[data-nb="open"][data-bench="xl"] { --nb-col: var(--nb-w-xl, clamp(640px, 40vw, 880px)); }
+.nerd-bench[data-nb="open"][data-bench="lg"] { --nb-col: var(--nb-w, 400px); }
+.nerd-bench[data-nb="open"][data-bench="md"] { --nb-col: clamp(300px, 32vw, 380px); }
+/* sm (< 900): one column; editor and notebook swap in the bottom sheet */
+.level-main.nerd-bench[data-bench="sm"] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto auto auto var(--sheet-h, 46vh);
+  grid-template-areas: "scene" "tl" "ctl" "tabs" "ed";
+}
+.nerd-bench .bench-tabs { display: none; }
+.nerd-bench[data-bench="sm"] .bench-tabs { grid-area: tabs; display: flex; align-items: flex-end; gap: 6px; padding: 6px 12px 0; background: var(--nb-desk); border-top: var(--line); }
+.nerd-bench[data-bench="sm"] .nb-dock { grid-area: ed; border-left: 0; }
+.nerd-bench[data-bench="sm"][data-sheet="code"] .nb-dock,
+.nerd-bench[data-bench="sm"][data-sheet="notes"] > .editor { display: none; }
+.nerd-bench[data-bench="sm"] > .editor { border-left: 0; }
+.bench-tab { font: 400 15px var(--display); border: var(--line); border-bottom: 0; border-radius: 12px 12px 0 0; padding: 6px 14px 5px; background: var(--paper2); color: var(--ink2); cursor: pointer; }
+.bench-tab[aria-selected="true"] { background: var(--paper); color: var(--ink); transform: translateY(1px); }
+.bench-tab.notes[aria-selected="true"] { background: var(--nb-paper); }
+.bench-grab { margin-left: auto; align-self: center; width: 44px; height: 6px; border-radius: 3px; background: var(--ink3); cursor: ns-resize; touch-action: none; }
+
+/* ═════════ 2. STACKED EDITOR (nerd mode only: .editor.stacked) ═════════ */
+.editor.stacked .toolbox { width: 100px; padding: 8px; }
+.editor.stacked .toolbox .card { font-size: 13px; min-height: 32px; }
+.editor.stacked .columns { flex-direction: column; overflow-x: hidden; overflow-y: auto; scroll-padding-top: 48px; }
+.editor.stacked .prog-col { flex: none; min-width: 0; width: auto; border-right: 0; }
+.editor.stacked .prog-col-head { position: sticky; top: 0; z-index: 3; background: var(--paper); padding-top: 8px; box-shadow: 0 6px 6px -6px rgba(14, 14, 14, 0.18); }
+.editor.stacked .prog-col-head .fold { border: 0; background: none; font: 700 14px var(--body); cursor: pointer; color: var(--ink2); padding: 0 4px; }
+.editor.stacked .prog-list { flex: none; overflow: visible; min-height: 84px; padding-bottom: 18px; }
+.editor.stacked .prog-col:last-child .prog-list { padding-bottom: 60px; }
+.editor.stacked .prog-col.collapsed .prog-list, .editor.stacked .prog-col.collapsed .fixed-phase, .editor.stacked .prog-col.collapsed .slot-tabs { display: none; }
+.editor.stacked .prog-col.collapsed .prog-col-head { box-shadow: none; }
+.night-divider {
+  position: relative; margin: 6px 10px; height: 30px; border-radius: 15px; border: 2px solid var(--ink);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  font: 700 12px var(--body); letter-spacing: 0.04em; color: #e8e4ff;
+  background: radial-gradient(1.2px 1.2px at 12% 30%, #fff 99%, transparent), radial-gradient(1px 1px at 31% 70%, #fff 99%, transparent),
+    radial-gradient(1.4px 1.4px at 58% 25%, #fff 99%, transparent), radial-gradient(1px 1px at 77% 65%, #fff 99%, transparent),
+    radial-gradient(1.2px 1.2px at 92% 35%, #fff 99%, transparent), linear-gradient(90deg, #1a1a2e, #2a2752 50%, #1a1a2e);
+}
+.night-divider { flex: none; white-space: nowrap; overflow: hidden; }
+.night-divider .gr { color: #ff9b95; }
+.editor.stacked .prog-list .card { font-size: 14px; }
+.editor.stacked .prog-list .card .chip { font-size: 12px; padding: 0 6px; }
+
+/* ═════════ 3. THE BOOK ═════════ */
+.nb.nb-v2 { position: absolute; inset: 0; display: flex; pointer-events: auto; color: var(--ink); font-family: var(--body); }
+.nb-v2 .nb-spine {
+  writing-mode: horizontal-tb; transform: none; align-self: stretch; border-radius: 0; box-shadow: none;
+  /* closed state: the book's spine standing on the desk */
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 12px 0; cursor: pointer;
+  border: 0; border-right: 2px solid var(--ink); color: #fff1dc; font: 400 14px var(--display); letter-spacing: 0.08em;
+  background: linear-gradient(#1d1b18 0 34px, transparent 34px calc(100% - 34px), #1d1b18 calc(100% - 34px)), linear-gradient(90deg, rgba(0,0,0,.35), transparent 22%, transparent 78%, rgba(0,0,0,.3)), url('/art/notebook/kraft.svg');
+}
+.nb-v2 .nb-spine .lbl { margin-top: 30px; writing-mode: vertical-rl; transform: rotate(180deg); background: #fbf8ef; color: var(--ink); padding: 10px 4px; border: 2px solid var(--ink); border-radius: 4px; font-size: 13px; }
+.nb-v2 .nb-spine .ticks { display: flex; flex-direction: column; gap: 4px; margin: auto -2px 34px auto; }
+.nb-v2 .nb-spine:hover .lbl { background: #fff6dc; }
+.nb-v2 .nb-spine:focus-visible { outline: 3px solid var(--moony); outline-offset: -3px; }
+.nb-v2 .nb-spine .ticks i { width: 22px; height: 9px; border: 1.5px solid var(--ink); border-radius: 0 4px 4px 0; background: var(--c); }
+.nb-v2.nb-open .nb-spine { display: none; }
+
+.nb-v2 .nb-book {
+  display: none; position: relative; flex: 1; min-width: 0; width: auto; height: auto; max-height: none; overflow: visible; margin: 8px 38px 8px 0;
+  background: var(--nb-paper); border: 2.5px solid var(--ink); border-left: 0; border-radius: 0 14px 14px 0;
+  box-shadow: 1px 1px 0 #fffdf6, 2px 2px 0 var(--ink), 3px 3px 0 #fffdf6, 4px 4px 0 var(--ink), 10px 12px 24px rgba(14, 14, 14, 0.14);
+}
+.nerd-bench .nb-dock { container: nbdock / inline-size; }
+@container nbdock (min-width: 600px) { .nb-v2[data-spread="0"] .nb-book { margin-right: 100px; } }
+.nerd-bench[data-bench="sm"] .nb-v2 .nb-book { margin-left: 10px; }
+.nb-v2.nb-open .nb-book { display: grid; grid-template-columns: 30px minmax(0, 1fr) 0; grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "bind head tabs" "bind spread tabs"; }
+
+/* twin-wire binding on the scene side = resize handle (lg/xl) */
+.nb-v2 .nb-binding {
+  grid-area: bind; position: relative; z-index: 3; margin-left: -8px; width: 38px; touch-action: none;
+  background: url('/art/notebook/binding-coil.svg') repeat-y 0 6px / 36px 24px;
+}
+.nerd-bench[data-bench="lg"] .nb-v2 .nb-binding, .nerd-bench[data-bench="xl"] .nb-v2 .nb-binding { cursor: ew-resize; }
+.nb-v2 .nb-binding:hover, .nb-v2 .nb-binding:focus-visible, .nb-v2.nb-resizing .nb-binding { filter: drop-shadow(0 0 0 var(--sunny)) drop-shadow(2px 0 0 var(--sunny)); outline: none; }
+
+/* running head: a real lab-notebook form line */
+.nb-v2 .nb-head { grid-area: head; display: flex; align-items: center; gap: 10px; padding: 8px 10px 6px 14px; border-bottom: 2px solid var(--ink); background: var(--nb-paper-edge); min-width: 0; }
+.nb-v2 .nb-title { margin: 0; font: 400 16px var(--display); white-space: nowrap; cursor: default; user-select: none; }
+.nb-v2 .nb-runhead { flex: 1; display: flex; flex-wrap: wrap; height: 20px; align-items: baseline; gap: 0 12px; min-width: 0; overflow: hidden; white-space: nowrap; font: 700 9.5px var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink2); }
+.nb-v2 .nb-field b { font: 700 17px/1 var(--nb-hand); letter-spacing: 0; text-transform: none; color: #233a8f; border-bottom: 1px solid #b9b3a6; padding: 0 4px; margin-left: 3px; }
+.nb-v2 .nb-close { border: 2px solid var(--ink); background: #fff; border-radius: 50%; width: 26px; height: 26px; font-size: 16px; line-height: 1; cursor: pointer; flex: none; }
+
+/* pages */
+.nb-v2 .nb-spread { grid-area: spread; display: grid; grid-template-columns: minmax(0, 1fr); min-height: 0; position: relative; }
+.nb-v2[data-spread="1"] .nb-spread { grid-template-columns: minmax(0, 1fr) 26px minmax(0, 1fr); }
+.nb-v2 .nb-gutter { display: none; }
+.nb-v2[data-spread="1"] .nb-gutter { display: block; background: linear-gradient(90deg, rgba(0,0,0,0) 0, rgba(60,40,10,.16) 45%, rgba(60,40,10,.22) 50%, rgba(60,40,10,.16) 55%, rgba(0,0,0,0)), url('/art/notebook/binding-coil.svg') repeat-y -4px 6px / 36px 24px; }
+.nb-v2 .nb-sheet {
+  position: relative; overflow-y: auto; min-height: 0; contain: layout paint; padding: 14px 16px 18px 40px;
+  background-color: var(--nb-paper);
+  background-image:
+    linear-gradient(90deg, transparent 27px, rgba(254, 68, 61, .45) 27px 28.5px, transparent 28.5px 31px, rgba(254, 68, 61, .45) 31px 32.5px, transparent 32.5px),
+    url('/art/notebook/paper-grain.svg'), url('/art/notebook/paper-grid.svg');
+  background-size: auto, 240px 240px, 100px 100px;
+  background-attachment: local, local, local;
+  scrollbar-width: thin;
+}
+.nb-v2 .nb-ptitle { margin: 0; font: 400 21px/1.1 var(--display); }
+.nb-v2 .nb-plain { margin: 2px 0 12px; font-size: 13px; line-height: 20px; color: var(--ink2); }
+.nb-v2 .nb-plain::after { content: ''; display: block; width: 70%; height: 10px; margin-top: 2px; background: url('/art/notebook/pencil-underline.svg') no-repeat 0 0 / 100% 100%; }
+.nb-v2 .nb-body { font-size: 13px; line-height: 1.45; }
+.nb-v2 .nb-cap { color: var(--ink2); font-size: 12px; }
+.nb-v2 .nb-margin {
+  position: relative; margin: 18px 0 0 6px; padding: 0 0 0 4px; transform: rotate(-1.5deg); border: 0; background: none;
+  font: 600 19px/1.15 var(--nb-hand); color: var(--nb-graphite); max-width: 34ch;
+}
+.nb-v2 .nb-margin::before { content: 'S. — '; font-weight: 700; color: #6b4a3a; }
+.nb-v2 .nb-margin::after { content: ''; position: absolute; right: -6px; top: -34px; width: 60px; height: 34px; background: url('/art/notebook/pencil-arrow.svg') no-repeat center / contain; transform: scaleY(-1) rotate(-8deg); opacity: .8; }
+.nb-v2 .nb-foot { display: flex; align-items: flex-end; justify-content: space-between; margin-top: 18px; padding-top: 6px; border-top: 1.5px solid #c9bfa8; font: 700 9.5px var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--ink3); }
+.nb-v2 .nb-foot .pg { font: 700 16px var(--nb-hand); letter-spacing: 0; color: var(--nb-graphite); }
+.nb-v2 .nb-foot .wit { display: flex; align-items: flex-end; gap: 6px; }
+.nb-v2 .nb-foot .wit::after { content: ''; width: 64px; height: 18px; border-bottom: 1.5px solid #c9bfa8; }
+.nb-v2 .nb-foot.signed .wit::after { height: 36px; background: url('/art/notebook/paw-sign.svg') no-repeat center bottom / 44px auto; }
+.nb-v2 .nb-sheet .nb-dogear { position: sticky; float: right; bottom: -18px; margin-right: -16px; width: 36px; height: 36px; border: 0; padding: 0; background: url('/art/notebook/dog-ear.svg') no-repeat right bottom / contain; cursor: pointer; }
+.nb-v2 .nb-sheet[data-page="threshold"]::before, .nb-v2 .nb-sheet[data-page="export"]::before {
+  content: ''; position: absolute; width: 190px; height: 190px; right: 10px; top: 120px; pointer-events: none; mix-blend-mode: multiply; opacity: .6;
+  background: url('/art/notebook/coffee-ring.svg') no-repeat center / contain; transform: rotate(23deg);
+}
+
+/* fore-edge index tabs (sticky flags) */
+.nb-v2 .nb-tabs { grid-area: tabs; display: flex; flex-direction: column; gap: 5px; padding: 44px 0 10px; width: 36px; position: relative; z-index: 2; }
+@container nbdock (min-width: 600px) { .nb-v2[data-spread="0"] .nb-tabs { width: 98px; } }
+.nb-v2 .nb-tab {
+  --c: #fff; position: relative; display: flex; align-items: center; gap: 6px; height: 38px; padding: 0 6px 0 8px; margin-left: -6px;
+  border: 2px solid var(--ink); border-left: 0; border-radius: 0 9px 9px 0; background: var(--c); color: var(--ink); cursor: pointer;
+  box-shadow: 2px 2px 0 rgba(14, 14, 14, .25); transition: transform .12s; text-align: left;
+}
+.nb-v2 .nb-tab:hover { transform: translateX(3px); }
+.nb-v2 .nb-tab .g { font: 400 18px/1 var(--nb-math); min-width: 18px; text-align: center; }
+.nb-v2 .nb-tab .t { display: none; font: 400 16px/1 var(--nb-hand2); white-space: nowrap; }
+@container nbdock (min-width: 600px) { .nb-v2[data-spread="0"] .nb-tab .t { display: inline; } }
+.nb-v2 .nb-tab.on { transform: translateX(-4px); box-shadow: none; z-index: 2; border-color: var(--ink); }
+.nb-v2 .nb-tab.on::before { content: ''; position: absolute; left: -3px; top: 3px; bottom: 3px; width: 6px; background: var(--c); }
+.nb-v2 .nb-tab.pinned::after { content: ''; position: absolute; right: 3px; top: 3px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
+.nb-v2 .nb-tab.sealed .g, .nb-v2 .nb-tab.sealed .t { visibility: hidden; }
+.nb-v2 .nb-tab.fresh::after { content: '★'; position: absolute; right: -4px; top: -8px; color: var(--red); font-size: 14px; text-shadow: 0 0 2px #fff; }
+.nb-v2 .nb-tab[data-id="state"] { --c: #ffd6e0; } .nb-v2 .nb-tab[data-id="bloch"] { --c: #fff0b8; } .nb-v2 .nb-tab[data-id="entangle"] { --c: #e6dcff; }
+.nb-v2 .nb-tab[data-id="circuit"] { --c: #c7ecff; } .nb-v2 .nb-tab[data-id="stabilizers"] { --c: #c9f5df; } .nb-v2 .nb-tab[data-id="threshold"] { --c: #ffdcc0; }
+.nb-v2 .nb-tab[data-id="density"] { --c: #f3d9ff; } .nb-v2 .nb-tab[data-id="export"] { --c: #dcf2d6; } .nb-v2 .nb-tab[data-id="dump"] { --c: #2a2a2a; color: #fff; }
+.nb-v2 .nb-tab.sealed, .nb-v2 .nb-tab.sealed[data-id] { --c: #e6dfcf; border-style: dashed; color: transparent; cursor: not-allowed; box-shadow: none; }
+
+/* ═════════ 4. PAGE FURNITURE (restyles existing classes; pure CSS) ═════════ */
+/* rubber stamps: one base, ink colour per variant; grunge mask = inked look */
+.nb-v2 .nb-sticker, .nb-v2 .nb-survived, .nb-v2 .nb-caught, .nb-v2 .nb-stampx {
+  position: relative; display: inline-block; margin: 10px 0 6px 20px; padding: 7px 14px; transform: rotate(-6deg);
+  font: 400 16px/1.12 var(--display); letter-spacing: .06em; text-align: center; text-transform: uppercase;
+  color: var(--ink-c, #c8241e); border: 3px solid currentColor; border-radius: 6px; background: none; box-shadow: inset 0 0 0 2px var(--nb-paper), inset 0 0 0 3.5px currentColor;
+  -webkit-mask: url('/art/notebook/stamp-grunge.svg') 0 0 / 300px; mask: url('/art/notebook/stamp-grunge.svg') 0 0 / 300px;
+  mix-blend-mode: multiply;
+}
+.nb-v2 .nb-survived { --ink-c: #17834f; transform: rotate(-4deg); }
+.nb-v2 .nb-caught { --ink-c: #7a2fc0; transform: rotate(3deg); }
+.nb-v2 .slap { animation: nbStamp .42s cubic-bezier(.3, 1.5, .5, 1) both; }
+@keyframes nbStamp { 0% { transform: scale(2.2) rotate(-14deg); opacity: 0; } 55% { transform: scale(.94) rotate(-6deg); opacity: 1; } 100% { opacity: 1; } }
+
+/* hidden page: scribbled-out notes + a big round HIDDEN stamp */
+.nb-v2 .nb-hidden { min-height: 260px; background: url('/art/notebook/scribble-out.svg') repeat-y center top / 100% auto; }
+.nb-v2 .nb-hidden .nb-stamp { width: 120px; height: 120px; font-size: 44px; border: 4px solid #c8241e; box-shadow: inset 0 0 0 3px var(--nb-paper), inset 0 0 0 5px #c8241e; background: rgba(251, 248, 239, .85); position: relative; display: grid; place-items: center; border-radius: 50%; transform: rotate(-12deg);
+  -webkit-mask: url('/art/notebook/stamp-grunge.svg') 0 0 / 300px; mask: url('/art/notebook/stamp-grunge.svg') 0 0 / 300px; }
+.nb-v2 .nb-hidden .nb-stamp::after { content: 'HIDDEN'; position: absolute; bottom: 14px; font: 400 13px var(--display); letter-spacing: .14em; color: #c8241e; }
+.nb-v2 .nb-hidden p { font: 700 20px/1.15 var(--nb-hand); color: var(--nb-graphite); background: rgba(251, 248, 239, .9); padding: 4px 8px; }
+
+/* taped-in figures (programmer adds .nb-taped to the figure wrapper) */
+.nb-v2 .nb-taped { position: relative; background: #fff; border: 1.5px solid #d8d0bd; padding: 10px; margin: 14px 4px 12px; box-shadow: 0 2px 6px rgba(14, 14, 14, .12); transform: rotate(-.6deg); }
+.nb-v2 .nb-taped::before, .nb-v2 .nb-taped::after { content: ''; position: absolute; top: -13px; width: 70px; height: 22px; background: url('/art/notebook/tape-a.svg') no-repeat center / 100% 100%; }
+.nb-v2 .nb-taped::before { left: -14px; transform: rotate(-32deg); }
+.nb-v2 .nb-taped::after { right: -14px; transform: rotate(28deg); }
+.nb-v2 .nb-taped.b::before, .nb-v2 .nb-taped.b::after { background-image: url('/art/notebook/tape-b.svg'); }
+.nb-v2 .nb-taped > svg { display: block; width: 100%; height: auto; }
+.nb-v2 .nb-taped .nb-cwrap { border: 0; background: none; }
+
+/* bloch → polaroids */
+.nb-v2 .nb-bgrid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px 10px; padding-top: 8px; }
+.nb-v2 .nb-bcard { position: relative; background: #fff; border: 1.5px solid #d8d0bd; border-radius: 2px; padding: 8px 8px 6px; box-shadow: 0 3px 8px rgba(14, 14, 14, .15); }
+.nb-v2 .nb-bcard:nth-child(odd) { transform: rotate(-1.6deg); } .nb-v2 .nb-bcard:nth-child(even) { transform: rotate(1.2deg); }
+.nb-v2 .nb-bcard::before { content: ''; position: absolute; left: 50%; top: -10px; width: 56px; height: 18px; margin-left: -28px; background: url('/art/notebook/tape-a.svg') no-repeat center / 100% 100%; transform: rotate(-4deg); }
+.nb-v2 .nb-bcard figcaption { font: 700 22px/1 var(--nb-hand); }
+.nb-v2 .nb-bcard.focus { box-shadow: 0 0 0 3px var(--sunny), 0 3px 8px rgba(14, 14, 14, .15); }
+
+/* circuit: highlighter cursor, ink on graph paper */
+.nb-v2 .nb-cursor { fill: rgba(255, 226, 40, .5); stroke: none; mix-blend-mode: multiply; }
+.nb-v2 .nb-circ.fit { width: 100%; height: auto; } /* programmer: add .fit only when natural width <= 1.25x the scroller width (scale >= 0.8) AND the wire labels are inside the same SVG; otherwise keep the horizontal scroll + cursor auto-follow */
+.nb-v2 .nb-cscroll { min-width: 0; }
+.nb-v2 .nb-big { font: 700 22px/1.1 var(--nb-hand); margin: 0 0 4px; }
+
+/* export: dot-matrix printout on green-bar paper, paperclipped */
+.nb-v2 .nb-export { position: relative; }
+.nb-v2 .nb-code {
+  position: relative; margin: 18px 0 6px; padding: 8px 26px; max-height: 360px; border: 0; border-radius: 0; color: #1d2a1d;
+  font: 12px/16px 'Courier New', ui-monospace, monospace; white-space: pre;
+  background: url('/art/notebook/sprocket.svg') repeat-y left top / 16px 16px, url('/art/notebook/sprocket.svg') repeat-y right top / 16px 16px, url('/art/notebook/greenbar.svg') repeat 0 8px / 8px 64px;
+  background-attachment: local; box-shadow: 0 2px 8px rgba(14, 14, 14, .18);
+}
+.nb-v2 .nb-printout { position: relative; margin-top: 22px; }
+.nb-v2 .nb-printout .nb-code { margin-top: 0; }
+.nb-v2 .nb-clip { position: absolute; left: 30px; top: -26px; width: 22px; height: 62px; background: url('/art/notebook/paperclip.svg') no-repeat center / contain; z-index: 2; pointer-events: none; }
+
+/* ═════════ 5. MOTION ═════════ */
+.nb-v2.nb-open .nb-book { animation: nbBookIn .32s cubic-bezier(.2, .8, .3, 1); }
+@keyframes nbBookIn { from { transform: perspective(900px) rotateY(-24deg); transform-origin: left center; opacity: 0; } }
+.nb-v2 .nb-turn { position: absolute; inset: 0 auto 0 0; width: 100%; pointer-events: none; z-index: 4; visibility: hidden; transform-origin: left center; backface-visibility: hidden;
+  background: linear-gradient(90deg, rgba(0,0,0,.08), transparent 30%, rgba(255,255,255,.4) 85%, rgba(0,0,0,.12)), url('/art/notebook/paper-grid.svg') 0 0 / 100px, var(--nb-paper); border-right: 2px solid var(--ink); }
+.nb-v2 .nb-turn.fwd { visibility: visible; animation: nbTurnFwd .4s cubic-bezier(.45, .05, .35, 1) forwards; }
+.nb-v2 .nb-turn.back { visibility: visible; animation: nbTurnBack .4s cubic-bezier(.45, .05, .35, 1) forwards; }
+@keyframes nbTurnFwd { from { transform: perspective(1400px) rotateY(0); } to { transform: perspective(1400px) rotateY(-180deg); } }
+@keyframes nbTurnBack { from { transform: perspective(1400px) rotateY(-180deg); } to { transform: perspective(1400px) rotateY(0); opacity: 0; } }
+.nb-v2 .nb-tab.fresh { animation: nbStick .5s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes nbStick { from { transform: translate(26px, -10px) rotate(12deg) scale(1.15); opacity: 0; } }
+.nb-v2 .nb-margin.nb-new-note { animation: nbWrite 1.3s steps(24) both; }
+@keyframes nbWrite { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+.nb-v2 .nb-spine.wiggle { animation: nbSpineWiggle .9s ease-in-out 2; }
+@keyframes nbSpineWiggle { 20% { transform: rotate(-3deg); } 40% { transform: rotate(2.5deg); } 60% { transform: rotate(-1.5deg); } 80% { transform: rotate(1deg); } }
+@media (prefers-reduced-motion: reduce) { .nb-v2 *, .nb-v2.nb-open .nb-book { animation: none !important; transition: none !important; } .nb-v2 .nb-turn { visibility: hidden !important; } .nb-v2 .nb-spine.wiggle { box-shadow: inset 0 0 0 3px var(--sunny); } }
+.reduced .nb-v2 *, .reduced .nb-v2.nb-open .nb-book { animation: none !important; } .reduced .nb-v2 .nb-turn { visibility: hidden !important; }

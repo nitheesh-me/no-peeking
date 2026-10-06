@@ -29,6 +29,8 @@ export interface EditorOpts {
   /** level ids already won (unlocks starter snippets) */
   isDone?(levelId: string): boolean;
   readonly?: boolean;
+  /** stacked (nerd bench) mode only: the pointer entered / left a program card (card ↔ gate link, decision 5) */
+  onHoverLine?(ref: LineRef | null): void;
 }
 
 // ───────── snippet library (localStorage, try/catch) ─────────
@@ -87,6 +89,13 @@ export class Editor {
   private snipBtn!: HTMLElement;
   private saveSnipBtn!: HTMLElement;
   private tabBars = new Map<EdPhase, HTMLElement>();
+  /** nerd bench: Bedtime and Morning stacked in one vertical scroller (see setStacked) */
+  private stacked = false;
+  private cols = new Map<EdPhase, HTMLElement>();
+  private collapsed = new Map<EdPhase, boolean>();
+  private divider: HTMLElement | null = null;
+  private hoverKey = '';
+  private linkKey = '';
 
   constructor(readonly level: LevelDef, initial: Progs, readonly opts: EditorOpts) {
     const ph0: EdPhase[] = ['bedtime', 'morning'];
@@ -107,6 +116,8 @@ export class Editor {
     this.build();
     this.render();
     window.addEventListener('resize', this.drawArrowsAll);
+    this.el.addEventListener('pointerover', this.onHover);
+    this.el.addEventListener('pointerleave', this.onHoverOut);
   }
 
   destroy(): void {
@@ -137,12 +148,14 @@ export class Editor {
     if (!tools.some((t) => t !== 'NOTE')) this.toolboxEl.appendChild(h('div', { class: 'muted', style: 'font-size:12px' }, 'No cards! The best code is no code.'));
 
     this.columnsEl = h('div', { class: 'columns' });
+    this.columnsEl.addEventListener('scroll', () => { if (this.stacked && !this.arrowRaf) this.arrowRaf = requestAnimationFrame(() => { this.arrowRaf = 0; this.drawArrowsAll(); }); }, { passive: true });
     const phases: EdPhase[] = ['bedtime', 'morning'];
     for (const ph of phases) {
       const editable = lv.editable.includes(ph);
       const fixed = ph === 'bedtime' ? lv.fixedBedtime : lv.fixedMorning;
       if (!editable && !fixed?.length) continue;
-      const col = h('div', { class: 'prog-col' });
+      const col = h('div', { class: 'prog-col', 'data-phase': ph });
+      this.cols.set(ph, col);
       const title = ph === 'bedtime' ? 'Bedtime' : 'Morning';
       const cnt = h('span', { class: 'cnt' });
       col.appendChild(h('div', { class: 'prog-col-head' }, h('span', { class: 'ttl' }, title), cnt));
@@ -506,6 +519,7 @@ export class Editor {
     this.renderTabs();
     this.applySel();
     this.applyCurrent();
+    if (this.linkKey) { const [phase, part, pc] = this.linkKey.split(':'); this.linkKey = ''; this.highlightLine({ phase: phase as EdPhase, part: part as 'fixed' | 'mine', pc: +pc }); }
     requestAnimationFrame(this.drawArrowsAll);
   }
 
@@ -688,7 +702,92 @@ export class Editor {
       const list = this.lists.get(ref.phase);
       cardEl = list?.querySelectorAll(':scope > .card')[ref.pc];
     }
-    if (cardEl) { cardEl.classList.add('current'); (cardEl as HTMLElement).scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }); }
+    if (cardEl && this.stacked && this.collapsed.get(ref.phase)) this.setCollapsed(ref.phase, false); // the running card forces its phase open
+    // while a card ↔ gate link is showing the player is reading that card: don't scroll it away
+    if (cardEl) { cardEl.classList.add('current'); if (!this.linkKey) (cardEl as HTMLElement).scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }); }
+  }
+
+  // ───────────── stacked mode (nerd bench: docs/NOTEBOOK_V2.md §5) ─────────────
+  private arrowRaf = 0;
+  /** Bedtime on top, a night divider, Morning below, in ONE vertical scroller (.columns). Off = today's side-by-side columns. */
+  setStacked(on: boolean): void {
+    if (on === this.stacked) return;
+    this.stacked = on;
+    this.el.classList.toggle('stacked', on);
+    const both = this.cols.has('bedtime') && this.cols.has('morning');
+    if (on) {
+      if (both && !this.divider) {
+        this.divider = h('div', { class: 'night-divider', role: 'separator', 'aria-label': 'Night falls between Bedtime and Morning' }, '🌙 night falls ', h('span', { class: 'gr' }, '· gremlins prowl'));
+        this.cols.get('bedtime')!.after(this.divider);
+      }
+      for (const [ph, col] of this.cols) {
+        if (!this.collapsed.has(ph)) {
+          const fixed = ph === 'bedtime' ? this.level.fixedBedtime : this.level.fixedMorning;
+          this.collapsed.set(ph, !this.level.editable.includes(ph) && (fixed?.length ?? 0) > 4);
+        }
+        const head = col.querySelector('.prog-col-head')!;
+        const ttl = ph === 'bedtime' ? 'Bedtime' : 'Morning';
+        const fold = h('button', { class: 'fold', type: 'button', 'aria-label': `Fold ${ttl}`, onclick: () => this.setCollapsed(ph, !this.collapsed.get(ph)) });
+        head.appendChild(fold);
+        this.setCollapsed(ph, !!this.collapsed.get(ph));
+      }
+    } else {
+      this.divider?.remove(); this.divider = null;
+      for (const col of this.cols.values()) { col.querySelector(':scope > .prog-col-head > .fold')?.remove(); col.classList.remove('collapsed'); }
+      this.highlightLine(null);
+    }
+    requestAnimationFrame(this.drawArrowsAll);
+  }
+  private setCollapsed(ph: EdPhase, c: boolean): void {
+    this.collapsed.set(ph, c);
+    const col = this.cols.get(ph); if (!col || !this.stacked) return;
+    col.classList.toggle('collapsed', c);
+    const fold = col.querySelector(':scope > .prog-col-head > .fold');
+    if (fold) { fold.setAttribute('aria-expanded', String(!c)); fold.textContent = c ? '▸' : '▾'; fold.setAttribute('title', c ? 'Show these cards' : 'Fold these cards away'); }
+    requestAnimationFrame(this.drawArrowsAll);
+  }
+  /** re-draw the IF/JUMP gutter arrows (call after a layout change that resizes the editor) */
+  relayout(): void { this.drawArrowsAll(); }
+
+  /** the program card for a line ref (fixed cards live in .fp-list, the player's in .prog-list) */
+  private cardFor(ref: LineRef): HTMLElement | null {
+    if (ref.phase === 'night') return null;
+    if (ref.part === 'fixed') return (this.fixedBoxes.get(ref.phase)?.querySelectorAll('.fp-list > .card')[ref.pc] as HTMLElement | undefined) ?? null;
+    return (this.lists.get(ref.phase)?.querySelectorAll(':scope > .card')[ref.pc] as HTMLElement | undefined) ?? null;
+  }
+  private refOf(card: Element): LineRef | null {
+    const col = card.closest('.prog-col') as HTMLElement | null;
+    const ph = col?.dataset.phase as EdPhase | undefined;
+    if (!ph || !card.parentElement) return null;
+    if (card.parentElement.classList.contains('fp-list')) return { phase: ph, part: 'fixed', pc: [...card.parentElement.children].indexOf(card) };
+    if (card.parentElement.classList.contains('prog-list')) return { phase: ph, part: 'mine', pc: [...card.parentElement.querySelectorAll(':scope > .card')].indexOf(card) };
+    return null;
+  }
+  private onHover = (e: PointerEvent): void => {
+    if (!this.stacked || !this.opts.onHoverLine || this.drag?.ghost) return;
+    const card = (e.target as HTMLElement).closest?.('.card');
+    const ref = card && !card.classList.contains('ghost') ? this.refOf(card) : null;
+    const key = ref ? `${ref.phase}:${ref.part}:${ref.pc}` : '';
+    if (key === this.hoverKey) return;
+    this.hoverKey = key;
+    this.opts.onHoverLine(ref);
+  };
+  private onHoverOut = (): void => { if (this.hoverKey) { this.hoverKey = ''; this.opts.onHoverLine?.(null); } };
+  /** card ↔ gate link: mark the card behind this line (hovering its gate in the notebook) */
+  highlightLine(ref: LineRef | null): void {
+    const key = ref ? `${ref.phase}:${ref.part}:${ref.pc}` : '';
+    if (key === this.linkKey) return;
+    this.linkKey = key;
+    this.el.querySelectorAll('.card.card-hl').forEach((n) => n.classList.remove('card-hl'));
+    this.el.querySelectorAll('.prog-col.card-hl-inside').forEach((n) => n.classList.remove('card-hl-inside'));
+    if (!ref) return;
+    // folded away: don't pop it open on a mere hover, flag the folded phase's head instead
+    if (this.collapsed.get(ref.phase as EdPhase) && this.stacked) { this.cols.get(ref.phase as EdPhase)?.classList.add('card-hl-inside'); return; }
+    const c = this.cardFor(ref);
+    if (!c) return;
+    c.classList.add('card-hl');
+    if (ref.part === 'fixed' && !this.fixedBoxes.get(ref.phase as EdPhase)?.classList.contains('open')) return;
+    c.scrollIntoView?.({ block: 'nearest', behavior: document.documentElement.classList.contains('reduced') ? 'auto' : 'smooth' });
   }
 
   // ───────────── drag & drop ─────────────
@@ -738,8 +837,16 @@ export class Editor {
       this.trash.classList.add('hot'); d.target = 'trash'; return;
     }
     // generous snapping: any point inside the column counts
-    const col = under?.closest('.prog-col');
+    const col = under?.closest('.prog-col') as HTMLElement | null;
+    if (col && this.stacked && col.classList.contains('collapsed') && col.dataset.phase) this.setCollapsed(col.dataset.phase as EdPhase, false); // spring-open a folded phase
     const list = (col?.querySelector('.prog-list') ?? under?.closest('.prog-list')) as HTMLElement | null;
+    // autoscroll the nearest scroller: the list itself, or (stacked) the single .columns scroller under the sticky head
+    if (this.stacked) {
+      const sr = this.columnsEl.getBoundingClientRect();
+      if (e.clientX >= sr.left && e.clientX <= sr.right) {
+        if (e.clientY > sr.bottom - 36) this.columnsEl.scrollTop += 10; else if (e.clientY < sr.top + 56) this.columnsEl.scrollTop -= 10;
+      }
+    }
     if (!list) { d.target = null; return; }
     const ph = list.dataset.phase as EdPhase;
     const cards = [...list.querySelectorAll(':scope > .card')] as HTMLElement[];
@@ -752,9 +859,10 @@ export class Editor {
     list.classList.add('drop-active');
     const marker = h('div', { class: 'drop-marker' });
     if (index < cards.length) list.insertBefore(marker, cards[index]); else list.appendChild(marker);
-    // autoscroll
-    const lr = list.getBoundingClientRect();
-    if (e.clientY > lr.bottom - 30) list.scrollTop += 8; else if (e.clientY < lr.top + 30) list.scrollTop -= 8;
+    if (!this.stacked) {
+      const lr = list.getBoundingClientRect();
+      if (e.clientY > lr.bottom - 30) list.scrollTop += 8; else if (e.clientY < lr.top + 30) list.scrollTop -= 8;
+    }
   }
 
   private pointerUp(_e: PointerEvent): void {

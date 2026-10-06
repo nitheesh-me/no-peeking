@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <!-- engineering graph paper tile: 20px minor cells, major line every 5 cells (tile edge). Paper colour comes from CSS background-color. -->
+  <g fill="none" stroke="#3f8fae" stroke-width="1" shape-rendering="crispEdges">
+    <path stroke-opacity="0.13" d="M20.5 0V100M40.5 0V100M60.5 0V100M80.5 0V100M0 20.5H100M0 40.5H100M0 60.5H100M0 80.5H100"/>
+    <path stroke-opacity="0.30" d="M0.5 0V100M0 0.5H100"/>
+  </g>
+</svg>

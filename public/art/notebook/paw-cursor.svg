@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26">
+  <!-- tiny paw cursor (hotspot 4 3: the top-left toe). White outline so it reads on paper and on dark. -->
+  <g transform="rotate(-20 13 13)" stroke="#fff" stroke-width="1.6" paint-order="stroke" fill="#2a2a3a">
+    <path d="M13 12.2c-3.4 0-6.2 2.9-6.2 5.8 0 2.4 1.8 3.6 3.6 3.6 1.1 0 1.8-.6 2.6-.6s1.5.6 2.6.6c1.9 0 3.6-1.2 3.6-3.6 0-2.9-2.8-5.8-6.2-5.8z"/>
+    <ellipse cx="5.8" cy="10.6" rx="2.2" ry="2.8"/><ellipse cx="10.2" cy="6.2" rx="2.2" ry="2.9"/>
+    <ellipse cx="15.4" cy="6.2" rx="2.2" ry="2.9"/><ellipse cx="19.8" cy="10.6" rx="2.2" ry="2.8"/>
+  </g>
+</svg>

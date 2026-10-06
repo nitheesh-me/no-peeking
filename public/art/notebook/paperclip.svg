@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="28" height="78" viewBox="0 0 28 78">
+  <!-- steel paperclip, clip it over a top edge (top ~half sits above the paper) -->
+  <path d="M9 30 V12 a5 5 0 0 1 10 0 V60 a8 8 0 0 1 -16 0 V18" fill="none" stroke="#0e0e0e" stroke-width="4.6" stroke-linecap="round"/>
+  <path d="M9 30 V12 a5 5 0 0 1 10 0 V60 a8 8 0 0 1 -16 0 V18" fill="none" stroke="#b7bec7" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M18 14 V56" stroke="#f4f7fa" stroke-width="0.9" stroke-linecap="round" opacity="0.9"/>
+</svg>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 220 220">
+  <!-- coffee mug ring + a drip; use at ~0.5 opacity, mix-blend-mode multiply, pointer-events none, under content -->
+  <filter id="r" x="-10%" y="-10%" width="120%" height="120%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="11" result="t"/>
+    <feDisplacementMap in="SourceGraphic" in2="t" scale="7"/>
+  </filter>
+  <g filter="url(#r)" fill="none">
+    <circle cx="110" cy="108" r="78" stroke="#8a5a2b" stroke-opacity="0.22" stroke-width="9"/>
+    <circle cx="110" cy="108" r="81" stroke="#7a4a20" stroke-opacity="0.30" stroke-width="2.2"/>
+    <circle cx="110" cy="108" r="74" stroke="#7a4a20" stroke-opacity="0.12" stroke-width="1.5" stroke-dasharray="120 30 60 40"/>
+    <path d="M40 150 C30 170 34 184 48 186" stroke="#8a5a2b" stroke-opacity="0.18" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <circle cx="186" cy="182" r="6" fill="#8a5a2b" fill-opacity="0.18" filter="url(#r)"/>
+  <circle cx="199" cy="168" r="3" fill="#8a5a2b" fill-opacity="0.16"/>
+</svg>

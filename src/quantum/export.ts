@@ -127,6 +127,9 @@ function executedCircuit(level: LevelDef, night: NightResult, o: ExportOptions, 
     'The IF decisions this night took are baked in (see comments); on other measurement outcomes',
     'a real device would need the dynamic version.',
   ];
+  if (!include && night.errors.length && items.some(it => it.k === 'g' && it.g !== 'ry' && it.g !== 'p'))
+    header.push('WARNING: the gremlin errors are omitted but this path still contains the gates that ran BECAUSE of them',
+      '(e.g. the fix). Run as-is it ends in a corrupted state: include the errors, or export the dynamic circuit.');
   if (note) header.push(note);
   return { header, qubits, regs: [...counts].map(([w, n]) => ({ name: regName(w), size: n })), items };
 }

@@ -230,6 +230,7 @@ button { font-family: inherit; color: inherit; }
 /* ───────── Level layout ───────── */
 .level-main { flex: 1; display: flex; min-height: 0; }
 .stage { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--paper2); }
+.stage-scene { position: relative; flex: 1; min-height: 0; display: flex; }
 .stage-canvas-wrap { position: relative; flex: 1; min-height: 0; }
 .stage-canvas-wrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 .stage.pick-mode canvas { cursor: crosshair; }

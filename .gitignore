@@ -4,3 +4,6 @@ dist
 *.log
 .scratch
 videos/
+tools/nb/out/
+tools/nb/*/out/
+tools/nb/designer/*.png

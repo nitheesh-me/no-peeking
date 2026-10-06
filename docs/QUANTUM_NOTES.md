@@ -225,8 +225,26 @@ carries one (steps without a state change share the previous object, like `snap`
   Z₁Z₂ Z₂Z₃ Z₄Z₅ Z₅Z₆ Z₇Z₈ Z₈Z₉ X₁X₂X₃X₄X₅X₆ X₄X₅X₆X₇X₈X₉, then (every level) ZᵢZⱼ for neighbouring Qubbles in placement
   order, then XᵢXⱼ for the same pairs (duplicates dropped). Labels use subscript digits of the Qubble number.
   ±1 for code states/after a Pauli error; in between for wobbles. Measured qubits contribute (−1)^bit to Z, 0 to X.
+- **stabilizers[k].code**: true ⇔ that Pauli is a stabilizer of the level's code (⟨P⟩ = +1 on the ideal target for
+  inputs |0⟩ and |1⟩, hence for all inputs). Code stabilizers are listed first; Shor-9 levels list only the 8 generators.
 - **fidelity**: = `Snapshot.logicalFidelity` (data qubits vs the ideal error-free target), absent for classical goals.
+  NB: this is the fidelity with the ideal *code state*, not a logical fidelity: it is ~0 right after one X error.
+- **recoverable**: fidelity after an ideal syndrome measurement + minimum-weight lookup correction,
+  F_rec = Σ_s ⟨t|E_s Π_s ρ Π_s E_s|t⟩ = Σ_s ⟨t_s|ρ_data|t_s⟩, t_s = E_s|t⟩ (`codeDecoder`, `recoverableFidelity` in
+  nerd.ts). Only for codes with ≥ 2 generators and ≤ 14 live qubits. 1 after any single correctable error and after any
+  wobble; < 1 after two flips. It honestly dips mid-extraction (after HIGHFIVE q1→a alone the bot holds q1, i.e. the
+  logical bit: F_rec = |α|⁴+|β|⁴) and returns to 1 after the second HIGHFIVE.
 - **record**: LISTEN/PEEK outcomes so far, in time order (`{ who, bit }`). RESET's internal collapse is not recorded.
+
+### Notebook maths (`src/ui/nerd/qmath.ts`, tests in `tests/quantum/qmath.test.ts`)
+- `buildCircuit(night, xray, { level, prog })`: classical control = exact control dependence of the program
+  (post-dominators, `controlDeps`), `cond` = the measured creatures named by the IFs an op depends on. Without `prog`
+  (or if the trace doesn't match it) nothing is marked and `condKnown` is false.
+- `measuredObservables(night)`: for each bot LISTEN, the Pauli it really measured (Heisenberg back-propagation of
+  Z_bot through the Clifford gates back to dawn / the bot's last RESET): 'Z₁Z₂', 'X₁X₂X₃X₄X₅X₆', … with sign and a
+  `random` flag. Classical-trace only.
+- Exporter semantics are checked on Qiskit Aer (opt-in `tests/quantum/export-aer.test.ts`, verified with Qiskit 2.5.2 +
+  Aer 0.17.2 on 2026-10-06): dynamic circuits restore the ideal state for every outcome, executed paths for Pauli errors.
 
 ### Exporter (`src/quantum/export.ts`)
 

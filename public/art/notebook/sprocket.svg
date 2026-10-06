@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- tractor-feed hole strip for the printout edges (repeat-y) -->
+  <rect width="16" height="16" fill="#fbfdf8"/>
+  <circle cx="8" cy="8" r="3.4" fill="#e9e3d2" stroke="#9c9583" stroke-width="1"/>
+  <path d="M15.5 0 V16" stroke="#9c9583" stroke-width="1" stroke-dasharray="2 2"/>
+</svg>

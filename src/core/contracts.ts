@@ -136,9 +136,11 @@ export interface NerdInfo {
   /** pairwise mutual information I(A:B) in bits, matrix indexed like `order` (symmetric, diagonal = 2·S) */
   mi: number[][];
   /** Pauli expectation values useful for codes: ZZ and XX on neighbouring Qubbles (+ any the VM finds relevant), e.g. { label: 'Z₁Z₂', value: 1 } */
-  stabilizers: { label: string; value: number }[];
+  stabilizers: { label: string; value: number; /** true ⇔ a stabilizer of this level's code (+1 on every ideal code state) */ code?: boolean }[];
   /** fidelity of the data qubits with the level's ideal target state at this step, if defined */
   fidelity?: number;
+  /** fidelity AFTER an ideal syndrome measurement + lookup correction (codes with ≥2 generators, ≤14 live qubits) */
+  recoverable?: number;
   /** classical record so far: measured bits by qubit (LISTEN/PEEK results, in order) */
   record: { who: QubitId; bit: 0 | 1 }[];
   /** MI scope: 'data' when >10 live qubits (bot pairs not computed); liveQubits = state-vector size at this step */

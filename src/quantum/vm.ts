@@ -19,7 +19,7 @@ import type {
 } from '../core/contracts';
 import { isBot, isQubble } from '../core/contracts';
 import { QState, makeRng, mixSeed, haarAngles, type Rng } from './sim';
-import { computeNerd, stabilizerSet, type NerdCtx } from './nerd';
+import { computeNerd, stabilizerSet, recoverImages, recoverFrame, type NerdCtx } from './nerd';
 
 export const DEFAULT_MIN_FIDELITY = 0.999;
 export const DEFAULT_RATE_MIN_FIDELITY = 0.99;
@@ -320,14 +320,19 @@ export function runNight(
   const cache = new SnapCache();
   const record: { who: QubitId; bit: 0 | 1 }[] = [];
   const nerdStabs = wantSnaps && opts.nerd ? stabilizerSet(level) : null;
+  const nerdRecover = nerdStabs && idealTarget?.kind === 'pure' ? recoverImages(nerdStabs, idealTarget) : null;
   const withNerd = (snap: Snapshot, useCache: boolean): Snapshot => {
     if (!nerdStabs) return snap;
-    const ctx: NerdCtx = { ids, stabs: nerdStabs, record, fidelity: snap.logicalFidelity };
+    const ctx: NerdCtx = { ids, stabs: nerdStabs, record, fidelity: snap.logicalFidelity, recover: nerdRecover };
     if (useCache) { ctx.miCache = cache.mi; ctx.blochCache = cache.bloch; }
     snap.nerd = computeNerd(s, ctx);
     return snap;
   };
   const emit = (ev: TraceEvent, fresh = true) => {
+    if (nerdRecover) {
+      if (ev.k === 'phase') nerdRecover.active = ev.phase !== 'bedtime';
+      else if (ev.k === 'gate') recoverFrame(nerdRecover, ev);
+    }
     if (wantSnaps && fresh) {
       if (ev.k === 'gate') cache.touch(ev.op === 'HIGHFIVE' ? { pair: [ev.from!, ev.t] } : ev.op === 'RESET' ? 'all' : { local: [ev.t] });
       else if (ev.k === 'noise') cache.touch({ local: [ev.e.t] });

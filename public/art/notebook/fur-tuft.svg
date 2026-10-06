@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="90" height="60" viewBox="0 0 90 60">
+  <!-- a stray tuft of Schrödi's grey fur + one whisker, taped down (evidence) -->
+  <g fill="none" stroke-linecap="round">
+    <path d="M30 38c4-10 10-18 18-22M32 40c6-8 13-13 22-15M34 41c8-5 16-8 25-8M33 39c2-11 6-20 11-26M35 41c10-2 18 0 25 4M31 38c-2-9-1-17 3-24" stroke="#7d7f8c" stroke-width="1.6"/>
+    <path d="M31 39c5-9 12-16 20-19M34 40c9-5 17-6 24-4" stroke="#b9bcc6" stroke-width="1.1"/>
+    <path d="M14 50 C34 44 58 40 86 44" stroke="#f4f4f4" stroke-width="1.4"/>
+    <path d="M14 50 C34 44 58 40 86 44" stroke="#9a9aa4" stroke-width="0.6"/>
+  </g>
+  <path d="M18 26 L22 30 L18 33 L22 37 L18 41 L62 42 L59 38 L63 34 L59 30 L63 26 Z" fill="#f3e3a8" fill-opacity=".72" transform="rotate(-12 40 34)"/>
+</svg>

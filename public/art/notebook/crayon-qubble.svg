@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="90" viewBox="0 0 120 90">
+  <!-- a kid's crayon doodle of a sleeping Qubble under its blanket, with a Zz (waxy strokes) -->
+  <filter id="w" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="1" seed="5"/><feDisplacementMap in="SourceGraphic" scale="2.2"/></filter>
+  <g filter="url(#w)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 70 C18 40 36 22 56 22 C78 22 94 40 92 70 Z" stroke="#6c63ff" stroke-width="4" opacity=".75"/>
+    <path d="M26 64 L86 64 M30 56 L84 52 M24 46 L60 34" stroke="#6c63ff" stroke-width="2.2" opacity=".35"/>
+    <path d="M14 72 C40 62 70 62 98 72 L96 82 C70 76 40 76 16 82 Z" stroke="#ff7ab8" stroke-width="3.6" opacity=".8"/>
+    <path d="M42 46 q4 3 8 0 M62 46 q4 3 8 0" stroke="#0e0e0e" stroke-width="2.4" opacity=".7"/>
+    <path d="M98 14 h10 l-10 12 h10 M88 30 h7 l-7 8 h7" stroke="#3fb6ff" stroke-width="2.6" opacity=".8"/>
+  </g>
+</svg>

@@ -1,80 +1,17 @@
-/* ───────── Schrödi's Lab Notebook (Nerd mode drawer, owned by the Designer) ───────── */
-.nb { position: absolute; left: 0; top: 0; bottom: 0; z-index: 6; display: flex; align-items: stretch; pointer-events: none; font-family: var(--body, 'Quicksand', sans-serif); color: var(--ink, #0e0e0e); }
-.nb > * { pointer-events: auto; }
+@import './nerd-layout.css';
+/* ───────── Schrödi's Lab Notebook v2 "The Bench Book" (designer; spec: docs/NOTEBOOK_V2.md) ─────────
+   Book chrome + page furniture are scoped under .nb-v2. The page CONTENT classes (.nb-amp, .nb-table, …) are
+   unscoped because they only exist inside the notebook. Layout lives in nerd-layout.css. */
 
-/* spine tab */
-.nb-spine {
-  align-self: center; writing-mode: vertical-rl; transform: rotate(180deg);
-  border: 2.5px solid var(--ink, #0e0e0e); border-left: 0; border-radius: 12px 0 0 12px;
-  background: linear-gradient(90deg, #6b4a3a, #8a5f45); color: #fff1dc; padding: 14px 7px; cursor: pointer;
-  font-family: var(--display, 'Quantum', sans-serif); font-size: 13px; letter-spacing: 0.06em; box-shadow: -3px 0 0 var(--ink, #0e0e0e);
+:root {
+  --nb-paper: #fbf8ef; --nb-paper-edge: #efe6d2; --nb-desk: #e2dbcc; --nb-graphite: #3c3c46; --nb-pen: #233a8f;
+  --nb-hand: 'Caveat', 'Patrick Hand', 'Segoe Print', cursive; --nb-hand2: 'Patrick Hand', 'Caveat', cursive;
+  --nb-math: 'Cambria Math', 'STIX Two Math', 'Times New Roman', serif; --nb-link: var(--sky, #3fb6ff);
 }
-.nb-spine:hover { filter: brightness(1.1); }
-.nb-spine:focus-visible { outline: 3px solid var(--moony, #6c63ff); outline-offset: 2px; }
-.nb-spine.wiggle { animation: nbWiggle 0.9s ease-in-out 2; background: linear-gradient(90deg, #8a5f45, #c98a4f); }
-@keyframes nbWiggle { 0%, 100% { transform: rotate(180deg); } 20% { transform: rotate(186deg) translateX(-3px); } 40% { transform: rotate(174deg); } 60% { transform: rotate(184deg); } 80% { transform: rotate(177deg); } }
+@font-face { font-family: 'Caveat'; src: url('/fonts/Caveat.woff2') format('woff2'); font-weight: 400 700; font-display: swap; }
+@font-face { font-family: 'Patrick Hand'; src: url('/fonts/PatrickHand.woff2') format('woff2'); font-display: swap; }
 
-/* book */
-.nb-book {
-  display: none; flex-direction: column; width: 360px; min-width: 300px; height: 100%; max-height: 100%;
-  background: #fbf8ef; border: 2.5px solid var(--ink, #0e0e0e); border-left: 0; border-radius: 0 16px 16px 0;
-  box-shadow: 5px 0 0 var(--ink, #0e0e0e), 10px 0 30px rgba(0, 0, 0, 0.18); overflow: hidden;
-}
-.nb-open .nb-book { display: flex; animation: nbOpen 0.28s ease-out; }
-@keyframes nbOpen { from { transform: translateX(-30px); opacity: 0; } }
-.nb-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px 6px 14px; border-bottom: 2px solid var(--ink, #0e0e0e); background: #efe6d2; }
-.nb-title { margin: 0; flex: 1; font-family: var(--display, 'Quantum', sans-serif); font-weight: 400; font-size: 17px; cursor: default; user-select: none; }
-.nb-title.wob { animation: nbWob 0.3s; }
-@keyframes nbWob { 50% { transform: rotate(-2deg) scale(1.03); } }
-.nb-grip { display: none; width: 9px; margin-left: -4px; cursor: ew-resize; align-self: stretch; position: relative; z-index: 2; touch-action: none; }
-.nb-open .nb-grip { display: block; }
-.nb-grip::after { content: ''; position: absolute; left: 3px; top: 50%; height: 44px; margin-top: -60px; width: 3px; border-radius: 2px; background: repeating-linear-gradient(#0e0e0e 0 3px, transparent 3px 6px); opacity: 0.45; }
-.nb-grip:hover::after, .nb-grip:focus-visible::after, .nb-resizing .nb-grip::after { opacity: 0.9; }
-.nb-grip:focus-visible { outline: 2px solid var(--moony, #6c63ff); }
-.nb-resizing { user-select: none; cursor: ew-resize; }
-.nb-pin { border: 2px solid var(--ink, #0e0e0e); background: #fff; border-radius: 8px; height: 26px; padding: 0 6px; cursor: pointer; font-size: 13px; }
-.nb-pin[aria-pressed='true'] { background: var(--sunny, #ffb72b); }
-.nb-close { border: 2px solid var(--ink, #0e0e0e); background: #fff; border-radius: 50%; width: 26px; height: 26px; font-size: 16px; line-height: 1; cursor: pointer; }
-.nb-main { flex: 1; display: grid; grid-template-columns: 96px 1fr; min-height: 0; }
-
-/* tabs */
-.nb-tabs { display: flex; flex-direction: column; gap: 4px; padding: 8px 0 8px 6px; overflow-y: auto; background: #efe6d2; border-right: 2px solid var(--ink, #0e0e0e); }
-.nb-tab {
-  text-align: left; border: 2px solid var(--ink, #0e0e0e); border-right: 0; border-radius: 9px 0 0 9px; background: #fff;
-  padding: 5px 6px; font: 700 11.5px/1.15 var(--body, 'Quicksand', sans-serif); cursor: pointer; position: relative; color: inherit;
-}
-.nb-tab small { display: block; font-weight: 500; font-size: 9.5px; color: var(--ink2, #55524b); margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.nb-tab.on { background: #fbf8ef; margin-right: -2px; box-shadow: inset 4px 0 0 var(--sunny, #ffb72b); }
-.nb-tab.sealed { background: repeating-linear-gradient(45deg, #e4dccb 0 6px, #ddd3bf 6px 12px); color: #6d685e; cursor: not-allowed; }
-.nb-tab.sealed small { color: #6d685e; }
-.nb-tab.fresh::after { content: 'NEW'; position: absolute; right: 4px; top: -6px; background: var(--red, #fe443d); color: #fff; font-size: 8px; padding: 1px 4px; border-radius: 6px; border: 1.5px solid var(--ink, #0e0e0e); }
-.nb-tab.nope { animation: nbNope 0.3s; }
-@keyframes nbNope { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
-.nb-tab:focus-visible { outline: 3px solid var(--moony, #6c63ff); outline-offset: -3px; }
-
-/* page */
-.nb-sheet {
-  position: relative; overflow-y: auto; padding: 10px 14px 64px 30px; min-height: 0;
-  background-color: #fbf8ef;
-  background-image: linear-gradient(90deg, transparent 21px, rgba(254, 68, 61, 0.35) 21px, rgba(254, 68, 61, 0.35) 23px, transparent 23px),
-    repeating-linear-gradient(#fbf8ef 0 21px, rgba(108, 140, 200, 0.22) 21px 22px);
-  background-attachment: local;
-}
-.nb-sheet.nb-tear { animation: nbTear 0.75s cubic-bezier(.2, .9, .3, 1.2); transform-origin: 0 0; }
-@keyframes nbTear { 0% { clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); transform: rotate(-2deg); } 60% { clip-path: polygon(0 0, 100% 0, 92% 100%, 0 100%); } 100% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); transform: none; } }
-.nb-sheet.nb-tear::before { content: ''; position: absolute; left: 30px; right: 20px; top: 34px; height: 14px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 14'%3E%3Cpath d='M2 8 C20 0 30 14 50 6 S80 0 100 8 130 14 150 5 180 2 198 9' fill='none' stroke='%2355524b' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat center/100% 100%; animation: nbScribble 0.9s ease-out forwards; opacity: 0.8; }
-@keyframes nbScribble { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); opacity: 0; } }
-.nb-ptitle { margin: 0; font-family: var(--display, 'Quantum', sans-serif); font-weight: 400; font-size: 18px; line-height: 22px; }
-.nb-plain { margin: 0 0 8px; font-size: 12.5px; color: var(--ink2, #55524b); line-height: 22px; }
-.nb-body { font-size: 12.5px; line-height: 1.45; outline: none; }
-.nb-margin {
-  position: relative; margin: 14px -6px 0 0; padding: 6px 10px; transform: rotate(-1.2deg);
-  font: 600 italic 12.5px/1.35 var(--body, 'Quicksand', sans-serif); color: #55524b; border-left: 3px solid #b9b3a6; background: rgba(251, 248, 239, 0.92);
-}
-.nb-margin::before { content: '✎ S.: '; font-style: normal; font-weight: 800; color: #6b4a3a; }
-.nb-margin.nb-new-note { animation: nbNote 1.2s ease-out; color: #3a2a20; }
-@keyframes nbNote { 0% { clip-path: inset(0 100% 0 0); } 100% { clip-path: inset(0 0 0 0); } }
-
+/* ═════════ page content (from v1) ═════════ */
 .nb-empty, .nb-cap { color: var(--ink2, #55524b); font-size: 11.5px; }
 .nb-cap { margin: 4px 0; }
 .nb-sub { font-family: var(--display, 'Quantum', sans-serif); font-size: 12px; margin: 10px 0 4px; letter-spacing: 0.03em; }
@@ -125,18 +62,6 @@
 .nb-scale { display: flex; align-items: center; gap: 6px; font-size: 10.5px; margin-top: 6px; }
 .nb-scale i { width: 120px; height: 10px; border: 1.6px solid var(--ink, #0e0e0e); border-radius: 5px; display: block; }
 .nb-entangle, .nb-stab, .nb-dens { position: relative; }
-.nb-sticker { position: relative !important; display: inline-block; right: auto !important; top: auto !important; margin: 8px 0 4px 30px; transform: rotate(-5deg) !important; }
-.nb-sticker, .nb-survived, .nb-caught {
-  position: absolute; right: 2px; top: -6px; z-index: 2; transform: rotate(8deg);
-  font-family: var(--display, 'Quantum', sans-serif); font-size: 14px; line-height: 1.15; text-align: center;
-  padding: 8px 12px; border: 3px solid var(--red, #fe443d); color: var(--redInk, #c8241e); background: rgba(255, 250, 240, 0.94); border-radius: 8px;
-  box-shadow: 0 3px 0 rgba(14, 14, 14, 0.25);
-}
-.nb-survived { border-color: #1f9e66; color: #1f7a50; position: relative; display: inline-block; right: auto; top: auto; margin-top: 10px; transform: rotate(-6deg); }
-.nb-caught { border-color: var(--phasey, #b04dff); color: #6f2aa8; position: relative; display: inline-block; right: auto; top: auto; margin: 8px 0 2px; transform: rotate(-4deg); }
-.slap { animation: nbSlap 0.45s cubic-bezier(.3, 1.6, .5, 1) both; }
-@keyframes nbSlap { 0% { transform: scale(2.4) rotate(-10deg); opacity: 0; } 100% { opacity: 1; } }
-
 /* circuit */
 .nb-cwrap { display: flex; border: 2px solid var(--ink, #0e0e0e); border-radius: 10px; background: rgba(255, 255, 255, 0.7); overflow: hidden; }
 .nb-cwrap > div:first-child { flex: none; border-right: 1.5px dashed #b9b3a6; background: #fbf8ef; }
@@ -199,10 +124,422 @@
 .nb-leaf { margin-left: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nb-dump .k { color: #6b4a3a; font-weight: 700; } .nb-dump .n { color: #4b43d6; } .nb-dump .s { color: #1f7a50; } .nb-dump .b { color: #c8241e; }
 
-/* reduced motion */
-.nb-reduced *, .reduced .nb * { animation: none !important; }
-.nb-reduced .nb-morph .nb-gl, .reduced .nb-morph .nb-gl { opacity: 1; }
-@media (prefers-reduced-motion: reduce) { .nb * { animation: none !important; } .nb-morph .nb-gl { opacity: 1; } }
-@media (max-width: 1100px) { .nb-main { grid-template-columns: 84px 1fr; } .nb-tab small { display: none; } }
-.nb-book { container-type: inline-size; container-name: nb; }
-@container nb (max-width: 430px) { .nb-main { grid-template-columns: 82px 1fr; } .nb-tab small { display: none; } .nb-tab { font-size: 10.5px; hyphens: auto; -webkit-hyphens: auto; overflow-wrap: break-word; } .nb-sheet { padding-left: 26px; padding-right: 10px; } }
+/* ═════════ 3. THE BOOK ═════════ */
+.nb.nb-v2 { position: absolute; inset: 0; display: flex; pointer-events: auto; color: var(--ink); font-family: var(--body); }
+.nb-v2 .nb-spine {
+  /* closed state: the book's spine standing on the desk */
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 12px 0; cursor: pointer;
+  border: 0; border-right: 2px solid var(--ink); color: #fff1dc; font: 400 14px var(--display); letter-spacing: 0.08em;
+  background: linear-gradient(#1d1b18 0 34px, transparent 34px calc(100% - 34px), #1d1b18 calc(100% - 34px)), linear-gradient(90deg, rgba(0,0,0,.35), transparent 22%, transparent 78%, rgba(0,0,0,.3)), url('/art/notebook/kraft.svg');
+}
+.nb-v2 .nb-spine .lbl { margin-top: 30px; writing-mode: vertical-rl; transform: rotate(180deg); background: #fbf8ef; color: var(--ink); padding: 10px 4px; border: 2px solid var(--ink); border-radius: 4px; font-size: 13px; }
+.nb-v2 .nb-spine .ticks { display: flex; flex-direction: column; gap: 4px; margin: auto -2px 34px auto; }
+.nb-v2 .nb-spine:hover .lbl { background: #fff6dc; }
+.nb-v2 .nb-spine:focus-visible { outline: 3px solid var(--moony); outline-offset: -3px; }
+.nb-v2 .nb-spine .ticks i { width: 22px; height: 9px; border: 1.5px solid var(--ink); border-radius: 0 4px 4px 0; background: var(--c); }
+.nb-v2.nb-open .nb-spine { display: none; }
+
+.nb-v2 .nb-book {
+  display: none; position: relative; flex: 1; min-width: 0; margin: 8px 38px 8px 0;
+  background: var(--nb-paper); border: 2.5px solid var(--ink); border-left: 0; border-radius: 0 14px 14px 0;
+  box-shadow: 1px 1px 0 #fffdf6, 2px 2px 0 var(--ink), 3px 3px 0 #fffdf6, 4px 4px 0 var(--ink), 10px 12px 24px rgba(14, 14, 14, 0.14);
+}
+@container nbdock (min-width: 600px) { .nb-v2:not([data-spread="1"]) .nb-book { margin-right: 100px; } }
+.nb-v2[data-mode="sheet"] .nb-book { margin-left: 10px; }
+.nb-v2.nb-open .nb-book { display: grid; grid-template-columns: 30px minmax(0, 1fr) 0; grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "bind head head" "bind spread tabs"; }
+
+/* twin-wire binding on the scene side = resize handle (lg/xl) */
+.nb-v2 .nb-binding {
+  grid-area: bind; position: relative; z-index: 3; margin-left: -8px; width: 38px; touch-action: none;
+  background: url('/art/notebook/binding-coil.svg') repeat-y 0 6px / 36px 24px;
+}
+.nerd-bench[data-bench="lg"] .nb-v2 .nb-binding, .nerd-bench[data-bench="xl"] .nb-v2 .nb-binding { cursor: ew-resize; }
+.nb-v2 .nb-binding:hover, .nb-v2 .nb-binding:focus-visible, .nb-v2.nb-resizing .nb-binding { filter: drop-shadow(0 0 0 var(--sunny)) drop-shadow(2px 0 0 var(--sunny)); outline: none; }
+
+/* running head: a real lab-notebook form line */
+.nb-v2 .nb-head { grid-area: head; display: flex; align-items: center; gap: 10px; padding: 8px 10px 6px 14px; border-bottom: 2px solid var(--ink); background: var(--nb-paper-edge); min-width: 0; }
+.nb-v2 .nb-title { margin: 0; font: 400 16px var(--display); white-space: nowrap; cursor: default; user-select: none; }
+.nb-v2 .nb-runhead { flex: 1; display: flex; flex-wrap: wrap; height: 20px; align-items: baseline; gap: 0 12px; min-width: 0; overflow: hidden; white-space: nowrap; font: 700 9.5px var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink2); }
+.nb-v2 .nb-field b { font: 700 17px/1 var(--nb-hand); letter-spacing: 0; text-transform: none; color: #233a8f; border-bottom: 1px solid #b9b3a6; padding: 0 4px; margin-left: 3px; }
+.nb-v2 .nb-close { border: 2px solid var(--ink); background: #fff; border-radius: 50%; width: 26px; height: 26px; font-size: 16px; line-height: 1; cursor: pointer; flex: none; }
+
+/* pages */
+.nb-v2 .nb-spread { grid-area: spread; display: grid; grid-template-columns: minmax(0, 1fr); min-height: 0; position: relative; overflow: hidden; }
+.nb-v2[data-spread="1"] .nb-spread { grid-template-columns: minmax(0, 1fr) 26px minmax(0, 1fr); }
+.nb-v2 .nb-gutter { display: none; }
+.nb-v2[data-spread="1"] .nb-gutter { display: block; background: linear-gradient(90deg, rgba(0,0,0,0) 0, rgba(60,40,10,.16) 45%, rgba(60,40,10,.22) 50%, rgba(60,40,10,.16) 55%, rgba(0,0,0,0)), url('/art/notebook/binding-coil.svg') repeat-y -4px 6px / 36px 24px; }
+.nb-v2 .nb-sheet {
+  position: relative; overflow-x: hidden; overflow-y: auto; min-height: 0; contain: layout paint; padding: 14px 16px 18px 40px;
+  background-color: var(--nb-paper);
+  background-image: var(--nb-doodle, none),
+    linear-gradient(90deg, transparent 27px, rgba(254, 68, 61, .45) 27px 28.5px, transparent 28.5px 31px, rgba(254, 68, 61, .45) 31px 32.5px, transparent 32.5px),
+    url('/art/notebook/paper-grain.svg'), url('/art/notebook/paper-grid.svg');
+  background-size: auto 46px, auto, 240px 240px, 100px 100px;
+  background-position: right 18px bottom 8px, 0 0, 0 0, 0 0;
+  background-repeat: no-repeat, repeat, repeat, repeat;
+  background-attachment: local, local, local, local;
+  scrollbar-width: thin;
+}
+.nb-v2 .nb-ptitle { margin: 0; font: 400 21px/1.1 var(--display); }
+.nb-v2 .nb-pinbtn { float: right; margin: -2px -6px 0 6px; border: 2px solid var(--ink); background: #fff; border-radius: 8px; height: 26px; padding: 0 6px; font-size: 13px; cursor: pointer; }
+.nb-v2 .nb-pinbtn:hover { background: var(--sunny); }
+.nb-v2 .nb-pinbtn:focus-visible, .nb-v2 .nb-close:focus-visible, .nb-v2 .nb-binding:focus-visible, .nb-v2 .nb-dogear:focus-visible { outline: 3px solid var(--moony); outline-offset: 2px; }
+.nb-v2 .nb-plain { margin: 2px 0 8px; font-size: 13px; line-height: 20px; color: var(--ink2); }
+.nb-v2 .nb-plain::after { content: ''; display: block; width: 70%; height: 10px; margin-top: 2px; background: url('/art/notebook/pencil-underline.svg') no-repeat 0 0 / 100% 100%; }
+.nb-v2 .nb-body { font-size: 13px; line-height: 1.45; }
+.nb-v2 .nb-cap { color: var(--ink2); font-size: 12px; }
+.nb-v2 .nb-margin {
+  position: relative; margin: 12px 0 0 6px; padding: 0 0 0 4px; transform: rotate(-1.5deg); border: 0; background: none;
+  font: 600 19px/1.15 var(--nb-hand); color: var(--nb-graphite); max-width: 34ch;
+}
+.nb-v2 .nb-margin::before { content: 'S. — '; font-weight: 700; color: #6b4a3a; }
+.nb-v2 .nb-margin::after { content: ''; position: absolute; right: -6px; top: -34px; width: 60px; height: 34px; background: url('/art/notebook/pencil-arrow.svg') no-repeat center / contain; transform: scaleY(-1) rotate(-8deg); opacity: .8; }
+.nb-v2 .nb-foot { position: relative; display: flex; align-items: flex-end; justify-content: space-between; margin-top: 12px; padding-top: 6px; border-top: 1.5px solid #c9bfa8; font: 700 9.5px var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--ink3); }
+.nb-v2 .nb-foot .pg { font: 700 16px var(--nb-hand); letter-spacing: 0; color: var(--nb-graphite); }
+.nb-v2 .nb-foot .wit { display: flex; align-items: flex-end; gap: 6px; min-width: 0; text-align: right; }
+.nb-v2 .nb-foot .wit::after { content: ''; flex: 0 1 64px; min-width: 22px; height: 18px; border-bottom: 1.5px solid #c9bfa8; }
+.nb-v2 .nb-foot.signed .wit::after { height: 36px; background: url('/art/notebook/paw-sign.svg') no-repeat center bottom / 44px auto; }
+.nb-v2 .nb-sheet .nb-dogear { position: sticky; float: right; bottom: -18px; margin-right: -16px; width: 36px; height: 36px; border: 0; padding: 0; background: url('/art/notebook/dog-ear.svg') no-repeat right bottom / contain; cursor: pointer; }
+.nb-v2 .nb-sheet.nb-tear { animation: nbTear 0.75s cubic-bezier(.2, .9, .3, 1.2); transform-origin: 0 0; }
+@keyframes nbTear { 0% { clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); transform: rotate(-2deg); } 60% { clip-path: polygon(0 0, 100% 0, 92% 100%, 0 100%); } 100% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); transform: none; } }
+/* RAW DUMP: a manila "classified" insert */
+.nb-v2 .nb-sheet[data-page="dump"] { background-color: #f1dfb3; background-image: url('/art/notebook/paper-grain.svg'); background-size: 240px 240px; }
+.nb-v2 .nb-sheet[data-page="dump"]::before {
+  content: 'RAW DUMP · CLASSIFIED'; position: absolute; right: 14px; top: 12px; padding: 4px 10px; transform: rotate(4deg); pointer-events: none;
+  font: 400 13px var(--display); letter-spacing: .1em; color: #c8241e; border: 3px solid #c8241e; border-radius: 4px; mix-blend-mode: multiply;
+  -webkit-mask: url('/art/notebook/stamp-grunge.svg') 0 0 / 300px; mask: url('/art/notebook/stamp-grunge.svg') 0 0 / 300px;
+}
+.nb-v2 .nb-sheet[data-page="dump"] .nb-dump { font-family: 'Courier New', ui-monospace, monospace; }
+/* stains (inside the sheet box: never widen it): juice box on Threshold, coffee on Export (late-night work) */
+.nb-v2 .nb-sheet[data-page="threshold"]::before, .nb-v2 .nb-sheet[data-page="export"]::before {
+  content: ''; position: absolute; width: 170px; height: 170px; right: 6px; top: 110px; pointer-events: none; mix-blend-mode: multiply; opacity: .6;
+  background: url('/art/notebook/coffee-ring.svg') no-repeat center / contain;
+}
+.nb-v2 .nb-sheet[data-page="threshold"]::before { width: 130px; height: 130px; top: auto; bottom: 70px; background-image: url('/art/notebook/juice-ring.svg'); opacity: .8; }
+
+/* fore-edge index tabs (sticky flags) */
+.nb-v2 .nb-tabs { grid-area: tabs; display: flex; flex-direction: column; gap: 5px; padding: 8px 0 10px; width: 36px; position: relative; z-index: 2; }
+@container nbdock (min-width: 600px) { .nb-v2:not([data-spread="1"]) .nb-tabs { width: 98px; } }
+.nb-v2 .nb-tab {
+  --c: #fff; position: relative; display: flex; align-items: center; gap: 6px; height: 38px; padding: 0 6px 0 8px; margin-left: -6px;
+  border: 2px solid var(--ink); border-left: 0; border-radius: 0 9px 9px 0; background: var(--c); color: var(--ink); cursor: pointer;
+  box-shadow: 2px 2px 0 rgba(14, 14, 14, .25); transition: transform .12s; text-align: left;
+}
+.nb-v2 .nb-tab:hover { transform: translateX(3px); }
+.nb-v2 .nb-tab .g { font: 400 18px/1 var(--nb-math); min-width: 18px; text-align: center; }
+.nb-v2 .nb-tab .t { display: none; font: 400 16px/1 var(--nb-hand2); white-space: nowrap; }
+@container nbdock (min-width: 600px) { .nb-v2:not([data-spread="1"]) .nb-tab .t { display: inline; } }
+.nb-v2 .nb-tab.on { transform: translateX(-4px); box-shadow: none; z-index: 2; border-color: var(--ink); }
+.nb-v2 .nb-tab.on::before { content: ''; position: absolute; left: -3px; top: 3px; bottom: 3px; width: 6px; background: var(--c); }
+.nb-v2 .nb-tab.pinned::after { content: ''; position: absolute; right: 3px; top: 3px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
+.nb-v2 .nb-tab.sealed .g, .nb-v2 .nb-tab.sealed .t { visibility: hidden; }
+.nb-v2 .nb-tab.fresh::after { content: ''; position: absolute; right: -7px; top: -9px; width: 18px; height: 18px; background: url('/art/notebook/gold-star.svg') no-repeat center / contain; transform: rotate(12deg); }
+.nb-v2 .nb-tab[data-id="state"] { --c: #ffd6e0; } .nb-v2 .nb-tab[data-id="bloch"] { --c: #fff0b8; } .nb-v2 .nb-tab[data-id="entangle"] { --c: #e6dcff; }
+.nb-v2 .nb-tab[data-id="circuit"] { --c: #c7ecff; } .nb-v2 .nb-tab[data-id="stabilizers"] { --c: #c9f5df; } .nb-v2 .nb-tab[data-id="threshold"] { --c: #ffdcc0; }
+.nb-v2 .nb-tab[data-id="density"] { --c: #f3d9ff; } .nb-v2 .nb-tab[data-id="export"] { --c: #dcf2d6; } .nb-v2 .nb-tab[data-id="dump"] { --c: #2a2a2a; color: #fff; }
+.nb-v2 .nb-tab.sealed, .nb-v2 .nb-tab.sealed[data-id] { --c: #e6dfcf; border-style: dashed; color: transparent; cursor: not-allowed; box-shadow: none; }
+
+/* ═════════ 4. PAGE FURNITURE (restyles existing classes; pure CSS) ═════════ */
+/* rubber stamps: one base, ink colour per variant; grunge mask = inked look */
+.nb-v2 .nb-sticker, .nb-v2 .nb-survived, .nb-v2 .nb-caught, .nb-v2 .nb-stampx {
+  position: relative; display: inline-block; margin: 10px 0 6px 20px; padding: 7px 14px; transform: rotate(-6deg);
+  font: 400 16px/1.12 var(--display); letter-spacing: .06em; text-align: center; text-transform: uppercase;
+  color: var(--ink-c, #c8241e); border: 3px solid currentColor; border-radius: 6px; background: none; box-shadow: inset 0 0 0 2px var(--nb-paper), inset 0 0 0 3.5px currentColor;
+  -webkit-mask: url('/art/notebook/stamp-grunge.svg') 0 0 / 300px; mask: url('/art/notebook/stamp-grunge.svg') 0 0 / 300px;
+  mix-blend-mode: multiply;
+}
+.nb-v2 .nb-survived { --ink-c: #17834f; transform: rotate(-4deg); }
+.nb-v2 .nb-caught { --ink-c: #7a2fc0; transform: rotate(3deg); }
+.nb-v2 .slap { animation: nbStamp .42s cubic-bezier(.3, 1.5, .5, 1) both; }
+@keyframes nbStamp { 0% { transform: scale(2.2) rotate(-14deg); opacity: 0; } 55% { transform: scale(.94) rotate(-6deg); opacity: 1; } 100% { opacity: 1; } }
+
+/* hidden page: scribbled-out notes + a big round HIDDEN stamp */
+.nb-v2 .nb-hidden { min-height: 260px; background: url('/art/notebook/scribble-out.svg') repeat-y center top / 100% auto; }
+.nb-v2 .nb-hidden .nb-stamp { width: 120px; height: 120px; font-size: 44px; border: 4px solid #c8241e; box-shadow: inset 0 0 0 3px var(--nb-paper), inset 0 0 0 5px #c8241e; background: rgba(251, 248, 239, .85); position: relative; display: grid; place-items: center; border-radius: 50%; transform: rotate(-12deg);
+  -webkit-mask: url('/art/notebook/stamp-grunge.svg') 0 0 / 300px; mask: url('/art/notebook/stamp-grunge.svg') 0 0 / 300px; }
+.nb-v2 .nb-hidden .nb-stamp::after { content: 'HIDDEN'; position: absolute; bottom: 14px; font: 400 13px var(--display); letter-spacing: .14em; color: #c8241e; }
+.nb-v2 .nb-hidden p { font: 700 20px/1.15 var(--nb-hand); color: var(--nb-graphite); background: rgba(251, 248, 239, .9); padding: 4px 8px; }
+
+/* taped-in figures (programmer adds .nb-taped to the figure wrapper) */
+.nb-v2 .nb-taped { position: relative; background: #fff; border: 1.5px solid #d8d0bd; padding: 8px; margin: 12px 4px 10px; box-shadow: 0 2px 6px rgba(14, 14, 14, .12); transform: rotate(-.6deg); }
+.nb-v2 .nb-taped::before, .nb-v2 .nb-taped::after { content: ''; position: absolute; top: -13px; width: 70px; height: 22px; background: url('/art/notebook/tape-a.svg') no-repeat center / 100% 100%; }
+.nb-v2 .nb-taped::before { left: -14px; transform: rotate(-32deg); }
+.nb-v2 .nb-taped::after { right: -14px; transform: rotate(28deg); }
+.nb-v2 .nb-taped.b::before, .nb-v2 .nb-taped.b::after { background-image: url('/art/notebook/tape-b.svg'); }
+.nb-v2 .nb-taped > svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+.nb-v2 .nb-taped .nb-thr { border: 0; background: none; border-radius: 0; }
+.nb-v2 .nb-taped.nb-dark { background: #14142a; border-color: #0e0e0e; }
+/* the circuit card: wire labels stay put, the circuit scrolls sideways inside the card (decision 6: never below 0.8x) */
+.nb-v2 .nb-taped .nb-cwrap { border: 0; background: none; border-radius: 0; min-width: 0; max-width: 100%; }
+.nb-v2 .nb-taped.nb-circcard { padding: 8px 6px 4px; }
+.nb-v2 .nb-cwrap > div:first-child:not(.nb-cscroll) { background: #fff; border-right: 1.5px dashed #c9bfa8; position: relative; z-index: 1; }
+.nb-v2 .nb-cwrap > .nb-cscroll { flex: 1 1 0; border-right: 0; background-color: transparent; }
+.nb-v2 .nb-cscroll {
+  flex: 1 1 0; min-width: 0; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scroll-behavior: smooth; padding-bottom: 4px;
+  scrollbar-width: thin; scrollbar-color: #b9b3a6 transparent;
+  /* scroll shadows: the covers move with the content, the shadows stay at the edges → a shadow shows only where more circuit hides */
+  background:
+    linear-gradient(90deg, #fff 40%, rgba(255, 255, 255, 0)) left / 28px 100% no-repeat local,
+    linear-gradient(270deg, #fff 40%, rgba(255, 255, 255, 0)) right / 28px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(14, 14, 14, .28), transparent) left / 12px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgba(14, 14, 14, .28), transparent) right / 12px 100% no-repeat scroll;
+}
+.nb-v2 .nb-cscroll::-webkit-scrollbar { height: 6px; }
+.nb-v2 .nb-cscroll::-webkit-scrollbar-thumb { background: #b9b3a6; border-radius: 3px; }
+
+/* bloch → polaroids */
+.nb-v2 .nb-bgrid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px 10px; padding-top: 8px; }
+.nb-v2 .nb-bcard { position: relative; background: #fff; border: 1.5px solid #d8d0bd; border-radius: 2px; padding: 8px 8px 6px; box-shadow: 0 3px 8px rgba(14, 14, 14, .15); }
+.nb-v2 .nb-bcard:nth-child(odd) { transform: rotate(-1.6deg); } .nb-v2 .nb-bcard:nth-child(even) { transform: rotate(1.2deg); }
+.nb-v2 .nb-bcard::before { content: ''; position: absolute; left: 50%; top: -10px; width: 56px; height: 18px; margin-left: -28px; background: url('/art/notebook/tape-a.svg') no-repeat center / 100% 100%; transform: rotate(-4deg); }
+.nb-v2 .nb-bcard figcaption { font: 700 22px/1 var(--nb-hand); }
+.nb-v2 .nb-bcard.focus { box-shadow: 0 0 0 3px var(--sunny), 0 3px 8px rgba(14, 14, 14, .15); }
+
+/* circuit: highlighter cursor, ink on graph paper */
+.nb-v2 .nb-cursor { fill: rgba(255, 226, 40, .5); stroke: none; mix-blend-mode: multiply; }
+.nb-v2 .nb-circ.fit { width: 100%; height: auto; } /* programmer: .fit only when scale >= 0.8 (natural width <= 1.25x scroller) AND wire labels are in the same SVG; else scroll */
+/* card ↔ gate hover link (decision 5). Sky = "this card is that gate" (the editor side is .card-hl in nerd-layout.css). */
+.nb-v2 .nb-g { cursor: default; }
+.nb-v2 .nb-g.gate-hl { filter: drop-shadow(0 0 1.5px #3fb6ff) drop-shadow(0 0 3px #3fb6ff); opacity: 1; }
+.nb-v2 .nb-g.gate-hl .nb-box, .nb-v2 .nb-g.gate-hl circle, .nb-v2 .nb-g.gate-hl line { stroke: #0a5f99; }
+.nb-v2 .nb-hlband { fill: rgba(63, 182, 255, .16); stroke: #3fb6ff; stroke-width: 1.5; stroke-dasharray: 3 2; pointer-events: none; }
+.nb-v2 .nb-cchip { display: inline-block; padding: 0 6px; border: 1.5px solid var(--ink); border-radius: 6px; font: 400 10.5px/1.5 var(--display); letter-spacing: .03em; }
+.nb-v2 .nb-cchip.op-BOOP { background: var(--c-boop); color: #fff; } .nb-v2 .nb-cchip.op-SHUSH { background: var(--c-shush); color: #fff; }
+.nb-v2 .nb-cchip.op-SPIN { background: var(--c-spin); } .nb-v2 .nb-cchip.op-HIGHFIVE { background: var(--c-highfive); }
+.nb-v2 .nb-cchip.op-LISTEN { background: var(--c-listen); } .nb-v2 .nb-cchip.op-PEEK { background: var(--c-peek); }
+.nb-v2 .nb-cchip.op-RESET { background: var(--c-reset); } .nb-v2 .nb-cchip.op-IF, .nb-v2 .nb-cchip.op-JUMP { background: var(--c-flow); color: #fff; }
+.nb-v2 .nb-clegend { gap: 4px 10px; font-size: 11px; }
+.nb-v2 .nb-clegend .gate-hl { background: rgba(63, 182, 255, .18); border-radius: 6px; }
+.nb-v2 .nb-big { font: 700 22px/1.1 var(--nb-hand); margin: 0 0 4px; }
+
+/* export: dot-matrix printout on green-bar paper, paperclipped */
+.nb-v2 .nb-export { position: relative; }
+.nb-v2 .nb-code {
+  position: relative; margin: 18px 0 6px; padding: 8px 26px; max-height: 360px; border: 0; border-radius: 0; color: #1d2a1d;
+  font: 12px/16px 'Courier New', ui-monospace, monospace; white-space: pre;
+  background: url('/art/notebook/sprocket.svg') repeat-y left top / 16px 16px, url('/art/notebook/sprocket.svg') repeat-y right top / 16px 16px, url('/art/notebook/greenbar.svg') repeat 0 8px / 8px 64px;
+  background-attachment: local; box-shadow: 0 2px 8px rgba(14, 14, 14, .18);
+}
+.nb-v2 .nb-printout { position: relative; margin-top: 22px; }
+.nb-v2 .nb-printout .nb-code { margin-top: 0; }
+.nb-v2 .nb-clip { position: absolute; left: 30px; top: -30px; width: 26px; height: 64px; background: url('/art/notebook/fish-clip.svg') no-repeat center / contain; z-index: 2; pointer-events: none; }
+
+/* ═════════ 5. MOTION ═════════ */
+.nb-v2.nb-open .nb-book { animation: nbBookIn .32s cubic-bezier(.2, .8, .3, 1); }
+@keyframes nbBookIn { from { transform: perspective(900px) rotateY(-24deg); transform-origin: left center; opacity: 0; } }
+.nb-v2 .nb-turn { position: absolute; top: 0; bottom: 0; left: 0; width: 100%; pointer-events: none; z-index: 4; visibility: hidden; transform-origin: left center; 
+  background: linear-gradient(90deg, rgba(0,0,0,.08), transparent 30%, rgba(255,255,255,.4) 85%, rgba(0,0,0,.12)), url('/art/notebook/paper-grid.svg') 0 0 / 100px, var(--nb-paper); border-right: 2px solid var(--ink); }
+/* single page: the leaf lifts off the binding and falls away; spread: it flips from the right page over the gutter */
+.nb-v2 .nb-turn.fwd { visibility: visible; animation: nbTurn1Fwd .38s cubic-bezier(.45, .05, .35, 1) forwards; }
+.nb-v2 .nb-turn.back { visibility: visible; animation: nbTurn1Back .38s cubic-bezier(.45, .05, .35, 1) forwards; }
+@keyframes nbTurn1Fwd { from { transform: perspective(1400px) rotateY(0); } to { transform: perspective(1400px) rotateY(-100deg); opacity: .2; } }
+@keyframes nbTurn1Back { from { transform: perspective(1400px) rotateY(-100deg); opacity: .2; } to { transform: perspective(1400px) rotateY(0); opacity: 0; } }
+.nb-v2[data-spread="1"] .nb-turn { left: calc(50% + 13px); width: calc(50% - 13px); }
+.nb-v2[data-spread="1"] .nb-turn.fwd { animation-name: nbTurn2Fwd; animation-duration: .45s; }
+.nb-v2[data-spread="1"] .nb-turn.back { animation-name: nbTurn2Back; animation-duration: .45s; }
+@keyframes nbTurn2Fwd { from { transform: perspective(1600px) rotateY(0); } 92% { opacity: 1; } to { transform: perspective(1600px) rotateY(-180deg); opacity: 0; } }
+@keyframes nbTurn2Back { from { transform: perspective(1600px) rotateY(-180deg); } 92% { opacity: 1; } to { transform: perspective(1600px) rotateY(0); opacity: 0; } }
+.nb-v2 .nb-tab.fresh { animation: nbStick .5s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes nbStick { from { transform: translate(26px, -10px) rotate(12deg) scale(1.15); opacity: 0; } }
+.nb-v2 .nb-margin.nb-new-note { animation: nbWrite 1.3s steps(24) both; }
+@keyframes nbWrite { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+.nb-v2 .nb-spine.wiggle { animation: nbSpineWiggle .9s ease-in-out 2; }
+@keyframes nbSpineWiggle { 20% { transform: rotate(-3deg); } 40% { transform: rotate(2.5deg); } 60% { transform: rotate(-1.5deg); } 80% { transform: rotate(1deg); } }
+@media (prefers-reduced-motion: reduce) { .nb-v2 *, .nb-v2.nb-open .nb-book { animation: none !important; transition: none !important; } .nb-v2 .nb-turn { visibility: hidden !important; } .nb-v2 .nb-spine.wiggle { box-shadow: inset 0 0 0 3px var(--sunny); } }
+.reduced .nb-v2 *, .reduced .nb-v2.nb-open .nb-book, .nb-v2.nb-reduced *, .nb-v2.nb-reduced .nb-book { animation: none !important; } .reduced .nb-v2 .nb-turn { visibility: hidden !important; }
+@media (prefers-reduced-motion: reduce) { .nb-v2 .nb-cscroll { scroll-behavior: auto; } }
+.reduced .nb-v2 .nb-cscroll { scroll-behavior: auto; }
+.reduced .nb-v2 .nb-morph .nb-gl { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .nb-v2 .nb-morph .nb-gl { opacity: 1; } }
+
+/* ═════════ 6. CINEMA (?cinema&nb=1): no bench layout; the book rides in the old .nerd-host overlay ═════════ */
+.nerd-host > .nb.nb-v2 { position: relative; inset: auto; height: 100%; width: 420px; background: var(--nb-desk); }
+html.cinema-nb .nerd-host { right: 0; }
+html.cinema-nb .nerd-host > .nb.nb-v2 { width: 100%; }
+
+
+/* ═════════ 7. NEW CONTENT (programmer + quantum expert, phase 2) ═════════ */
+.nb-v2 .nb-ampcap, .nb-v2 .nb-obscap { font-size: 11.5px; }
+.nb-v2 .nb-condunk { color: #9a5a10; font-style: italic; }
+.nb-v2 .nb-condunk::before { content: '✎ '; font-style: normal; }
+.nb-v2 .nb-obs { font-family: var(--nb-hand); font-weight: 700; font-size: 14px; fill: var(--nb-pen); }
+.nb-v2 .nb-taped.nb-circcard { padding: 6px 6px 2px; margin-bottom: 8px; }
+.nb-v2 .nb-sub { margin: 8px 0 3px; }
+.nb-v2 .nb-table { background: rgba(255, 255, 255, .7); }
+.nb-v2 .nb-table th { background: var(--nb-paper-edge); }
+.nb-v2 .nb-other { margin: 4px 0 2px; color: var(--ink3); }
+.nb-v2 .nb-other > summary { cursor: pointer; font: 600 12px var(--body); list-style-position: inside; }
+.nb-v2 .nb-other > summary:hover { color: var(--ink); }
+.nb-v2 .nb-other .nb-table { opacity: .7; margin-top: 4px; }
+/* decoder: this night's row gets a highlighter swipe; what your code did is in blue pen with a verdict mark */
+.nb-v2 .nb-dectable tr.on td { background: rgba(255, 226, 40, .42); }
+.nb-v2 .nb-dectable td.nb-mine { font: 700 17px/1 var(--nb-hand); color: var(--nb-pen); white-space: nowrap; }
+.nb-v2 .nb-verdict { display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin-left: 4px; border: 2px solid currentColor; border-radius: 50% 46% 52% 48%; font: 700 14px/1 var(--body); transform: rotate(-6deg); }
+.nb-v2 .nb-verdict[data-v="ok"] { color: #17834f; border: 0; width: 24px; height: 24px; background: url('/art/notebook/gold-star.svg') no-repeat center / contain; color: #6b4300; font-size: 11px; }
+.nb-v2 .nb-verdict[data-v="eq"] { color: #2a5bd7; }
+.nb-v2 .nb-verdict[data-v="bad"] { color: #c8241e; }
+.nb-v2 .nb-verdict[data-v="unk"] { color: var(--ink3); border-style: dashed; }
+.nb-v2 .nb-recov + .nb-fid .nb-abar i { background: #3ddc97 !important; }
+/* sparkline: taped strip of chart paper */
+.nb-v2 .nb-sparkfig { margin: 12px 4px 8px; padding: 6px 8px 4px; }
+.nb-v2 .nb-sparkfig svg { display: block; width: 100%; height: auto; }
+.nb-v2 .nb-spark-grid { stroke: #c9bfa8; stroke-width: 1; stroke-dasharray: 3 3; }
+.nb-v2 .nb-spark-f { stroke: var(--ink); stroke-width: 1.8; }
+.nb-v2 .nb-spark-r { stroke: #17834f; stroke-width: 2.6; stroke-linecap: round; }
+.nb-v2 .nb-spark-cur { stroke: rgba(255, 210, 30, .75); stroke-width: 7; mix-blend-mode: multiply; opacity: 1; }
+.nb-v2 .nb-sparkfig figcaption { margin: 4px 0 0; font-size: 11px; line-height: 1.35; }
+.nb-v2 .nb-key-f { border-bottom: 2px solid var(--ink); }
+.nb-v2 .nb-key-r { color: #17834f; border-bottom: 2.5px solid #17834f; }
+.nb-v2 .nb-fooled { --ink-c: #c8241e; transform: rotate(-9deg); font-size: 20px; letter-spacing: .14em; }
+/* threshold: readable plot text (>= 10px rendered in a 400px column; programmer's attrs are fallbacks) */
+.nb-v2 .nb-thr { overflow: visible; }
+.nb-v2 .nb-thr .nb-svgt { font-size: 11px; }
+.nb-v2 .nb-thr text[font-size="8.5"] { font-size: 10.5px; transform: translateY(4px); } /* axis title: clear the tick labels */
+.nb-v2 .nb-thr-mine text { font-size: 11.5px; fill: #17834f; }
+.nb-v2 .nb-taped:has(> .nb-thr) { padding: 4px 4px 10px; }
+@container nbdock (max-width: 380px) { .nb-v2 .nb-thr .nb-svgt, .nb-v2 .nb-thr-mine text { font-size: 13px; } .nb-v2 .nb-thr text[font-size="8.5"] { font-size: 12px; transform: translateY(6px); } }
+/* run head: the input as a ket chip when the programmer marks it up (see Programmer notes) */
+.nb-v2 .nb-field .nb-in { font: 600 12px var(--nb-math); color: var(--nb-pen); margin-left: 3px; }
+
+/* ═════════ 8. A CAT'S NOTEBOOK AT A DAYCARE ═════════ */
+/* closed spine = Schrödi's cardboard box, claw-scratched, with a name label */
+.nb-v2 .nb-spine {
+  background: linear-gradient(#1d1b18 0 30px, transparent 30px calc(100% - 30px), #1d1b18 calc(100% - 30px)),
+    linear-gradient(90deg, rgba(0,0,0,.32), transparent 22%, transparent 78%, rgba(0,0,0,.28)),
+    url('/art/notebook/claw-scratch.svg') no-repeat right -4px top 46% / 30px auto,
+    url('/art/notebook/box-print.svg') no-repeat center bottom 64px / 26px auto,
+    url('/art/notebook/box-cover.svg');
+}
+.nb-v2 .nb-spine .lbl { order: 0; }
+.nb-v2 .nb-spine::after {
+  order: 1; content: 'PROPERTY OF SCHRÖDI · DO NOT PEEK'; writing-mode: vertical-rl; transform: rotate(180deg);
+  font: 800 9px/1 var(--body); letter-spacing: .1em; color: #c8241e; background: #fffdf6; border: 1.5px solid #c8241e; border-radius: 3px; padding: 6px 3px;
+}
+.nb-v2 .nb-spine .ticks { order: 2; }
+/* name tag on the open book (head band), yarn-ball bookmark down the binding */
+.nb-v2 .nb-head { position: relative; }
+/* name label stuck at the end of every page (after the footer): never on top of content */
+.nb-v2 .nb-sheet::after {
+  content: 'property of SCHRÖDI — do not peek!'; display: block; width: fit-content; max-width: 66%; margin: 14px auto 4px 4px; pointer-events: none;
+  transform: rotate(-2deg); font: 700 15px/1.1 var(--nb-hand); color: #c8241e; background: #fffdf6; border: 1.5px solid #c8241e; border-radius: 4px; padding: 4px 10px;
+  box-shadow: 1px 1px 0 rgba(14, 14, 14, .15);
+}
+.nb-v2.nb-open .nb-book::before { content: ''; position: absolute; left: -4px; top: -8px; width: 26px; height: 96px; z-index: 5; pointer-events: none; background: url('/art/notebook/yarn-bookmark.svg') no-repeat top center / contain; }
+/* paw-print page-number stamp, a gold star when the night is witnessed */
+.nb-v2 .nb-foot .pg { position: relative; padding-left: 24px; }
+.nb-v2 .nb-foot .pg::before { content: ''; position: absolute; left: 0; bottom: -2px; width: 20px; height: 20px; background: url('/art/notebook/paw.svg') no-repeat center / contain; opacity: .55; transform: rotate(-14deg); }
+.nb-v2 .nb-foot.signed .pg::after { content: ''; position: absolute; left: 100%; bottom: 0; width: 20px; height: 20px; margin-left: 6px; background: url('/art/notebook/gold-star.svg') no-repeat center / contain; transform: rotate(10deg); }
+.nb-v2 .nb-survived::after { content: ''; position: absolute; right: -14px; top: -14px; width: 26px; height: 26px; background: url('/art/notebook/gold-star.svg') no-repeat center / contain; transform: rotate(14deg); }
+/* crayon doodles by the daycare kids: bottom-right of the page, beside the name label (only where there's room) */
+@container nbdock (min-width: 420px) {
+  .nb-v2 .nb-sheet:is([data-page="state"], [data-page="circuit"], [data-page="density"]) { --nb-doodle: url('/art/notebook/crayon-qubble.svg'); }
+  .nb-v2 .nb-sheet:is([data-page="bloch"], [data-page="threshold"], [data-page="export"]) { --nb-doodle: url('/art/notebook/crayon-sunmoon.svg'); }
+}
+/* muddy paw tracks across the bottom corner of some pages (scroll with the paper) */
+.nb-v2 .nb-sheet[data-page="entangle"], .nb-v2 .nb-sheet[data-page="stabilizers"], .nb-v2 .nb-sheet[data-page="dump"] {
+  background-image: url('/art/notebook/paw-tracks.svg'),
+    linear-gradient(90deg, transparent 27px, rgba(254, 68, 61, .45) 27px 28.5px, transparent 28.5px 31px, rgba(254, 68, 61, .45) 31px 32.5px, transparent 32.5px),
+    url('/art/notebook/paper-grain.svg'), url('/art/notebook/paper-grid.svg');
+  background-repeat: no-repeat, repeat, repeat, repeat;
+  background-position: right -30px bottom 0, 0 0, 0 0, 0 0;
+  background-size: 210px auto, auto, 240px 240px, 100px 100px;
+  background-attachment: local, local, local, local;
+}
+.nb-v2 .nb-sheet[data-page="dump"] { background-image: url('/art/notebook/paw-tracks.svg'), none, url('/art/notebook/paper-grain.svg'), none; }
+/* a stray tuft of fur + whisker taped beside the margin note (evidence) */
+.nb-v2 .nb-sheet[data-page="entangle"] .nb-margin::after, .nb-v2 .nb-sheet[data-page="density"] .nb-margin::after {
+  background-image: url('/art/notebook/fur-tuft.svg'); width: 80px; height: 54px; top: -46px; right: -8px; transform: rotate(6deg); opacity: 1;
+}
+/* alphabet-block glyphs on the index flags */
+.nb-v2 .nb-tab .g {
+  --blk: #c8241e; display: inline-grid; place-items: center; width: 24px; height: 24px; min-width: 24px; flex: none;
+  border: 2px solid var(--blk); border-radius: 4px; background: #fffaf0; color: var(--blk);
+  box-shadow: inset -2px -2px 0 rgba(14, 14, 14, .1), 1.5px 1.5px 0 var(--ink); font: 700 14px/1 var(--nb-math);
+}
+.nb-v2 .nb-tab[data-id="bloch"] .g, .nb-v2 .nb-tab[data-id="density"] .g { --blk: #2a5bd7; }
+.nb-v2 .nb-tab[data-id="entangle"] .g, .nb-v2 .nb-tab[data-id="export"] .g { --blk: #17834f; }
+.nb-v2 .nb-tab[data-id="circuit"] .g { --blk: #d9730d; }
+.nb-v2 .nb-tab[data-id="stabilizers"] .g { --blk: #7a2fc0; font-size: 11px; }
+.nb-v2 .nb-tab[data-id="threshold"] .g, .nb-v2 .nb-tab[data-id="dump"] .g { font-size: 12px; }
+.nb-v2 .nb-tab[data-id="dump"] .g { --blk: #0e0e0e; }
+.nb-v2 .nb-tabs { width: 40px; }
+/* a tiny paw for a cursor over the paper (buttons, links and inputs keep their own cursor) */
+.nb-v2 .nb-sheet, .nb-v2 .nb-head { cursor: url('/art/notebook/paw-cursor.svg') 4 3, auto; }
+.nb-v2 .nb-sheet :is(button, a, select, input, summary, label, .nb-g) { cursor: pointer; }
+
+/* ═════════ 9. TRANSITIONS: cover swing, paw pat, View Transitions (programmer toggles the classes) ═════════ */
+/* cover: Schrödi's cardboard box lid, stencilled; swings open on the binding (.nb-opening, ~1s) or shut (.nb-closing, .42s) */
+.nb-v2 .nb-book::after {
+  content: 'PROPERTY OF SCHRÖDI\A DO NOT PEEK'; white-space: pre; display: grid; place-items: center; text-align: center;
+  position: absolute; inset: -2.5px 0 -2.5px 0; z-index: 8; pointer-events: none; visibility: hidden;
+  font: 400 20px/1.3 var(--display); letter-spacing: .12em; color: rgba(70, 30, 10, .78);
+  border: 2.5px solid var(--ink); border-left: 0; border-radius: 0 14px 14px 0; transform-origin: left center; backface-visibility: hidden;
+  background: url('/art/notebook/claw-scratch.svg') no-repeat right 8px top 24px / 34px auto, url('/art/notebook/claw-scratch.svg') no-repeat right 14px bottom 30px / 22px auto,
+    url('/art/notebook/box-print.svg') no-repeat center bottom 20% / 44px auto, url('/art/notebook/box-cover.svg');
+}
+.nb-v2.nb-opening .nb-book::after { visibility: visible; animation: nbCoverOpen .46s cubic-bezier(.45, .05, .3, 1.15) both; }
+.nb-v2.nb-closing .nb-book::after { visibility: visible; animation: nbCoverShut .42s cubic-bezier(.5, 0, .4, 1) both; }
+@keyframes nbCoverOpen { 0% { transform: perspective(1300px) rotateY(0); visibility: visible; } 75% { opacity: 1; } 99% { visibility: visible; } 100% { transform: perspective(1300px) rotateY(-165deg); opacity: 0; visibility: hidden; } }
+/* .nb-opening stays on while the book is open: both the lid and the paw end hidden (fill: both), the book itself is at rest */
+@keyframes nbCoverShut { 0% { transform: perspective(1300px) rotateY(-165deg); opacity: 0; } 25% { opacity: 1; } 100% { transform: perspective(1300px) rotateY(0); } }
+.nb-v2.nb-opening.nb-open .nb-book { animation: none; }
+/* paw pat: a paw comes in, pats the page twice, leaves */
+.nb-v2 .nb-spread::after { content: ''; position: absolute; left: 34%; top: 26%; width: 110px; height: 110px; z-index: 6; pointer-events: none; opacity: 0; background: url('/art/notebook/paw.svg') no-repeat center / contain; }
+.nb-v2.nb-opening .nb-spread::after { animation: nbPawPat .7s .34s cubic-bezier(.34, 1.4, .5, 1) both; }
+@keyframes nbPawPat {
+  0% { opacity: 0; transform: translate(-60px, 70px) scale(.6) rotate(-28deg); }
+  35% { opacity: .55; transform: translate(0, 0) scale(1.06) rotate(-12deg); }
+  48% { transform: translate(0, 4px) scale(.94) rotate(-12deg); }
+  62% { transform: translate(0, -2px) scale(1.03) rotate(-12deg); }
+  74% { opacity: .5; transform: translate(0, 3px) scale(.96) rotate(-12deg); }
+  100% { opacity: 0; transform: translate(50px, -60px) scale(.8) rotate(-4deg); visibility: hidden; }
+}
+/* View Transitions: the programmer sets <html data-vt="nb-open|nb-close|bench-on|bench-off|breakpoint|sheet|resize"> and the
+   view-transition-names inline (nb-room, nb-book, nb-editor, nb-timeline, nb-controls, nb-sheettabs) only while one runs. */
+html[data-vt]::view-transition-group(nb-room), html[data-vt]::view-transition-group(nb-book), html[data-vt]::view-transition-group(nb-editor),
+html[data-vt]::view-transition-group(nb-timeline), html[data-vt]::view-transition-group(nb-controls), html[data-vt]::view-transition-group(nb-sheettabs) {
+  animation-duration: 340ms; animation-timing-function: cubic-bezier(.3, 1.22, .45, 1);
+}
+html[data-vt]::view-transition-old(root), html[data-vt]::view-transition-new(root) { animation-duration: 180ms; }
+/* the room crops instead of stretching while its box morphs (the canvas re-fits once, after) */
+html[data-vt]::view-transition-old(nb-room), html[data-vt]::view-transition-new(nb-room) { width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; animation-duration: 340ms; }
+/* no cross-fade for the room (two crops of the same diorama ghost): the old snapshot drops out, the new one rides the morph */
+html[data-vt]::view-transition-old(nb-room) { animation: none; opacity: 0; }
+html[data-vt]::view-transition-new(nb-room) { animation: none; opacity: 1; }
+/* the editor reflows (two columns ↔ stacked): crop from the top-left and cross-fade */
+html[data-vt]::view-transition-old(nb-editor), html[data-vt]::view-transition-new(nb-editor) { height: 100%; object-fit: none; object-position: 0 0; animation-duration: 260ms; }
+html[data-vt]::view-transition-old(nb-book), html[data-vt]::view-transition-new(nb-book) { height: 100%; object-fit: none; object-position: 0 0; }
+html[data-vt="nb-open"]::view-transition-new(nb-book) { animation: nbVtBookIn 360ms cubic-bezier(.3, 1.25, .45, 1) both; transform-origin: left center; }
+html[data-vt="nb-open"]::view-transition-old(nb-book) { animation: nbVtFade 160ms ease both reverse; }
+html[data-vt="nb-close"]::view-transition-old(nb-book) { animation: nbVtBookOut 280ms cubic-bezier(.5, 0, .7, .4) both; transform-origin: left center; }
+html[data-vt="nb-close"]::view-transition-new(nb-book) { animation: nbVtFade 200ms 120ms ease both; }
+html[data-vt="sheet"]::view-transition-new(nb-book), html[data-vt="sheet"]::view-transition-new(nb-editor) { animation: nbVtSheetIn 300ms cubic-bezier(.3, 1.25, .45, 1) both; }
+html[data-vt="sheet"]::view-transition-old(nb-book), html[data-vt="sheet"]::view-transition-old(nb-editor) { animation: nbVtFade 160ms ease both reverse; }
+@keyframes nbVtFade { from { opacity: 0; } }
+@keyframes nbVtBookIn { from { opacity: 0; transform: perspective(1200px) rotateY(-28deg) translateX(-18px); } }
+@keyframes nbVtBookOut { to { opacity: 0; transform: perspective(1200px) rotateY(-32deg) translateX(-24px); } }
+@keyframes nbVtSheetIn { from { opacity: 0; transform: translateY(26px); } }
+
+/* reduced motion: none of the above moves */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+  .nb-v2 .nb-book::after, .nb-v2 .nb-spread::after { animation: none !important; visibility: hidden !important; }
+}
+html.reduced::view-transition-group(*), html.reduced::view-transition-old(*), html.reduced::view-transition-new(*) { animation: none !important; }
+.reduced .nb-v2 .nb-book::after, .reduced .nb-v2 .nb-spread::after, .nb-v2.nb-reduced .nb-book::after, .nb-v2.nb-reduced .nb-spread::after { animation: none !important; visibility: hidden !important; }
+
+/* ═════════ 10. LEGIBILITY FLOOR: notebook text >= 11px (QA probe), SVG text >= 8px rendered ═════════ */
+.nb-v2 .nb-cap, .nb-v2 .nb-empty, .nb-v2 .nb-legend, .nb-v2 .nb-clegend, .nb-v2 .nb-ampcap, .nb-v2 .nb-obscap, .nb-v2 .nb-sparkfig figcaption { font-size: 12px; }
+.nb-v2 .nb-sub { font-size: 12.5px; }
+.nb-v2 .nb-table { font-size: 12px; }
+.nb-v2 .nb-table th { font-size: 11px; }
+.nb-v2 .nb-table code, .nb-v2 .nb-num, .nb-v2 .nb-badge, .nb-v2 .nb-chip, .nb-v2 .nb-cchip, .nb-v2 .nb-erow, .nb-v2 .nb-bnums, .nb-v2 .nb-scale, .nb-v2 .nb-cell, .nb-v2 .nb-rlab { font-size: 11px; }
+.nb-v2 .nb-other > summary { font-size: 12px; }
+.nb-v2 .nb-runhead, .nb-v2 .nb-foot { font-size: 10.5px; }
+.nb-v2 .nb-runhead { height: 22px; }
+.nb-v2 .nb-code, .nb-v2 .nb-dump { font-size: 12px; }
+/* histogram ket labels duplicate the amplitude rows above: drop them when the page is too narrow to read them */
+@container nbdock (max-width: 460px) { .nb-v2 .nb-hist text { display: none; } }
+.nb-v2 .nb-mi .nb-svgt { font-size: 11px; }
+.nb-v2 .nb-circ .nb-phase { font-size: 10px; }
+.nb-v2 .nb-circ .nb-bit { font-size: 11px; }
