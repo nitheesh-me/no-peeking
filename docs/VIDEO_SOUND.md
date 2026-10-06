@@ -346,3 +346,34 @@ Mechanic results (on the phone simulation, Critic metric):
 f1318 sits 24 frames after the rule→threat section change, where the bed ramps up.
 
 **Groove "20 ms off" flag:** an analyzer artefact. The explainer sections sheet had no beats, so the analyzer used the trailer's beat0 (f50, 40 ms off the bed's grid), and its straight-8th fit can't read swung ticks. The onset cross-correlation of groove vs bed measures **−1 ms** in all three programming stretches. The sheet now carries the bed's beat0, and the analyzer reports the direct lag (`groove_vs_bed_onset_lag`); that lag decides the flam finding.
+
+**Showcase on the current EDL (221 s, 38 clips).** It inherits the mechanic rules and adds four more:
+- **Win-card strobes:** clips with a note matching `strobe … solved` are one-beat flashes with no game event in them. Each flash gets the trailer-weight `test_pass` on its first frame (`auto:win_card` in `mix.py`).
+- **Lights Out:** a clip whose shot is `lights_out`, or whose note opens "<level> Lights Out", plays the engine's own thin `lightsout` scene for its length (`beds.py plan_from_edl`): pedal bass, no drums or lead, low-pass at 2.6 kHz. The bed then returns to the section's scene, switching on bar lines.
+- **Measurement snap** (`MUST_READ = {snap_measure}`):
+  - It uses the trailer-weight snap, with a short room and peak-to-loudness ≤ 9 dB, because the bus limiter was crushing the bare transient by about 10 dB.
+  - The music dips 8 dB, plus a 9 dB "breath" that ramps in over the 400 ms before the snap.
+  - Phone target: ≥ +6 dB on the Critic metric.
+- **Closing snap** (`MUST_READ_DESIGN = {sig_c_snap}`): the same dip and breath.
+- **Highfives** now also get a 4 dB breath before them. This applies to the mechanic too if it is re-run; the signed-off mechanic mix predates it.
+
+Results:
+
+| Gate or cue | Result |
+|---|---|
+| Gates | **9/9 pass** |
+| Integrated / AAC TP | −16.0 LUFS / −1.9 dBTP |
+| Spikes / jumps | 0 / 2 (both in the end-card fade) |
+| Phone readability | 76/78 |
+| Measurement snap (f10859) | −0.4 → **+6.3 dB** |
+| Closing snap (f12480) | 3.1 → **+7.5 dB** |
+| 9 win cards | +8.3 … +16.4 dB |
+| Low BEEPs | ≥ +8.3 dB |
+| Highfives | 10 of 12 at ≥ +4; f4180 +3.9, f10192 +2.6 (steady notebook bed) |
+| Lights Out (mix) | −18.1 LUFS, against ch4 −15.1 before and labs −15.8 after |
+
+**Showcase remix after the Editor's triage EDL (2026-10-06).**
+- **New cues:** the EDL added 4 `win_card_pop` design cues: S004 f1289, S010 f2501, S016 f3772, S021 f5835. That asset didn't exist, so the mixer skipped them. QA then failed av_sync (4 design cues missing) and every_event (4 visible events silent).
+- **New asset:** `design/win_card_pop.wav` (in `design.json`) is the "soft paper pop / card flip": the game's `card_pick`, then `card_drop` 45 ms later, with +3 dB presence. It is a featured hit.
+- **Re-run:** the whole chain (beds, groove, mix, gates) was re-run on the current EDL. All 9 gates pass.
+- **Results:** the 4 pops measure +5.9 to +12.3 dB on the phone simulation. The rest is unchanged from the run above: snaps +6.3 and +7.5, strobes +8.2 to +16.1, the same 2 highfives under +4.

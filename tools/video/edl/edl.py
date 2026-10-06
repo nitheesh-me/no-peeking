@@ -451,3 +451,30 @@ def nearest(lst, f):
     if not lst:
         return None
     return min(lst, key=lambda b: abs(b - f))
+
+
+@lru_cache(maxsize=None)
+def _count_frames(path):
+    out = subprocess.run(['ffprobe', '-v', 'error', '-count_packets', '-select_streams', 'v:0', '-show_entries',
+                          'stream=nb_read_packets', '-of', 'csv=p=0', rel(path)], capture_output=True, text=True).stdout.strip()
+    return int(out) if out.isdigit() else None
+
+
+def asset_frames(spec):
+    """Frame count of an overlay/caption source spec ({fill, matte} or {src}): the spec's `frames`, else the
+    Motion Designer's <name>.json `frames`, else counted from the file. None if unknown."""
+    if spec.get('frames'):
+        return int(spec['frames'])
+    p = spec.get('fill') or spec.get('matte') or spec.get('src')
+    if not p or str(p).startswith('@') or not os.path.exists(rel(p)):
+        return None
+    base = re.sub(r'_(fill|matte)\.mkv$', '', p)
+    j = os.path.splitext(base)[0] + '.json'
+    if os.path.exists(rel(j)):
+        try:
+            n = load_json(j).get('frames')
+            if n:
+                return int(n)
+        except Exception:
+            pass
+    return _count_frames(p)

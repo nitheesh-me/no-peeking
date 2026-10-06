@@ -601,3 +601,55 @@ This is a good explainer. The order teaches. Every caption matches its event fra
 - **M010 decoder: accept at the native limit.** In my fresh pull of f4800/f4880 from the 16:43 mp4, the room still occupies the left ~40% (q3 and floor). At the 4K editor region's native maximum it can't be pushed further without upscaling, and the program column is fully legible (card text about 30 px) with the caption on it. No further work.
 
 All captions are physically correct (see the render review), and the human checks are fresh eyes PASS, muted PASS, audio-only N/A by design, phone PASS. **The mechanic video is signed off by the Critic.**
+
+---
+
+## Milestone: showcase render: sign-off (`videos/final/showcase.mp4`, 3:41.0)
+
+**What I reviewed:**
+- the contact sheet;
+- the critic stills (S017 LISTEN f4444, step-mode f10700/f10880, notebook f9900);
+- fresh pulls from the mp4: f936/f950 title wipe, f4676, f6200 Lights Out, f8760 waiver region, f9700 notebook, top-left crops to confirm the contact sheet's yellow "BLANKET-TITLE" text is a sheet annotation and not burned in (it isn't);
+- the reencode evidence;
+- all 27 captions.
+
+### Verdict: **PASS**
+Every plan change landed:
+- 1-1 / 3-1 / 4-1 blanket-title wipes with code chips ("Ch 3 · 3-3 Wobbles");
+- the Codex trimmed;
+- the curtain call cut to 8 s;
+- tr_title_peek;
+- the "Night Shift mode" rename;
+- the judges' unlock line;
+- step mode as its own full-frame beat, landing on the game's own toast "Snap! Measurements are a one-way door. You can't un-look." That is the best physics moment in the showcase;
+- the notebook re-take is readable: the state vector 0.71|000⟩|00⟩ + 0.71|110⟩|00⟩ mid-encode, and 0.71|010⟩ + 0.71|101⟩ after Flipper hits q2, both correct;
+- the 3-3 split puts "…LISTEN snaps it to all-or-nothing. Tonight: nothing to fix. `= error discretization`" exactly on the LISTEN a pop, with the ring and the quiet answer. That is the discretization moment, honestly shown (a quiet result projects the wobble away).
+
+**Calls on the open items:**
+- **Reencode banding (S013/S014): waive.** The master/8 Mbps comparison shows no contour bands, only slightly blotchy flat wall texture on 36-frame 6× strobes that are on screen for about 0.1 s per frame. Nobody perceives that, and 20 minutes of grain re-render buys nothing. Do refine the metric later: require the flat plateau to persist ≥ 0.5 s before it counts.
+- **`debug_pulseunlock` waiver: verified a false positive.** At f8760 the matched region is the Codex's real **"X-ray: blanket see-through"** pill button, under the Qubble entry's Bloch sphere. It's game UI, not the notebook test page's debug button.
+- **Phone sim 75/77 (the f4180 and f10192 highfives): accept.** Same class as the mechanic's f1318: non-information-carrying, and the beeps and flips around them read.
+
+**Physics: every caption checks out.**
+- majority vote → Shor-9;
+- measurement collapse;
+- no-cloning;
+- syndrome decoding;
+- phase-flip code (Hadamard basis);
+- Wobbles: "LISTEN snaps it to all-or-nothing" (projective syndrome measurement discretizes the rotation);
+- "Nine Qubbles, eight bots: any single error, found and fixed blind" (Shor-9 uses 8 stabilizer checks; X, Z or Y on any one qubit);
+- "three Qubbles beat one only below p = ½" (3p² − 2p³ < p, independent flips);
+- the Bloch sphere;
+- IF = classical feed-forward;
+- step mode: "gates run backwards, a measurement is a one-way door" (unitaries are reversible; measurement isn't);
+- the save: "three copies, majority vote" (classical, correctly not called qubits).
+
+**Optional polish (not blocking):** in S031 the X-ray tag floats mid-frame across the notebook panel's edge (f9700/f9900). It's legible, but it would sit better at the room's floor, bottom-right, as in the proof shots. Fix it only if that chunk is re-rendered for another reason.
+
+### Human checks
+1. **Fresh eyes: PASS.** "A puzzle game where you program little robots to fix sleeping blobs without looking, with tons of levels and a nerdy lab mode." The grid opener and the chaptered level run make the scale obvious.
+2. **Muted: PASS.** The strip captions and HUD chips carry every feature and lesson.
+3. **Audio-only: N/A by design** (a feature tour).
+4. **Phone (sim): PASS** at 75/77, with non-critical misses.
+
+**The showcase video is signed off by the Critic. With the trailer and the mechanic, all three deliverables are signed off.** The only open item is the user's single real-phone listen of the trailer.

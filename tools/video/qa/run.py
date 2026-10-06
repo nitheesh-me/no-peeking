@@ -143,11 +143,13 @@ def g_cuts(e, proxy, cs):
     short = [c['id'] for c in e['clips'] if c['dur'] < 12 and not c['flags']['intentional_flash']]
     return gate('cuts', ok, {'offset_median': bias, 'offsets': offs, 'detected': det, 'edl_cuts': [c['frame'] for c in cuts], 'unexpected_cuts': unexpected,
                              'missed_cuts_warning': [(c['clip'], c['frame']) for c in missed], 'off_beat': beat_err,
-                             'hard_on_beat_ratio': round(ratio, 3), 'shots_under_12_frames': short,
+                             'hard_on_beat_ratio': round(ratio, 3) if e['video'] == 'trailer' else 'n/a: not beat-bound',
+                             'shots_under_12_frames': short,
                              'waived_off_grid_cuts': [{'clip': c['clip'], 'frame': c['frame'], **c['grid_waiver']}
                                                       for c in cuts if c.get('grid_waiver')]},
                 f'{len(det)} detected / {len(cuts)} EDL edits; {len(unexpected)} unexpected, {len(missed)} missed (warn), '
-                f'{len(beat_err)} off-beat; hard-on-beat {ratio:.0%}')
+                f'{len(beat_err)} off-beat; ' + (f'hard-on-beat {ratio:.0%}' if e['video'] == 'trailer' else
+                'not beat-bound (picture-led cut; the music-first mix is arranged to the EDL)'))
 
 
 def load_mixreport(e, render_info):
@@ -381,9 +383,9 @@ def card_matte(c, f, size):
     if not isinstance(r, dict) or not r.get('matte') or not os.path.exists(E.rel(r['matte'])):
         return None
     k = r.get('in', 0) + (f - c['start'])
-    n = r.get('frames')
+    n = r.get('frames') or E.asset_frames(r)  # as the assembler: past the source's end its last frame is held
     if n and k >= n:
-        k = n - 1 if r.get('hold') else k
+        k = n - 1
     g = grab(E.rel(r['matte']), [k], w=size[0], h=size[1], gray=True).get(k)
     if g is None:
         return None
@@ -465,6 +467,13 @@ def g_captions(e, final, wd):
                 worst_sp, src_sp = frac, f
         sprite_px.append({'id': c['id'], 'text': c['text'][:40], 'ink_on_footprint': None if worst_sp is None else round(worst_sp, 4),
                           'frame': src_sp, 'status': 'unchecked' if worst_sp is None else ('FAIL' if worst_sp > SP.FRAC_FAIL else 'ok')})
+        bk = (c.get('render') or {}).get('baked') if isinstance(c.get('render'), dict) else None
+        if sprite_px[-1]['status'] == 'unchecked' and bk:
+            host = [x for x in e['clips'] if x['start'] < c['end'] and x['start'] + x['dur'] > c['start']]
+            if host and all(x['shot'] == bk or os.path.splitext(os.path.basename(x['src']))[0] == bk for x in host):
+                # the text is part of a full-frame Motion card that IS the shot: no gameplay (no sprites) underneath;
+                # the layout is the Motion Designer's composition, and the contrast gate still measures it
+                sprite_px[-1].update(status='n/a', reason=f'baked into the full-frame Motion card {bk} (no gameplay beneath)')
         dw = c.get('decor_waiver')  # pixel heuristic can't tell wall decor from characters: Director-reviewed waiver
         if dw and sprite_px[-1]['status'] == 'FAIL':
             sprite_px[-1].update(status='waived', waiver=dw)
@@ -571,7 +580,9 @@ def g_captions(e, final, wd):
                                  'sprite_rule': f'ink-outline sprite blobs (<= {SP.MAX_SPRITE}px) under the glyph footprint <= {SP.FRAC_FAIL:.0%}'},
                 f'{len(e["captions"])} captions; {len(overlaps)} UI overlaps, {len(sprites) + len(bad_sp)} on sprites'
                 f'{" (" + ", ".join(x["id"] for x in bad_sp) + ")" if bad_sp else ""}, {len(reading)} too short, {len(bad_c)} below 4.5:1'
-                + (f'; sprite check skipped for {unchk}' if unchk else ''))
+                + (f'; sprite check skipped for {unchk}' if unchk else '')
+                + (f"; sprite n/a (full-frame Motion cards) {[x['id'] for x in sprite_px if x['status'] == 'n/a']}"
+                   if any(x['status'] == 'n/a' for x in sprite_px) else ''))
 
 
 def g_picture(e, proxy):
@@ -596,8 +607,12 @@ def g_picture(e, proxy):
 def g_dark(e, final):
     """Critic re-review: every intentional_black / lights-out clip stays under luma 40 on EVERY frame of the
     delivered render (mean frame luma, 8-bit full-range Y; also reports the 99.5th percentile)."""
+    regioned = {dr.get('clip') for dr in e.get('dark_ranges', []) if dr.get('region') and dr.get('clip')}
+    # a clip with a declared dark REGION (e.g. a Lights Out split: dark room, lit program column) is checked on that
+    # region below, not on the whole frame
     rs = [(c['start'], c['start'] + c['dur'], c['id'], c['shot']) for c in e['clips']
-          if c['flags']['intentional_black'] or 'lights_out' in (c.get('section') or '') or 'lights_out' in c['shot']]
+          if (c['flags']['intentional_black'] or 'lights_out' in (c.get('section') or '') or 'lights_out' in c['shot'])
+          and c['id'] not in regioned]
     drs = e.get('dark_ranges', [])
     if not rs and not drs:
         return gate('dark', True, {}, 'no dark clips', status='N/A')
@@ -807,12 +822,21 @@ def g_clean(e, final):
                 flags.append({'clip': c['id'], 'shot': c['shot'], 'issue': f'trailer footage not captured in ?cinema=1 ({url}): relies on the camera crop; the pixel scan decides', 'severity': 'warn'})
             if m.get('options', {}).get('cursor') and e['video'] == 'trailer' and c['shot'] not in ('tr_title_peek', 'tr_peek_beam'):
                 flags.append({'clip': c['id'], 'shot': c['shot'], 'issue': 'cursor visible (unscripted?)', 'severity': 'warn'})
+    # Director-reviewed false positives (EDL clean_waivers: {clip_shot, template, why}), shown with a still
+    shot_of = {c['id']: c['shot'] for c in e['clips']}
+    waived = []
+    for w in e.get('clean_waivers', []):
+        for x in list(hits):
+            if x['template'] == w['template'] and shot_of.get(x['clip']) == w['clip_shot']:
+                hits.remove(x)
+                waived.append(dict(x, why=w['why']))
     seen = {}
     for x in hits:
         seen.setdefault((x['template']), []).append(x['frame'])
     hard = [f for f in flags if f.get('severity') != 'warn']
-    return gate('clean', not hits and not hard, {'template_hits': hits, 'capture_flags': flags},
-                f'{len(hits)} watermark/badge/debug hits {dict((k, len(v)) for k, v in seen.items())}; {len(hard)} capture-mode issues')
+    return gate('clean', not hits and not hard, {'template_hits': hits, 'waived': waived, 'capture_flags': flags},
+                f'{len(hits)} watermark/badge/debug hits {dict((k, len(v)) for k, v in seen.items())}; {len(waived)} waived; '
+                f'{len(hard)} capture-mode issues')
 
 
 WIN_TOL = 0.5  # LU of measurement tolerance on each side of a cue's window

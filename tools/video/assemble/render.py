@@ -77,6 +77,58 @@ X264 = ['-c:v', 'libx264', '-threads', THREADS, '-profile:v', 'high', '-preset',
         '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv']
 
 
+# ───────────────────────── crash safety (crash #8) ─────────────────────────
+# A rename without fsync is journaled before the data blocks are written: after a hard freeze the FINAL name can
+# point at a truncated file (showcase_1080p_009000_9a7b2267d6d7.mp4, 2.3 MB, no moov). So: fsync before rename,
+# and never trust a cached file by existence alone.
+def durable_replace(tmp, dst):
+    with open(tmp, 'rb+') as f:
+        os.fsync(f.fileno())
+    os.replace(tmp, dst)
+    dfd = os.open(os.path.dirname(os.path.abspath(dst)), os.O_RDONLY)
+    try:
+        os.fsync(dfd)
+    finally:
+        os.close(dfd)
+
+
+def _count_frames(path):
+    r = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-count_packets', '-show_entries',
+                        'stream=nb_read_packets', '-of', 'csv=p=0', path], capture_output=True, text=True)
+    try:
+        return int(r.stdout.strip().splitlines()[0])
+    except (ValueError, IndexError):
+        return -1
+
+
+def verified(path, frames, quarantine=True):
+    """True if `path` exists and holds exactly `frames` video frames. The probe result is memoised in a
+    <path>.ok sidecar keyed by size + mtime_ns, so each file is probed once. A file that exists but fails is
+    moved to <work>/quarantine/ (never deleted) so it can neither be reused nor adopted."""
+    if not os.path.isfile(path):
+        return False
+    st = os.stat(path)
+    sig = {'size': st.st_size, 'mtime_ns': st.st_mtime_ns, 'frames': frames}
+    ok = path + '.ok'
+    try:
+        if json.load(open(ok)) == sig:
+            return True
+    except (OSError, ValueError):
+        pass
+    got = _count_frames(path)
+    if got == frames:
+        with open(ok + '.tmp', 'w') as f:
+            json.dump(sig, f)
+        durable_replace(ok + '.tmp', ok)
+        return True
+    if quarantine:
+        qd = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(path))), 'quarantine')
+        os.makedirs(qd, exist_ok=True)
+        os.replace(path, os.path.join(qd, os.path.basename(path)))
+        print(f'  QUARANTINED {os.path.basename(path)}: {got} frames, expected {frames}', flush=True)
+    return False
+
+
 def work_dir(e):
     d = E.rel(f'videos/final/work/{e.get("work_name", e["video"])}')
     os.makedirs(d, exist_ok=True)
@@ -129,6 +181,9 @@ def seg_key(e, c):
         # a source still to be captured (dry runs of a planned EDL): keyed as missing, never cached as rendered
         st = [os.path.getmtime(p), os.path.getsize(p) if os.path.isfile(p) else 0] if os.path.exists(p) else ['missing']
     keep = {k: c.get(k) for k in ('src', 'in', 'dur', 'speed', 'camera', 'grade', 'shot', 'windows')}
+    if c.get('frame_patch'):  # only when present, so every other clip keeps its cache key
+        keep['frame_patch'] = c['frame_patch']
+        keep['frame_patch_impl'] = 2  # v1 only honoured {s: s-1}; held targets (S011's re-mount hold) were ignored
     return h([keep, st, e['work'], e['layout'], 'A5'])
 
 
@@ -162,6 +217,8 @@ def render_chunk(edl_path, cid, i0, i1, out):
         else:
             sw, sh, n, _ = E.probe(src)
             first, last = m[0], m[-1]
+            _fp = {int(a_): int(b_) for a_, b_ in (c.get('frame_patch') or {}).items()}
+            first = min([first] + [_fp[x] for x in m if x in _fp])  # decode from the earliest held frame this chunk shows
             p = E.rel(src)
             if os.path.isdir(p):
                 pat, s0 = E.seq_pattern(src)
@@ -171,7 +228,11 @@ def render_chunk(edl_path, cid, i0, i1, out):
             dec = subprocess.Popen(['ffmpeg', '-v', 'error', '-threads', THREADS, *inp, '-filter_threads', THREADS, '-frames:v', str(last - first + 1),
                                     '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], stdout=subprocess.PIPE)
             fsz = sw * sh * 3
+            # frame_patch {src: src-1}: show the previous source frame instead (a blank capture frame, e.g. a scene re-mount)
+            patch = {int(a_): int(b_) for a_, b_ in (c.get('frame_patch') or {}).items()}
+            patch_targets = set(patch.values())
             cur, buf = first - 1, None
+            held = {}  # frame_patch targets (any earlier source frame), kept as one buffer each
             last_key, last_out = None, None
             for k, s in enumerate(m):
                 while cur < s:
@@ -179,6 +240,12 @@ def render_chunk(edl_path, cid, i0, i1, out):
                     if len(buf) < fsz:
                         raise RuntimeError(f'{cid}: source {src} ended at frame {cur + 1} (needed {s})')
                     cur += 1
+                    if cur in patch_targets:
+                        held[cur] = buf
+                if s in patch:
+                    if patch[s] not in held:
+                        raise RuntimeError(f'{cid}: frame_patch {s}->{patch[s]}: target not decoded')
+                    s, buf = patch[s], held[patch[s]]  # the cache key below then follows the shown frame
                 if c.get('windows'):  # split screen: each window cover-crops a source rect into its destination rect
                     wins = [E.window_at(win, i0 + k) for win in c['windows']]  # keyed windows move (code follows the lit card)
                     wkey = (s, tuple(tuple(round(v, 5) for v in w_['src']) for w_ in wins))
@@ -212,13 +279,13 @@ def render_chunk(edl_path, cid, i0, i1, out):
         enc.stdin.close()
         if enc.wait():
             raise RuntimeError(f'{cid}: encoder failed')
-        os.replace(out + '.tmp.mkv', out)
+        durable_replace(out + '.tmp.mkv', out)
     except BaseException:
         enc.kill()
         raise
 
 
-def stage_a(e, edl_path, force, dry_run=False):
+def stage_a(e, edl_path, force, dry_run=False, only=None, quiet=False):
     """-> {clip_id: [(chunk file, local i0, local i1), ...]} (chunked FFV1 segments). Pending chunks are packed into heavy jobs of
     <= CHUNK frames in total (short trailer shots share one job, so the shared lock is taken fewer times)."""
     wd = work_dir(e)
@@ -232,11 +299,14 @@ def stage_a(e, edl_path, force, dry_run=False):
             i1 = min(c['dur'], i0 + CHUNK)
             p = os.path.join(sd, f'{c["id"]}_{key}_{i0:05d}.mkv')
             files.append(p)
-            if force or not os.path.exists(p):
+            if (force or not verified(p, i1 - i0)) and (only is None or p in only):
                 tasks.append([c['id'], i0, i1, p])
         lists[c['id']] = [(p, i0, min(c['dur'], i0 + CHUNK)) for p, i0 in zip(files, range(0, c['dur'], CHUNK))]
     if dry_run:
-        print(f'stage A: {len(tasks)} chunk(s) to render (dry run)', flush=True)
+        if not quiet:
+            print(f'stage A: {len(tasks)} chunk(s) to render (dry run)', flush=True)
+        return lists
+    if not tasks:
         return lists
     batches, cur, n = [], [], 0
     for t in tasks:
@@ -248,7 +318,8 @@ def stage_a(e, edl_path, force, dry_run=False):
     if cur:
         batches.append(cur)
     t0 = time.time()
-    prog_stage(f'A: grade {len(tasks)} clip chunk(s)', sum(t[2] - t[1] for t in tasks), 'frames')
+    if not quiet:
+        prog_stage(f'A: grade {len(tasks)} clip chunk(s)', sum(t[2] - t[1] for t in tasks), 'frames')
 
     def run_batch(kb):
         k, bt = kb
@@ -363,7 +434,7 @@ def write_list(path, entries):
     return path
 
 
-def stage_t(e, segs, force, dry_run=False):
+def stage_t(e, segs, force, dry_run=False, only_ids=None):
     """Pre-render every overlapping transition (<= 20 frames each) into its own small FFV1 file:
     maskedmerge(A tail, B head, matte) [+ glitch RGB tear] [+ Motion overlay]. One heavy job for all."""
     W, H = e['work']
@@ -380,7 +451,7 @@ def stage_t(e, segs, force, dry_run=False):
         key = h([tr, prev['id'], c['id'], [x[0] for x in segs[prev['id']]], [x[0] for x in segs[c['id']]], W, H, 'T3'])
         dst = os.path.join(td, f'{c["id"]}_{key}.mkv')
         out[c['id']] = dst
-        if os.path.exists(dst) and not force:
+        if (not force and verified(dst, k)) or (only_ids is not None and c['id'] not in only_ids):
             continue
         la = write_list(dst + '.a.txt', piece_entries(segs[prev['id']], prev['dur'] - k, prev['dur']))
         lb = write_list(dst + '.b.txt', piece_entries(segs[c['id']], 0, k))
@@ -422,7 +493,7 @@ def stage_t(e, segs, force, dry_run=False):
         safe(['bash', sh])
         for d in out.values():
             if os.path.exists(d + '.tmp.mkv'):
-                os.replace(d + '.tmp.mkv', d)
+                durable_replace(d + '.tmp.mkv', d)
         print(f'  transitions: {len(jobs)} rendered', flush=True)
     return out
 
@@ -505,7 +576,9 @@ def build_chunk_graph(e, segs, caps, strip, outputs, proxy, a, b, trans=None, li
         else:
             oi = add_input(['-i', E.rel(spec['src'])])
             src = f'[{oi}:v]'
-        avail = spec.get('frames', n_frames) - src_in
+        # source length: the spec's `frames`, else the asset's real length (a short Motion clip without `frames`
+        # used to be taken as full-length, so it simply ended: the showcase level chips vanished after 0.5 s)
+        avail = (spec.get('frames') or E.asset_frames(spec) or n_frames) - src_in
         pad = max(0, n_frames - avail)
         r_ = spec.get('rect')  # [x, y, w, h] in 1080p units: place the overlay into a sub-rect (e.g. the strip layout's 88% game area)
         sw_, sh_ = (round(r_[2] * W / 1920), round(r_[3] * H / 1080)) if r_ else (W, H)
@@ -596,10 +669,14 @@ def chunk_key(graph, inputs, outs, proxy):
     [a, b) (chunk-relative), and `inputs` lists just the files those read (segment chunks via the base concat
     list, transition renders, overlay/caption media). Plus the encoder settings and the output sizes."""
     stamps = [file_stamp(x) for x in inputs if isinstance(x, str) and os.path.isfile(x)]
+    # NOTE: segment paths embed seg_key (content identity: src, in-point, camera, frame_patch impl...), so a changed
+    # segment changes the concat-list text and therefore this key. Segment mtimes are NOT keyed: JIT/partial
+    # renders rewrite identical segments, which would invalidate every chunk. Stale chunks from the old
+    # adoption bug are re-encoded explicitly with --force-chunks.
     return h(['BC2', graph, stamps, CRF, X264, [o['size'] for o in outs], bool(proxy)])
 
 
-def adopt_chunk(cd, a, graph, inputs, paths, link=True):
+def adopt_chunk(cd, a, graph, inputs, paths, link=True, frames=None):
     """Reuse an encoded chunk made under an older key scheme when it provably came from the same inputs:
     the last graph and base list written for this chunk equal the current ones, and the encoded file is newer
     than that graph and than every media input. Hard-links it under the new key (no copy)."""
@@ -607,6 +684,15 @@ def adopt_chunk(cd, a, graph, inputs, paths, link=True):
     if not os.path.exists(gp) or open(gp).read() != graph:
         return False
     media = [x for x in inputs if isinstance(x, str) and os.path.isfile(x) and not x.endswith(TEXT_EXT)]
+    # The graph names the base concat list only by PATH, so an unchanged graph says nothing about which segment
+    # files the list now points at (bug: S011's frame-patched segment was skipped and a 01:09 encode adopted).
+    # Count every file a concat list references as a media input too.
+    for x in inputs:
+        if isinstance(x, str) and x.endswith(('.txt', '.ffconcat')) and os.path.isfile(x):
+            for ln in open(x):
+                m_ = re.match(r"\s*file\s+'(.+)'\s*$", ln)
+                if m_ and os.path.isfile(m_.group(1)):
+                    media.append(m_.group(1))
     newest_in = max([os.path.getmtime(gp)] + [os.path.getmtime(x) for x in media])
     picks = {}
     for nm, p in paths.items():
@@ -615,6 +701,8 @@ def adopt_chunk(cd, a, graph, inputs, paths, link=True):
         pat = re.compile(rf'^{re.escape(nm)}_{a:06d}_[0-9a-f]{{12}}\.mp4$')  # finished chunks only, never *.tmp.mp4 partials
         cands = [os.path.join(cd, f) for f in os.listdir(cd) if pat.match(f)]
         cands = [c for c in cands if os.path.getmtime(c) >= newest_in]
+        if frames is not None:
+            cands = [c for c in cands if verified(c, frames)]
         if not cands:
             return False
         picks[nm] = max(cands, key=os.path.getmtime)
@@ -627,7 +715,8 @@ def adopt_chunk(cd, a, graph, inputs, paths, link=True):
     return True
 
 
-def stage_bc(e, segs, caps, strip, force, proxy=True, trans=None, dry_run=False):
+def stage_bc(e, segs, caps, strip, force, proxy=True, trans=None, dry_run=False, link_adopted=False, force_chunks=()):
+    """link_adopted: also hard-link adopted chunks on a dry listing (required whenever the listing feeds a mux)."""
     wd = work_dir(e)
     cd = os.path.join(wd, 'chunks')
     os.makedirs(cd, exist_ok=True)
@@ -638,22 +727,26 @@ def stage_bc(e, segs, caps, strip, force, proxy=True, trans=None, dry_run=False)
     todo = []
     names = [o['name'] for o in outs] + (['proxy'] if proxy else [])
     for a, b in chunk_bounds(e):
+        if e.get('_only_chunk') and (a, b) != tuple(e['_only_chunk']):
+            continue
         inputs, graph, maps = build_chunk_graph(e, segs, caps, strip, outs, proxy, a, b, trans, cd)
         key = chunk_key(graph, inputs, outs, proxy)
         paths = {nm: os.path.join(cd, f'{nm}_{a:06d}_{key}.mp4') for nm in names}
         for nm in names:
             files[nm].append(paths[nm])
         adopted = False
-        if not force and not all(os.path.exists(p) for p in paths.values()):
-            adopted = adopt_chunk(cd, a, graph, inputs, paths, link=not dry_run)
-        if force or not (adopted or all(os.path.exists(p) for p in paths.values())):
+        have = (not force) and all(verified(p, b - a) for p in paths.values())
+        if not force and not have:
+            adopted = adopt_chunk(cd, a, graph, inputs, paths, link=(not dry_run) or link_adopted, frames=b - a)
+        if force or a in force_chunks or not (adopted or have):
             todo.append((a, b, inputs, graph, maps, paths))
     print(f'B/C: {len(todo)}/{len(chunk_bounds(e))} chunk(s) to encode'
           + (f": {', '.join(f'[{t[0]},{t[1]})' for t in todo)}" if todo else ' (all cached)'), flush=True)
     if dry_run:
         return files, todo
 
-    prog_stage(f'B/C: composite + encode {len(todo)} chunk(s)', sum(t[1] - t[0] for t in todo), 'frames')
+    if not e.get('_only_chunk'):
+        prog_stage(f'B/C: composite + encode {len(todo)} chunk(s)', sum(t[1] - t[0] for t in todo), 'frames')
 
     def run_chunk(t):
         a, b, inputs, graph, maps, paths = t
@@ -667,14 +760,98 @@ def stage_bc(e, segs, caps, strip, force, proxy=True, trans=None, dry_run=False)
                     '-frames:v', str(b - a), paths['proxy'] + '.tmp.mp4']
         safe(cmd)
         for p in paths.values():
-            os.replace(p + '.tmp.mp4', p)
-        prog_add(b - a)
+            if _count_frames(p + '.tmp.mp4') != b - a:
+                raise SystemExit(f'B/C chunk [{a},{b}): {os.path.basename(p)}.tmp.mp4 is short; not promoted')
+            durable_replace(p + '.tmp.mp4', p)
+            verified(p, b - a)
+        if not e.get('_only_chunk'):
+            prog_add(b - a)
         print(f'  B/C chunk [{a},{b})  ({time.time() - t0:.0f}s)', flush=True)
     parallel(run_chunk, todo)
     return files, todo
 
 
+def chunk_needs(e, segs, a, b):
+    """Stage-A chunk files and transition clip ids that the B/C chunk [a, b) consumes."""
+    files, tids = set(), set()
+    clips = e['clips']
+    for i, c in enumerate(clips):
+        cs, ce = c['start'], c['start'] + c['dur']
+        if ce <= a or cs >= b:
+            continue
+        tin = tr_frames(c)
+        nxt = clips[i + 1] if i + 1 < len(clips) else None
+        tout = tr_frames(nxt) if nxt else 0
+        lo, hi = max(a, cs + tin), min(b, ce - tout)
+        if hi > lo:
+            files |= {p for p, i0, i1 in segs[c['id']] if i0 < hi - cs and i1 > lo - cs}
+        if tin and a <= cs < b:  # the transition: prev tail + this head
+            tids.add(c['id'])
+            prev = clips[i - 1]
+            files |= {p for p, i0, i1 in segs[prev['id']] if i1 > prev['dur'] - tin}
+            files |= {p for p, i0, i1 in segs[c['id']] if i0 < tin}
+    return files, tids
+
+
+def stage_jit(e, edl_path, caps, strip, force, proxy=True):
+    """Disk-limited mode (one-off 1080p showcase, ~15 GB free): per B/C chunk, render only the stage-A chunks and
+    transitions it consumes, encode it, then delete every stage-A chunk no later B/C chunk needs. Peak disk ~ a
+    couple of chunks of FFV1 instead of the whole timeline. Deleted segments simply re-render on a later fix."""
+    segs = stage_a(e, edl_path, force, dry_run=True, quiet=True)
+    bounds = chunk_bounds(e)
+    files_dry, todo = stage_bc(e, segs, caps, strip, force, proxy, trans=stage_t(e, segs, force, dry_run=True), dry_run=True)
+    pending = {t[0] for t in todo}
+    needs = {(a, b): chunk_needs(e, segs, a, b) for a, b in bounds}
+    last_use = {}
+    for k, (a, b) in enumerate(bounds):
+        if a in pending:
+            for p in needs[(a, b)][0]:
+                last_use[p] = k
+    prog_stage(f'JIT: A + B/C for {len(pending)} chunk(s)', sum(b - a for a, b in bounds if a in pending), 'frames')
+    t0 = time.time()
+    peak = 0
+    for k, (a, b) in enumerate(bounds):
+        if a not in pending:
+            continue
+        fl, tids = needs[(a, b)]
+        stage_a(e, edl_path, force, only=fl, quiet=True)
+        trans = stage_t(e, segs, force, only_ids=tids)
+        seg_bytes = sum(os.path.getsize(p) for x in segs.values() for p, _, _ in x if os.path.exists(p))
+        peak = max(peak, seg_bytes)
+        e_one = dict(e)
+        _f, _t = stage_bc_one(e, segs, caps, strip, proxy, trans, a, b)
+        freed = 0
+        for p in [p for p, kk in last_use.items() if kk <= k]:
+            if os.path.exists(p):
+                freed += os.path.getsize(p)
+                os.remove(p)
+            last_use.pop(p)
+        prog_add(b - a)
+        print(f'  JIT chunk [{a},{b}): segments live {seg_bytes / 1e9:.2f} GB, freed {freed / 1e9:.2f} GB  ({time.time() - t0:.0f}s)', flush=True)
+    print(f'JIT: peak stage-A footprint {peak / 1e9:.2f} GB', flush=True)
+    trans = stage_t(e, segs, False, dry_run=True)
+    files, todo = stage_bc(e, segs, caps, strip, False, proxy, trans=trans, dry_run=True, link_adopted=True)
+    if todo:
+        raise SystemExit(f'JIT: {len(todo)} chunk(s) still pending after the pass: {[t[0] for t in todo]}')
+    return files
+
+
+def stage_bc_one(e, segs, caps, strip, proxy, trans, a, b):
+    """Encode exactly one B/C chunk (used by the JIT driver)."""
+    e1 = dict(e)
+    e1['_only_chunk'] = (a, b)
+    return stage_bc(e1, segs, caps, strip, False, proxy, trans=trans)
+
+
 def concat_mux(chunks, audio, out, frames):
+    # the concat demuxer ends SILENTLY at the first unopenable file (and -shortest then trims the audio to match):
+    # refuse missing chunks up front, and verify the muxed frame count afterwards
+    missing = [os.path.basename(c) for c in chunks if not os.path.isfile(c)]
+    bad = [os.path.basename(c) for c in chunks if os.path.isfile(c) and _count_frames(c) <= 0]
+    if bad:
+        raise SystemExit(f'concat_mux: unreadable chunk(s), refusing to mux: {bad}')
+    if missing:
+        raise SystemExit(f'concat_mux: {len(missing)} chunk(s) missing, refusing to mux a truncated {os.path.basename(out)}: {missing}')
     lp = out + '.list.txt'
     with open(lp, 'w') as f:
         f.write(''.join(f"file '{os.path.abspath(c)}'\n" for c in chunks))
@@ -683,7 +860,11 @@ def concat_mux(chunks, audio, out, frames):
         cmd += ['-i', audio, '-map', '0:v', '-map', '1:a', '-af', AAC_TP_GUARD, '-c:a', 'aac', '-b:a', '320k', '-ar', '48000', '-ac', '2']
     cmd += ['-c:v', 'copy', '-frames:v', str(frames), '-shortest', '-movflags', '+faststart', out + '.tmp.mp4']
     safe(cmd, mem=None, heavy=False)
-    os.replace(out + '.tmp.mp4', out)
+    got = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-count_packets', '-show_entries', 'stream=nb_read_packets',
+                          '-of', 'csv=p=0', out + '.tmp.mp4'], capture_output=True, text=True).stdout.strip()
+    if got != str(frames):
+        raise SystemExit(f'concat_mux: {os.path.basename(out)} has {got} frames, expected {frames}; kept as {out}.tmp.mp4, not delivered')
+    durable_replace(out + '.tmp.mp4', out)
     os.remove(lp)
 
 
@@ -739,6 +920,8 @@ def main():
     ap.add_argument('--no-proxy', action='store_true')
     ap.add_argument('--chunk', nargs=5, metavar=('EDL', 'CLIP', 'I0', 'I1', 'OUT'), help=argparse.SUPPRESS)
     ap.add_argument('--chunks', help=argparse.SUPPRESS)
+    ap.add_argument('--jit', action='store_true', help='disk-limited: per B/C chunk render its stage-A inputs, encode, delete consumed segments')
+    ap.add_argument('--force-chunks', default='', help='comma list of B/C chunk start frames to re-encode (overwrites in place)')
     ap.add_argument('--dry-run', action='store_true', help='report which stage-A/transition/B-C chunks would render; render nothing')
     ap.add_argument('--mux-only', action='store_true', help='audio swap: concat the CACHED picture chunks + mux --mix; fails if any chunk is stale')
     ap.add_argument('--mix', help='with --mux-only: the mix.wav to mux (default: the EDL audio.mix)')
@@ -755,6 +938,7 @@ def main():
             render_chunk(job['edl'], cid, int(i0), int(i1), out)
         return
     e = E.load(a.edl)
+    FC = {int(x) for x in a.force_chunks.split(',') if x.strip()}
     if a.mux_only:
         mux_only(a, e)
         return
@@ -777,7 +961,7 @@ def mux_only(a, e):
     caps = json.load(open(os.path.join(wd, 'captions.json'))) if os.path.exists(os.path.join(wd, 'captions.json')) else {}
     strip = None if e.get('strip_overlay') else render_captions(e)[1]
     trans = stage_t(e, segs, False, dry_run=True)
-    files, todo = stage_bc(e, segs, caps, strip, False, proxy=True, trans=trans, dry_run=True)
+    files, todo = stage_bc(e, segs, caps, strip, False, proxy=True, trans=trans, dry_run=True, link_adopted=True)
     if todo:
         raise SystemExit(f'--mux-only: {len(todo)} picture chunk(s) are not cached; run a normal render first')
     mix = E.rel(a.mix or e['audio']['mix'])
@@ -805,6 +989,7 @@ def mux_only(a, e):
 
 
 def _main(a, e):
+    FC = {int(x) for x in a.force_chunks.split(",") if x.strip()}
     if not a.dry_run:
         print(f'render: holds a render slot = {IN_SLOT} (inner jobs {"run inside it" if IN_SLOT else "take their own --heavy slots"}, JOBS={JOBS})', flush=True)
     err, warn = V.validate(e)
@@ -823,11 +1008,11 @@ def _main(a, e):
             caps = dict(caps, **{cid: {'png': os.path.join(wd, 'cap', f'PENDING_{cid}.png')} for cid in pend})
         strip = None if e.get('strip_overlay') else render_captions(e)[1]
         trans = stage_t(e, segs, a.force, dry_run=True)
-        stage_bc(e, segs, caps, strip, a.force, proxy=not a.no_proxy, trans=trans, dry_run=True)
+        stage_bc(e, segs, caps, strip, a.force, proxy=not a.no_proxy, trans=trans, dry_run=True, force_chunks=FC)
         return
     json.dump(E.resolved(e), open(os.path.join(wd, 'edl.resolved.json'), 'w'), indent=1)
     t0 = time.time()
-    segs = stage_a(e, os.path.abspath(a.edl), a.force)
+    segs = stage_a(e, os.path.abspath(a.edl), a.force, dry_run=a.jit, quiet=a.jit)
     if a.only_segments:
         PROG.done('segments only')
         return
@@ -836,8 +1021,11 @@ def _main(a, e):
         strip = None  # the Motion Designer's paper strip arrives as an overlay (motion_captions.py)
     json.dump(caps, open(os.path.join(wd, 'captions.json'), 'w'), indent=1)
     audio, ph_audio = find_mix(e, a.edl)
-    trans = stage_t(e, segs, a.force)
-    files, _ = stage_bc(e, segs, caps, strip, a.force, proxy=not a.no_proxy, trans=trans)
+    if a.jit:
+        files = stage_jit(e, os.path.abspath(a.edl), caps, strip, a.force, proxy=not a.no_proxy)
+    else:
+        trans = stage_t(e, segs, a.force)
+        files, _ = stage_bc(e, segs, caps, strip, a.force, proxy=not a.no_proxy, trans=trans, force_chunks=FC)
     for o in e['outputs']:
         os.makedirs(os.path.dirname(E.rel(o['path'])), exist_ok=True)
         concat_mux(files[o['name']], audio, E.rel(o['path']), e['duration'])

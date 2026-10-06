@@ -38,6 +38,7 @@ import json
 import math
 import os
 import sys
+import re
 from collections import defaultdict
 from pathlib import Path
 
@@ -96,6 +97,8 @@ GROUP_OF = {v: k for k, v in ALIASES.items()}
 BOT_LETTERS = 'abcdefgh'
 BOT_MIDI = dict(zip('abcdefgh', (53, 84, 67, 77, 60, 81, 62, 86)))  # src/audio/bots.ts BOT_VOICES base notes
 LOW_NOTE_MIDI = 59  # below ~B3 (247 Hz) a phone speaker can't reproduce the note: add a presence layer
+MUST_READ = {'snap_measure'}  # explainer: the measurement snap (step mode) must read: trailer-weight snap + dip
+MUST_READ_DESIGN = {'sig_c_snap'}  # explainer: the closing snap
 LOW_HEAVY = {'highfive'}  # featured hits whose body sits low (slap + 220→120 Hz blip): presence + density for phones
 HIGHFIVE_ROOM = dsp.make_ir(0.25, 14.0, 0.004, 6500, seed=9, width=0.5)
 ACCENTS = {'card_pick', 'card_drop', 'ui_click'}  # card UI = rhythmic accents in programming shots (REVISED 2)
@@ -561,6 +564,13 @@ def build(args):
         if cut['type'] == 'glitch' and 'glitch_tear' not in groups_in_edl:
             design_cues.append({'asset': 'glitch_tear', 'frame': cut['range'][0], 'featured': True, 'src': 'auto:glitch',
                                 'group': 'glitch_tear'})
+    if P.get('explainer') and 'win_card' not in groups_in_edl:
+        # win-card strobes (clip note '... strobe ... solved'): the cut shows a solved level for one bed beat with no
+        # game event in its window; each flash gets the trailer-weight test_pass hit on its first frame (on the beat)
+        for c in edl['clips']:
+            if re.search(r'strobe.*solved', str(c.get('note', '')), re.I):
+                design_cues.append({'asset': 'trailer/test_pass', 'frame': c['start'], 'featured': True,
+                                    'src': f'auto:win_card {c["id"]}', 'group': 'win_card'})
     music_path_pre = args.music or (edl.get('audio', {}) or {}).get('music') or next(
         (p for p in ({'trailer': ['videos/music/trailer_edit.wav', 'videos/audio2/score_alt/score_alt.wav']}.get(video) or
                      [P.get('bed') or f'videos/audio2/beds/{video}_bed.wav']) if rel(p).exists()), '')
@@ -810,7 +820,13 @@ def build(args):
         presence_rep = []
         if P.get('explainer'):  # phones can't reproduce < ~250 Hz: low featured notes get a presence-band layer
             tw_beep = lib.asset('trailer/listen_beep')[0]
+            tw_snap = lib.asset('trailer/snap_measure')[0]
             for q in cues:
+                if q['kind'] == 'design' and q['name'] in MUST_READ_DESIGN:
+                    # the closing snap (designed): the bed takes the same breath and dip as the measurement snap
+                    q['music_dip_db'], q['pre_dip_db'] = 8.0, 9.0
+                    presence_rep.append({'frame': q['frame'], 'cue': q['name'], 'rule': 'must-read closing snap: 8 dB music dip, 9 dB pre-breath'})
+                    continue
                 if q['kind'] != 'game' or not q['featured']:
                     continue
                 low_bot = q['name'] == 'botNote' and '_beep' in str(q['src']) and BOT_MIDI.get(str(q['src']).split('bot_')[-1][:1], 99) < LOW_NOTE_MIDI
@@ -825,6 +841,17 @@ def build(args):
                         q['x'], q['src'] = x, str(q['src']) + '+presence'
                     q['music_dip_db'] = 6.0
                     presence_rep.append({'frame': q['frame'], 'cue': q['name'], 'rule': 'bot note < 250 Hz: trailer listen_beep layer + 6 dB music dip'})
+                elif q['name'] in MUST_READ:
+                    # the measurement snap must read on a phone: the trailer-weight (presence-voiced) snap + the dip
+                    # density, as for the highfive (the bus limiter crushed the bare transient ~10 dB): short room,
+                    # peak-to-loudness <= 9 dB; and the bed takes a breath before it (6 dB, ramped over the 400 ms before)
+                    x = dsp.reverb(dsp.fit(tw_snap, len(tw_snap) + int(0.25 * SR)), HIGHFIVE_ROOM, wet=0.3)[:len(tw_snap) + int(0.25 * SR)]
+                    m = float(np.max(dsp.momentary(dsp.fit(x, max(len(x), int(0.4 * SR))), 0.01)))
+                    q['x'] = dsp.fade(dsp.limiter(x, m + 9.0, 0.001, 0.03), 0.0, 0.05)
+                    q['src'] = 'trailer/snap_measure (must-read)+room+plr9'
+                    q['music_dip_db'] = 8.0
+                    q['pre_dip_db'] = 9.0
+                    presence_rep.append({'frame': q['frame'], 'cue': q['name'], 'rule': 'must-read snap: trailer-weight snap, room, PLR <= 9 dB, 8 dB music dip with a 9 dB pre-breath over the 400 ms before'})
                 elif q['name'] in LOW_HEAVY:
                     # density, not peak: the master glue/limiter flattened the 60 ms slap (stem -21.5 -> mix -25.7 dB
                     # in the cue's 200 ms). Presence, then a short room for body, then peak-to-loudness <= 9 dB
@@ -835,14 +862,19 @@ def build(args):
                     q['x'] = dsp.fade(x, 0.0, 0.05)
                     q['src'] = str(q['src']) + '+presence+room+plr9'
                     q['music_dip_db'] = 6.0
-                    presence_rep.append({'frame': q['frame'], 'cue': q['name'], 'rule': 'low-heavy hit: +6 dB presence, short room, PLR <= 9 dB, 6 dB music dip'})
+                    q['pre_dip_db'] = 4.0  # a small breath before the slap (showcase: 4 of 11 under +4 dB without it)
+                    presence_rep.append({'frame': q['frame'], 'cue': q['name'], 'rule': 'low-heavy hit: +6 dB presence, short room, PLR <= 9 dB, 6 dB music dip, 4 dB pre-breath'})
         level_rep = mixfirst.level_cues(cues, stems['music'], secs_list, P)
         if P.get('explainer'):
             # the dips (after levelling, so the cue keeps its level while the bed steps aside): broadband, 30 ms attack,
             # held 200 ms, 250 ms release; the cue's aim and window move up by the dip (measured against the dipped bed)
             dips = [(q['start'] / SR, q['start'] / SR + 0.2, q['music_dip_db']) for q in cues if q.get('music_dip_db')]
             if dips:
-                env = ctrl_to_samples(dip_envelope(dips, N * CR // SR + 1, attack=0.03, release=0.25, look=0.03), N)
+                env = dip_envelope(dips, N * CR // SR + 1, attack=0.03, release=0.25, look=0.03)
+                pre = [(q['start'] / SR, q['start'] / SR + 0.2, q['pre_dip_db']) for q in cues if q.get('pre_dip_db')]
+                if pre:  # the bed's breath before a must-read cue: ramps in over the 400 ms before it
+                    env = np.maximum(env, dip_envelope(pre, len(env), attack=0.35, release=0.25, look=0.4))
+                env = ctrl_to_samples(env, N)
                 stems['music'] *= dsp.undb(-env)[:, None]
                 for q in cues:
                     d = max((dd for (a, b, dd) in dips if a - 0.05 <= q['start'] / SR <= b), default=0.0)
@@ -1193,12 +1225,14 @@ def write(res, args):
                         need = 6.0
                     elif q['name'] in LOW_HEAVY:
                         need = 4.0
+                    elif q['name'] in MUST_READ:
+                        need = 6.0
                     st.append({'frame': q['frame'], 'name': q['name'] + (' (quiet)' if quiet else ''), 'over_bed_lu': round(over, 1),
                                'rms200_vs_prev400_db': round(crit, 1), 'need_db': need,
                                'ok': over >= (-2.0 if quiet else 1.5) and (need is None or crit >= need)})
                 ok = sum(x['ok'] for x in st)
                 phone['featured_cues'] = {'checked': len(st), 'readable': ok, 'rule': 'on the phone, the mix at the cue >= the bed alone +1.5 LU (QUIET >= -2 LU); '
-                                          'Critic metric (cue 200 ms RMS vs the 400 ms before): BEEPs >= +6 dB, highfives >= +4 dB',
+                                          'Critic metric (cue 200 ms RMS vs the 400 ms before): BEEPs and the measurement snap >= +6 dB, highfives >= +4 dB',
                                           'per_cue': st,
                                           'not_readable': [x for x in st if not x['ok']][:20]}
                 phone['pass'] = bool(st) and ok >= 0.9 * len(st)

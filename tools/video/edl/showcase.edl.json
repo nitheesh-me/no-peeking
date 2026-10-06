@@ -50,7 +50,8 @@
    "speed": 1,
    "grade": "day",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "open",
@@ -70,7 +71,8 @@
    "speed": 1,
    "grade": "day",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "open",
@@ -116,7 +118,14 @@
    },
    "flags": {},
    "section": "ch1",
-   "cues": [],
+   "cues": [
+    {
+     "name": "win_card_pop",
+     "frame": 1289,
+     "kind": "design",
+     "note": "the win card pops on screen (silent in the game): a soft paper pop / card flip"
+    }
+   ],
    "camera": [
     {
      "f": 0,
@@ -148,7 +157,8 @@
    "speed": 1,
    "grade": "day",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "ch1",
@@ -168,7 +178,8 @@
    "speed": 1,
    "grade": "day",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "ch1",
@@ -188,7 +199,8 @@
    "speed": 1,
    "grade": "day",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "ch1",
@@ -208,7 +220,8 @@
    "speed": 1,
    "grade": "night",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "ch1",
@@ -228,7 +241,8 @@
    "speed": 1,
    "grade": "night",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "ch1",
@@ -259,7 +273,14 @@
    },
    "flags": {},
    "section": "ch2",
-   "cues": [],
+   "cues": [
+    {
+     "name": "win_card_pop",
+     "frame": 2501,
+     "kind": "design",
+     "note": "the win card pops on screen (silent in the game): a soft paper pop / card flip"
+    }
+   ],
    "camera": [
     {
      "f": 0,
@@ -291,14 +312,335 @@
    "speed": 1,
    "grade": "day",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "ch2",
    "cues": [],
-   "note": "meta beat (4K): the map-bots read at 120, the tap solves it at 348, 112 f of aftermath",
+   "note": "meta beat (4K): the map-bots read at 120, the tap solves it at 348; src 382+ is the scene re-mount",
    "events": "videos/capture/sc_map_flip_solve.events.json",
-   "layout_json": "videos/capture/sc_map_flip_solve.layout.json"
+   "layout_json": "videos/capture/sc_map_flip_solve.layout.json",
+   "frame_patch": {
+    "382": 381,
+    "383": 381,
+    "384": 381,
+    "385": 381,
+    "386": 381,
+    "387": 381,
+    "388": 381,
+    "389": 381,
+    "390": 381,
+    "391": 381,
+    "392": 381,
+    "393": 381,
+    "394": 381,
+    "395": 381,
+    "396": 381,
+    "397": 381,
+    "398": 381,
+    "399": 381,
+    "400": 381,
+    "401": 381,
+    "402": 381,
+    "403": 381,
+    "404": 381,
+    "405": 381,
+    "406": 381,
+    "407": 381,
+    "408": 381,
+    "409": 381,
+    "410": 381,
+    "411": 381,
+    "412": 381,
+    "413": 381,
+    "414": 381,
+    "415": 381,
+    "416": 381,
+    "417": 381,
+    "418": 381,
+    "419": 381,
+    "420": 381,
+    "421": 381,
+    "422": 381,
+    "423": 381,
+    "424": 381,
+    "425": 381,
+    "426": 381,
+    "427": 381,
+    "428": 381,
+    "429": 381,
+    "430": 381,
+    "431": 381,
+    "432": 381,
+    "433": 381,
+    "434": 381,
+    "435": 381,
+    "436": 381,
+    "437": 381,
+    "438": 381,
+    "439": 381,
+    "440": 381,
+    "441": 381,
+    "442": 381,
+    "443": 381,
+    "444": 381,
+    "445": 381,
+    "446": 381,
+    "447": 381,
+    "448": 381,
+    "449": 381,
+    "450": 381,
+    "451": 381,
+    "452": 381,
+    "453": 381,
+    "454": 381,
+    "455": 381,
+    "456": 381,
+    "457": 381,
+    "458": 381,
+    "459": 381,
+    "460": 381,
+    "461": 381,
+    "462": 381,
+    "463": 381,
+    "464": 381,
+    "465": 381,
+    "466": 381,
+    "467": 381,
+    "468": 381,
+    "469": 381,
+    "470": 381,
+    "471": 381,
+    "472": 381,
+    "473": 381,
+    "474": 381,
+    "475": 381,
+    "476": 381,
+    "477": 381,
+    "478": 381,
+    "479": 381,
+    "480": 381,
+    "481": 381,
+    "482": 381,
+    "483": 381,
+    "484": 381,
+    "485": 381,
+    "486": 381,
+    "487": 381,
+    "488": 381,
+    "489": 381,
+    "490": 381,
+    "491": 381,
+    "492": 381,
+    "493": 381,
+    "494": 381,
+    "495": 381,
+    "496": 381,
+    "497": 381,
+    "498": 381,
+    "499": 381,
+    "500": 381,
+    "501": 381,
+    "502": 381,
+    "503": 381,
+    "504": 381,
+    "505": 381,
+    "506": 381,
+    "507": 381,
+    "508": 381,
+    "509": 381,
+    "510": 381,
+    "511": 381,
+    "512": 381,
+    "513": 381,
+    "514": 381,
+    "515": 381,
+    "516": 381,
+    "517": 381,
+    "518": 381,
+    "519": 381,
+    "520": 381,
+    "521": 381,
+    "522": 381,
+    "523": 381,
+    "524": 381,
+    "525": 381,
+    "526": 381,
+    "527": 381,
+    "528": 381,
+    "529": 381,
+    "530": 381,
+    "531": 381,
+    "532": 381,
+    "533": 381,
+    "534": 381,
+    "535": 381,
+    "536": 381,
+    "537": 381,
+    "538": 381,
+    "539": 381,
+    "540": 381,
+    "541": 381,
+    "542": 381,
+    "543": 381,
+    "544": 381,
+    "545": 381,
+    "546": 381,
+    "547": 381,
+    "548": 381,
+    "549": 381,
+    "550": 381,
+    "551": 381,
+    "552": 381,
+    "553": 381,
+    "554": 381,
+    "555": 381,
+    "556": 381,
+    "557": 381,
+    "558": 381,
+    "559": 381,
+    "560": 381,
+    "561": 381,
+    "562": 381,
+    "563": 381,
+    "564": 381,
+    "565": 381,
+    "566": 381,
+    "567": 381,
+    "568": 381,
+    "569": 381,
+    "570": 381,
+    "571": 381,
+    "572": 381,
+    "573": 381,
+    "574": 381,
+    "575": 381,
+    "576": 381,
+    "577": 381,
+    "578": 381,
+    "579": 381,
+    "580": 381,
+    "581": 381,
+    "582": 381,
+    "583": 381,
+    "584": 381,
+    "585": 381,
+    "586": 381,
+    "587": 381,
+    "588": 381,
+    "589": 381,
+    "590": 381,
+    "591": 381,
+    "592": 381,
+    "593": 381,
+    "594": 381,
+    "595": 381,
+    "596": 381,
+    "597": 381,
+    "598": 381,
+    "599": 381,
+    "600": 381,
+    "601": 381,
+    "602": 381,
+    "603": 381,
+    "604": 381,
+    "605": 381,
+    "606": 381,
+    "607": 381,
+    "608": 381,
+    "609": 381,
+    "610": 381,
+    "611": 381,
+    "612": 381,
+    "613": 381,
+    "614": 381,
+    "615": 381,
+    "616": 381,
+    "617": 381,
+    "618": 381,
+    "619": 381,
+    "620": 381,
+    "621": 381,
+    "622": 381,
+    "623": 381,
+    "624": 381,
+    "625": 381,
+    "626": 381,
+    "627": 381,
+    "628": 381,
+    "629": 381,
+    "630": 381,
+    "631": 381,
+    "632": 381,
+    "633": 381,
+    "634": 381,
+    "635": 381,
+    "636": 381,
+    "637": 381,
+    "638": 381,
+    "639": 381,
+    "640": 381,
+    "641": 381,
+    "642": 381,
+    "643": 381,
+    "644": 381,
+    "645": 381,
+    "646": 381,
+    "647": 381,
+    "648": 381,
+    "649": 381,
+    "650": 381,
+    "651": 381,
+    "652": 381,
+    "653": 381,
+    "654": 381,
+    "655": 381,
+    "656": 381,
+    "657": 381,
+    "658": 381,
+    "659": 381,
+    "660": 381,
+    "661": 381,
+    "662": 381,
+    "663": 381,
+    "664": 381,
+    "665": 381,
+    "666": 381,
+    "667": 381,
+    "668": 381,
+    "669": 381,
+    "670": 381,
+    "671": 381,
+    "672": 381,
+    "673": 381,
+    "674": 381,
+    "675": 381,
+    "676": 381,
+    "677": 381,
+    "678": 381,
+    "679": 381,
+    "680": 381,
+    "681": 381,
+    "682": 381,
+    "683": 381,
+    "684": 381,
+    "685": 381,
+    "686": 381,
+    "687": 381,
+    "688": 381,
+    "689": 381,
+    "690": 381,
+    "691": 381,
+    "692": 381,
+    "693": 381,
+    "694": 381,
+    "695": 381,
+    "696": 381,
+    "697": 381,
+    "698": 381,
+    "699": 381
+   }
   },
   {
    "id": "S012",
@@ -311,7 +653,8 @@
    "speed": 1,
    "grade": "night",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "ch2",
@@ -331,7 +674,8 @@
    "speed": 1,
    "grade": "night",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "ch2",
@@ -351,7 +695,8 @@
    "speed": 1,
    "grade": "night",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "ch2",
@@ -371,7 +716,8 @@
    "speed": 1,
    "grade": "night",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "ch2",
@@ -402,7 +748,14 @@
    },
    "flags": {},
    "section": "ch3",
-   "cues": [],
+   "cues": [
+    {
+     "name": "win_card_pop",
+     "frame": 3772,
+     "kind": "design",
+     "note": "the win card pops on screen (silent in the game): a soft paper pop / card flip"
+    }
+   ],
    "camera": [
     {
      "f": 0,
@@ -434,7 +787,8 @@
    "speed": 1,
    "grade": "day",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "ch3",
@@ -516,7 +870,8 @@
    "speed": 1,
    "grade": "night",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "ch3",
@@ -607,7 +962,8 @@
    "speed": 1,
    "grade": "day",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "ch4",
@@ -671,11 +1027,19 @@
    "speed": 1,
    "grade": "night",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "ch4",
-   "cues": [],
+   "cues": [
+    {
+     "name": "win_card_pop",
+     "frame": 5835,
+     "kind": "design",
+     "note": "the win card pops on screen (silent in the game): a soft paper pop / card flip"
+    }
+   ],
    "camera": [
     {
      "f": 0,
@@ -707,7 +1071,8 @@
    "speed": 1,
    "grade": "night",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "ch4",
@@ -727,7 +1092,8 @@
    "speed": 1,
    "grade": "night",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "labs",
@@ -763,7 +1129,8 @@
    "speed": 1,
    "grade": "night",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "labs",
@@ -799,7 +1166,8 @@
    "speed": 1,
    "grade": "none",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "labs",
@@ -873,6 +1241,22 @@
    "flags": {},
    "section": "codex",
    "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 0.45,
+     "cy": 0.5,
+     "ease": "linear"
+    },
+    {
+     "f": 120,
+     "z": 1.1,
+     "cx": 0.45,
+     "cy": 0.5,
+     "ease": "inout"
+    }
+   ],
    "note": "Codex: the collection",
    "events": "videos/capture/sc_codex_tour.events.json",
    "layout_json": "videos/capture/sc_codex_tour.layout.json"
@@ -888,11 +1272,28 @@
    "speed": 1,
    "grade": "day",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "codex",
    "cues": [],
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.02,
+     "cx": 0.5,
+     "cy": 0.5,
+     "ease": "linear"
+    },
+    {
+     "f": 120,
+     "z": 1.1,
+     "cx": 0.55,
+     "cy": 0.5,
+     "ease": "inout"
+    }
+   ],
    "note": "Codex: Flipper",
    "events": "videos/capture/sc_codex_tour.events.json",
    "layout_json": "videos/capture/sc_codex_tour.layout.json"
@@ -908,7 +1309,8 @@
    "speed": 1,
    "grade": "day",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "codex",
@@ -967,16 +1369,33 @@
    "src_kind": "alias",
    "start": 9154,
    "dur": 170,
-   "in": 0,
-   "speed": 1,
+   "in": 56,
+   "speed": 0.64,
    "grade": "day",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "codex",
    "cues": [],
-   "note": "the Card Guide overview (all 12 cards); its IF page is NOT used (pg_if_anatomy is)",
+   "camera": [
+    {
+     "f": 0,
+     "z": 1.0,
+     "cx": 0.5,
+     "cy": 0.45,
+     "ease": "linear"
+    },
+    {
+     "f": 170,
+     "z": 1.1,
+     "cx": 0.5,
+     "cy": 0.45,
+     "ease": "inout"
+    }
+   ],
+   "note": "the Card Guide overview (Cards tab, all 12 cards), src 56-165 at 0.64x; its IF page is NOT used (pg_if_anatomy is)",
    "events": "videos/capture/sc_card_guide.events.json",
    "layout_json": "videos/capture/sc_card_guide.layout.json"
   },
@@ -991,7 +1410,8 @@
    "speed": 1,
    "grade": "day",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "codex",
@@ -1190,7 +1610,8 @@
    "speed": 1,
    "grade": "day",
    "transition": {
-    "type": "cut"
+    "type": "cut",
+    "frames": 0
    },
    "flags": {},
    "section": "qol",
@@ -1387,7 +1808,7 @@
     "hold": true,
     "rect": [
      115.2,
-     0.0,
+     72.0,
      1689.6,
      950.4
     ],
@@ -1453,7 +1874,7 @@
     "hold": true,
     "rect": [
      115.2,
-     0.0,
+     72.0,
      1689.6,
      950.4
     ],
@@ -1500,7 +1921,7 @@
     "hold": true,
     "rect": [
      115.2,
-     0.0,
+     72.0,
      1689.6,
      950.4
     ],
@@ -1528,7 +1949,7 @@
     "hold": true,
     "rect": [
      115.2,
-     0.0,
+     72.0,
      1689.6,
      950.4
     ],
@@ -1556,7 +1977,7 @@
     "hold": true,
     "rect": [
      115.2,
-     0.0,
+     72.0,
      1689.6,
      950.4
     ],
@@ -1584,7 +2005,7 @@
     "hold": true,
     "rect": [
      115.2,
-     0.0,
+     72.0,
      1689.6,
      950.4
     ],
@@ -1612,7 +2033,7 @@
     "hold": true,
     "rect": [
      115.2,
-     0.0,
+     72.0,
      1689.6,
      950.4
     ],
@@ -1678,7 +2099,7 @@
     "hold": true,
     "rect": [
      115.2,
-     0.0,
+     72.0,
      1689.6,
      950.4
     ],
@@ -1706,7 +2127,7 @@
     "hold": true,
     "rect": [
      115.2,
-     0.0,
+     72.0,
      1689.6,
      950.4
     ],
@@ -1734,7 +2155,7 @@
     "hold": true,
     "rect": [
      115.2,
-     0.0,
+     72.0,
      1689.6,
      950.4
     ],
@@ -1762,7 +2183,7 @@
     "hold": true,
     "rect": [
      115.2,
-     0.0,
+     72.0,
      1689.6,
      950.4
     ],
@@ -1790,7 +2211,7 @@
     "hold": true,
     "rect": [
      115.2,
-     0.0,
+     72.0,
      1689.6,
      950.4
     ],
@@ -1837,7 +2258,7 @@
     "hold": true,
     "rect": [
      115.2,
-     0.0,
+     72.0,
      1689.6,
      950.4
     ],
@@ -1847,7 +2268,8 @@
      "gain": 4.0,
      "opacity": 0.85
     }
-   }
+   },
+   "decor_waiver": "wall decor (bunting, shelf bird), not characters; still videos/final/review/showcase_tag_lv3-3.png"
   },
   {
    "id": "cap10",
@@ -1903,7 +2325,7 @@
     "hold": true,
     "rect": [
      115.2,
-     0.0,
+     72.0,
      1689.6,
      950.4
     ],
@@ -1931,7 +2353,7 @@
     "hold": true,
     "rect": [
      115.2,
-     0.0,
+     72.0,
      1689.6,
      950.4
     ],
@@ -1978,7 +2400,7 @@
     "hold": true,
     "rect": [
      115.2,
-     0.0,
+     72.0,
      1689.6,
      950.4
     ],
@@ -2025,7 +2447,7 @@
     "hold": true,
     "rect": [
      115.2,
-     0.0,
+     72.0,
      1689.6,
      950.4
     ],
@@ -2072,7 +2494,7 @@
     "hold": true,
     "rect": [
      115.2,
-     0.0,
+     72.0,
      1689.6,
      950.4
     ],
@@ -2148,7 +2570,7 @@
     "hold": true,
     "rect": [
      115.2,
-     0.0,
+     72.0,
      1689.6,
      950.4
     ],
@@ -2180,34 +2602,6 @@
    "gloss2": null
   },
   {
-   "id": "tag_nightlab",
-   "text": "Night Shift Lab",
-   "start": 7834,
-   "end": 8434,
-   "legible_from": 7846,
-   "position": "baked",
-   "style": "night",
-   "label": true,
-   "render": {
-    "fill": "videos/motion/level_tag_nightlab_fill.mkv",
-    "matte": "videos/motion/level_tag_nightlab_matte.mkv",
-    "in": 0,
-    "hold": true,
-    "rect": [
-     115.2,
-     0.0,
-     1689.6,
-     950.4
-    ],
-    "shadow": {
-     "dilate": 14,
-     "sigma": 6,
-     "gain": 4.0,
-     "opacity": 0.85
-    }
-   }
-  },
-  {
    "id": "cap17",
    "text": "A code only helps when gremlins are rare: three Qubbles beat one only below p = \u00bd.",
    "start": 7864,
@@ -2225,34 +2619,6 @@
    "line": "A code only helps when gremlins are rare: three Qubbles beat one only below p = \u00bd.",
    "gloss": null,
    "gloss2": null
-  },
-  {
-   "id": "tag_codex",
-   "text": "The Codex",
-   "start": 8452,
-   "end": 9154,
-   "legible_from": 8464,
-   "position": "baked",
-   "style": "night",
-   "label": true,
-   "render": {
-    "fill": "videos/motion/level_tag_codex_fill.mkv",
-    "matte": "videos/motion/level_tag_codex_matte.mkv",
-    "in": 0,
-    "hold": true,
-    "rect": [
-     115.2,
-     0.0,
-     1689.6,
-     950.4
-    ],
-    "shadow": {
-     "dilate": 14,
-     "sigma": 6,
-     "gain": 4.0,
-     "opacity": 0.85
-    }
-   }
   },
   {
    "id": "cap18",
@@ -2296,7 +2662,7 @@
    "id": "tag_guide",
    "text": "Card Guide",
    "start": 9154,
-   "end": 9744,
+   "end": 9324,
    "legible_from": 9166,
    "position": "baked",
    "style": "night",
@@ -2307,8 +2673,8 @@
     "in": 0,
     "hold": true,
     "rect": [
-     115.2,
-     0.0,
+     675.2,
+     540.0,
      1689.6,
      950.4
     ],
@@ -2340,34 +2706,6 @@
    "gloss2": null
   },
   {
-   "id": "tag_notebook",
-   "text": "Schrodi's Lab Notebook",
-   "start": 9668,
-   "end": 10606,
-   "legible_from": 9680,
-   "position": "baked",
-   "style": "night",
-   "label": true,
-   "render": {
-    "fill": "videos/motion/level_tag_notebook_fill.mkv",
-    "matte": "videos/motion/level_tag_notebook_matte.mkv",
-    "in": 0,
-    "hold": true,
-    "rect": [
-     115.2,
-     0.0,
-     1689.6,
-     950.4
-    ],
-    "shadow": {
-     "dilate": 14,
-     "sigma": 6,
-     "gain": 4.0,
-     "opacity": 0.85
-    }
-   }
-  },
-  {
    "id": "tag_xray_2",
    "text": "X-ray \u00b7 simulator view",
    "start": 9668,
@@ -2383,8 +2721,8 @@
     "frames": 96,
     "hold": true,
     "rect": [
-     -205.8,
-     777.7,
+     -109.7,
+     411.9,
      1689.6,
      950.4
     ],
@@ -2450,7 +2788,7 @@
     "hold": true,
     "rect": [
      115.2,
-     0.0,
+     124.0,
      1689.6,
      950.4
     ],
@@ -2624,13 +2962,35 @@
   }
  ],
  "fx": [],
- "marks": [],
+ "marks": [
+  {
+   "type": "hold",
+   "start": 5992,
+   "end": 6574,
+   "why": "Lights Out by ear: near-static darkness by design, the sound is the content"
+  },
+  {
+   "type": "hold",
+   "start": 12600,
+   "end": 12900,
+   "why": "the finished circuit holds while the closing line is read"
+  },
+  {
+   "type": "hold",
+   "start": 3030,
+   "end": 3133,
+   "why": "solved dream map held over the scene re-mount (src 382+ -> 381)"
+  }
+ ],
  "audio": {
   "mix": "videos/final/work/showcase/mix.wav",
   "mixreport": "videos/final/work/showcase/mixreport.json",
   "stems": "videos/final/work/showcase/stems"
  },
  "notes": [
+  "tag_nightlab: dropped (duplicates the on-screen title; SKIP_DUP_LABELS)",
+  "tag_codex: dropped (duplicates the on-screen title; SKIP_DUP_LABELS)",
+  "tag_notebook: dropped (duplicates the on-screen title; SKIP_DUP_LABELS)",
   "sc_pops_3_3: 690 f vs clip S017 674 f",
   "sc_pops_4_1: 460 f vs clip S020 456 f"
  ],
@@ -2656,5 +3016,12 @@
   "first_downbeat_frame": 4.8,
   "source": "beds.py explainer grid (84 BPM 4/4, 0.08 s)"
  },
+ "clean_waivers": [
+  {
+   "clip_shot": "sc_codex_tour",
+   "template": "debug_pulseunlock",
+   "why": "false positive: the Codex's own 'X-ray: blanket see-through' pill button (NCC 0.85); still in videos/final/review/showcase_clean_fp.png"
+  }
+ ],
  "duration": 13260
 }

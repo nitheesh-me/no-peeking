@@ -1030,6 +1030,8 @@ def build_mechanic():
     B.mark('hold', at('', 698, R), at('', 738, R), 'suspense: the dark, still room just before Flipper strikes (src 700-735)')
     B.mark('hold', Ls['start'] + Ls['dur'] - 45, Ls['start'] + Ls['dur'], 'beat on the BEEP result (cap: "BEEP = they do not match")')
     # stable, unique ids in timeline order (tags keep their tag_xray_N ids)
+    B.e['clean_waivers'] = [dict(clip_shot='sc_codex_tour', template='debug_pulseunlock',
+                                 why="false positive: the Codex's own 'X-ray: blanket see-through' button (NCC 0.85); still in videos/final/review/showcase_clean_fp.png")]
     n = 0
     for c in sorted(B.e['captions'], key=lambda c: c['start']):
         if not c.get('label'):
@@ -1131,10 +1133,20 @@ def build_showcase():
     def at(c, src_f):
         return c['start'] + int(round((src_f - c['in']) / (c['speed'] if isinstance(c['speed'], (int, float)) else 1)))
 
-    def label(key, text, c0, c1, rect=None):
+    # Labels whose screen already shows the same title (the Codex header, the notebook's title bar, the Night Shift Lab
+    # panel heading): a chip there is duplicate text and the notebook's lands on its header (QA 2026-10-06). Remove a key
+    # from this set to restore its chip.
+    SKIP_DUP_LABELS = {'codex', 'notebook', 'nightlab'}
+    CHIP_DY = 72      # 1080p px: below the in-game topbar (0-56 at 0.88) and its button row; was 0 (on the topbar)
+
+    def label(key, text, c0, c1, rect=None, dy=None):
         """A persistent HUD label (Motion level/chapter tag, the trailer's tag style; exempt from the reading rule).
         The text is taken from the rendered asset (level_tag_<key>.json params.text), as Quantum draws it (no ö), so
         the EDL string always matches the pixels; a mismatch with the plan's string is noted."""
+        if key in SKIP_DUP_LABELS:
+            B.e['notes'].append(f'tag_{key}: dropped (duplicates the on-screen title; SKIP_DUP_LABELS)')
+            return
+        dy = CHIP_DY if dy is None else dy
         j = E.rel(f'videos/motion/level_tag_{key}.json')
         if os.path.exists(j):
             mt = (E.load_json(j).get('params') or {}).get('text')
@@ -1146,7 +1158,8 @@ def build_showcase():
         B.e['captions'].append(dict(id=f'tag_{key}', text=text, start=c0, end=c1, legible_from=c0 + 12, position='baked', style='night',
                                     label=True, render={'fill': f'videos/motion/level_tag_{key}_fill.mkv',
                                                         'matte': f'videos/motion/level_tag_{key}_matte.mkv', 'in': 0, 'hold': True,
-                                                        'rect': rect or [gx, gy, gw, gh],
+                                                        'rect': [(rect or [gx, gy, gw, gh])[0], (rect or [gx, gy, gw, gh])[1] + dy,
+                                                                 (rect or [gx, gy, gw, gh])[2], (rect or [gx, gy, gw, gh])[3]],
                                                         'shadow': {'dilate': 14, 'sigma': 6, 'gain': 4.0, 'opacity': 0.85}}))
 
     def xray_tag(c0, c1, rect):
@@ -1229,7 +1242,12 @@ def build_showcase():
     # ── chapter 2 Whisper Network ──
     H, ta, wc = hero('2-3', 'ch2', 'Ch 2')
     chip('= syndrome decoding', ta, wc)
-    F = take('sc_map_flip_solve', 40, 460, section='ch2', note='meta beat (4K): the map-bots read at 120, the tap solves it at 348, 112 f of aftermath')
+    F = take('sc_map_flip_solve', 40, 460, section='ch2', note='meta beat (4K): the map-bots read at 120, the tap solves it at 348; src 382+ is the scene re-mount')
+    # the game re-mounts the map scene at src 382 (setScene map): a blank frame, then a ~19-frame fade up from paper-white,
+    # settling on a different state (QA 2026-10-06: scdet cut at f3031). Hold the solved map (src 381, the game's toast up)
+    # over 382-459 instead: same in-point and length, so no event (and no mix cue) moves.
+    F['frame_patch'] = {str(k): 381 for k in range(382, 700)}   # to the clip's real end (to_beat may extend it later)
+    F['_remount_hold'] = at(F, 382)
     # the game's own toast "Fixed it without looking…" at src 341 carries the payoff: the strip sentence ends before it
     strip_cap(B, 'Flipper got into the dream map. Its own bots point to the room.', F['start'] + 12, at(F, 341) - 6)
     strobes(['2-1', '2-2', '2-4', '2-5'], 'ch2')
@@ -1272,6 +1290,7 @@ def build_showcase():
     L = take('sc_lights_out_ear_v2', lo_a, lo_b, section='ch4', grade='night', note='4-2 Lights Out: the program runs in the dark; solved by ear')
     label('lv4-2', '4-2  Lights Out', L['start'], end(L))
     strip_cap(B, 'Lights Out: the last level is solved by ear.', L['start'] + 12, at(L, mark('sc_lights_out_ear_v2', 'chord')) - 30)
+    B.mark('hold', L['start'], end(L), 'Lights Out by ear: near-static darkness by design, the sound is the content')
     B.e['dark_ranges'].append(dict(start=L['start'], end=end(L), region=ROOM_DARK_1080, ceiling=40, clip=L['id'],
                                    why='4-2 Lights Out: the room stays dark (source room mean luma <= 14.4); the program column stays lit'))
 
@@ -1296,8 +1315,10 @@ def build_showcase():
 
     # ── the Codex and the Card Guide ──
     # Critic showcase #2: 17.7 s -> 12 s: the collection (2 s), Flipper (2 s), the Qubble's 3D Bloch drag + Measure (8 s)
-    CX = take('sc_codex_tour', 0, 120, wipe=True, section='codex', note='Codex: the collection')
-    CF = take('sc_codex_tour', 150, 270, section='codex', note='Codex: Flipper')
+    CX = take('sc_codex_tour', 0, 120, wipe=True, section='codex', note='Codex: the collection',
+              camera=[(0, 1.0, .45, .5, 'linear'), (1, 1.1, .45, .5, 'inout')])   # no frozen dwell (QA freezedetect)
+    CF = take('sc_codex_tour', 150, 270, section='codex', note='Codex: Flipper',
+              camera=[(0, 1.02, .5, .5, 'linear'), (1, 1.1, .55, .5, 'inout')])
     CB = take('sc_codex_tour', 500, 980, section='codex', note='Codex: the Qubble, its 3D Bloch sphere dragged, then Measure (770)')
     keys, fo = focus_push(CB['dur'], 770 - 500, dict(card=[580, 140, 760, 560]), Z=1.12, lead=90)
     CB['camera'] = [dict(f=int(round(u * CB['dur'])), z=z, cx=x, cy=y, ease=es) for u, z, x, y, es in keys]
@@ -1306,10 +1327,21 @@ def build_showcase():
     t1 = 'The Codex: every character, gremlin and card, and what it means in real life.'
     strip_cap(B, t1, CX['start'] + 24, CX['start'] + 24 + V.reading_frames(t1) + RL)
     chip('= Bloch sphere: move the dream, then measure it', CX['start'] + 24 + V.reading_frames(t1) + RL + 2, end(CB) - 8)
-    CG = take('sc_card_guide', 0, 170, section='codex', note='the Card Guide overview (all 12 cards); its IF page is NOT used (pg_if_anatomy is)')
-    label('guide', 'Card Guide', CG['start'], end(CG) + 420)
+    # QA 2026-10-06: src 0-55 is the Codex "All" page (the "Card Guide" label sat on the wrong page, over its tab row).
+    # The Cards tab (the guide overview, all 12 cards) is up from src ~55; the IF modal opens at 167. Same 170-frame slot,
+    # src 56-165 at 0.64x (only the cursor moves), so nothing after it moves and no mix cue shifts.
+    CG = take('sc_card_guide', 56, 226, speed=0.64, section='codex',
+              note='the Card Guide overview (Cards tab, all 12 cards), src 56-165 at 0.64x; its IF page is NOT used (pg_if_anatomy is)',
+              camera=[(0, 1.0, .5, .45, 'linear'), (1, 1.1, .5, .45, 'inout')])
     IA = take('pg_if_anatomy', 76, 402, section='codex', card_focus=True, camera=[(0, 1.6, .484, .352, 'linear'), (1, 1.75, .484, .352, 'inout')],
               note='4K: the IF card anatomy (the trailer used src 76-172 for 1 beat; here the whole page)')
+    # ends exactly where the notebook's blanket wipe begins (was end(CG)+420: it ran 94 f into the notebook, over its header)
+    # below the card row, in the Cards page's empty lower area (the default top-left slot covers the tab row + cards)
+    # QA 2026-10-06: held into IA (1.6x on the IF card) the label covered the IF's condition row (22 .modal overlaps +
+    # the sprite hit): it now ends on the CG->IA cut; the strip sentence carries both shots. No clip timing changes.
+    # QA 2026-10-06 (09:34): at dy=330 it sat on the card row's bottom edge (sprite ink 0.098 at f9308; the row grows
+    # down under the 1.1x push). dy=540 puts it in the empty paper below the row, clear of the COMMENT card (x < 210).
+    label('guide', 'Card Guide', CG['start'], end(CG), rect=[gx + 560, gy, gw, gh], dy=540)
     strip_cap(B, "Every card has a guide. IF reads the bots' answers and jumps: real classical feed-forward.", CG['start'] + 12, end(IA) - 8)
 
     # ── the Lab Notebook (Nerd mode) ──
@@ -1322,7 +1354,9 @@ def build_showcase():
     else:
         B.e['notes'].append('sc_notebook is still the 1080p take: no push (the 4K re-take gets ~1.6x on the active page)')
     label('notebook', "Schrodi's Lab Notebook", NB['start'] + 18, end(NB))
-    xray_tag(NB['start'] + 18, end(NB), [tag_full[0] + 264, tag_full[1], gw, gh])
+    # on the open wall right of the notebook panel (chip centre ~(1000, 470) at 1080p): worst ink 0.0007 over 12 frames of the
+    # pushed framing, vs 0.14 on the floor spot, where the push brings bots and the caretaker under it (QA 2026-10-06)
+    xray_tag(NB['start'] + 18, end(NB), [round(1000 - 1261 * 0.88, 1), round(470 - 66 * 0.88, 1), gw, gh])
     chip('= Nerd mode: state vector · Bloch spheres · circuit · stabilizers', NB['start'] + 24, end(NB) - 8)  # Schrödi talks over the notebook
 
     # ── write it like code (QoL quick-fire) + the save joke ──
@@ -1332,7 +1366,7 @@ def build_showcase():
     keys, fo = focus_push(SM['dur'], 1381 - 1110, dict(card=[1648, 316, 262, 40], toast=[739, 77, 443, 41]), Z=1.6, lead=200)
     SM['camera'] = [dict(f=int(round(u * SM['dur'])), z=z, cx=x, cy=y, ease=es) for u, z, x, y, es in keys]
     SM['focus'] = fo
-    label('stepmode', 'Step mode', SM['start'] + 18, end(SM))
+    label('stepmode', 'Step mode', SM['start'] + 18, end(SM), dy=124)  # pushed 1.6x: the topbar band reaches lower
     strip_cap(B, 'Rewind the night: gates run backwards, a measurement is a one-way door.', SM['start'] + 16, end(SM) - 8)
     Q = take('sc_qol4', 0, 600, grade='none', section='qol',
              note='precomp sc_qol4: snippets | win-card links (Qiskit / IBM Quantum Learning) | help slot | Export to Qiskit')
@@ -1350,6 +1384,7 @@ def build_showcase():
     J = take('card_justagame', 0, 192, grade='none', section='close')
     MC = take('mo_circuit_morph', 0, 420, grade='none', section='close', cues=[dict(name='snap', frame=end(J), kind='design')])
     take('mo_end_card', 0, 360, grade='none', section='end_card')
+    B.mark('hold', MC['start'] + 120, end(MC), 'the finished circuit holds while the closing line is read')
     jm, mm = motion_markers('card_justagame'), motion_markers('mo_circuit_morph')
     B.e['captions'].append(dict(id='capJ', text="It's just a game…", start=J['start'] + jm.get('text_start', 10), end=end(J),
                                 legible_from=J['start'] + jm.get('text_legible', 33), position='baked', style='day', render={'baked': 'card_justagame'}))
@@ -1381,6 +1416,27 @@ def build_showcase():
         B.e['overlays'].append(dict(id=f'{nm}', fill=f'videos/motion/{nm}_fill.mkv', matte=f'videos/motion/{nm}_matte.mkv',
                                     start=c['start'], dur=min(fr, c['dur']), frames=fr, clip=c['id'],
                                     note='card pops + actor rings (final-frame coords; place at clip start, no rect)'))
+    # every visible event has a sound (QA 2026-10-06): the game's win card pops ~3.8 s after level_win in silence, so
+    # each on-screen win_card gets a design cue on its exact frame (the Sound Designer maps 'win_card_pop' to an asset)
+    for raw in B.e['clips']:
+        if raw['src'].startswith('@') or not raw.get('events'):
+            continue
+        nc = E.normalize_clip(dict(raw))
+        for ev in E.load_events(raw['events']):
+            if ev.get('type') == 'win_card' and nc['in'] <= ev['frame'] < nc['out']:
+                tf = E.local_to_timeline(nc, ev['frame'])
+                if tf is not None and not any(q.get('name') == 'win_card_pop' and q['frame'] == tf for q in raw.setdefault('cues', [])):
+                    raw['cues'].append(dict(name='win_card_pop', frame=tf, kind='design',
+                                            note='the win card pops on screen (silent in the game): a soft paper pop / card flip'))
+    for raw in B.e['clips']:   # the map re-mount hold runs to the clip's FINAL end (after any to_beat extension)
+        if raw.get('_remount_hold') is not None:
+            B.mark('hold', raw.pop('_remount_hold'), raw['start'] + raw['dur'], 'solved dream map held over the scene re-mount (src 382+ -> 381)')
+    # Director-reviewed false positive (was mistakenly declared in build_mechanic, so the showcase never carried it)
+    B.e['clean_waivers'] = [dict(clip_shot='sc_codex_tour', template='debug_pulseunlock',
+                                 why="false positive: the Codex's own 'X-ray: blanket see-through' pill button (NCC 0.85); still in videos/final/review/showcase_clean_fp.png")]
+    for c in B.e['captions']:
+        if c['id'] == 'tag_lv3-3':  # hero chip in the standard top-left slot over the wall's bunting and shelf bird
+            c['decor_waiver'] = 'wall decor (bunting, shelf bird), not characters; still videos/final/review/showcase_tag_lv3-3.png'
     return B.done()
 
 

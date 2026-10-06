@@ -26,6 +26,7 @@ Six or seven 4 GB software-GL Chromium renders ran at once and saturated all 22 
   - **Fix: safe-run pins every job to the 8 E-cores (`taskset -c 12-19`, override with `NP_CPUS`); pool quota 800 %.** Steady, lower draw, the P-cores stay free for the desktop, and the load can't spike past 8. Slower, but stable.
   - Keep job fan-out low: render.py should run its chunk jobs one at a time.
   - **2026-10-05, widened at the user's request:** pinned set is now 16 CPUs (`3,4,6-19`: the 8 E-cores plus P-cores 12/20/24/28 with their hyperthreads), pool quota 1600 %, QA ffmpeg 15 threads, render ffmpeg 8 threads. cpu0,1,2,5 and the LP cores stay free for the desktop. If a freeze recurs, check telemetry and revert with `NP_CPUS=12-19`.
+- **Crash #8 (2026-10-06 10:23):** a hard freeze during the showcase render's B/C composite stage, with the 16-CPU pin from 10-05 in place. Same signature as #7: load went from 5 to 14 and npvideo tasks from 95 to about 720 within a minute of B/C starting. 63 °C, 8.9 GB minimum MemAvailable, and msi_wmi EC events at 10:10. It left a truncated, non-.tmp B/C chunk in the cache. Response: chunk encodes are now atomic (.tmp then rename), cached chunks are frame-count validated, and the relaunch is pinned to the E-cores (`NP_CPUS=12-19`) with one compositor worker. Whether to revert the 16-CPU widening is the user's call.
 - A last-resort watchdog kills only Playwright browsers and ffmpeg if system MemAvailable drops below 1.5 GB (logged in `videos/watchdog.log`).
 
 ## Still required (these were the actual crash causes)

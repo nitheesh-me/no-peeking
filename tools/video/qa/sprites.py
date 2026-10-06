@@ -33,10 +33,17 @@ def caption_free(e, f, size=(1920, 1080)):
     li = f - c['start']
     i0 = (li // R.CHUNK) * R.CHUNK
     p = os.path.join(R.work_dir(e), 'seg', f'{c["id"]}_{key}_{i0:05d}.mkv')
-    if not os.path.exists(p):
-        return None, c
-    g = grab(p, [li - i0], w=size[0], h=size[1], gray=True).get(li - i0)
-    return g, c
+    if os.path.exists(p):
+        return grab(p, [li - i0], w=size[0], h=size[1], gray=True).get(li - i0), c
+    # disk-limited (--jit) renders delete consumed segments: rebuild just this frame through Stage A (cached, ~1 MB)
+    q = os.path.join(R.work_dir(e), 'qa_capfree', f'{c["id"]}_{key}_{li:05d}.mkv')
+    if not os.path.exists(q):
+        os.makedirs(os.path.dirname(q), exist_ok=True)
+        try:
+            R.render_chunk(E.rel(e.get('_path', f'tools/video/edl/{e["video"]}.edl.json')), c['id'], li, li + 1, q)
+        except Exception:
+            return None, c
+    return grab(q, [0], w=size[0], h=size[1], gray=True).get(0), c
 
 
 MAX_SPRITE = 280  # px at 1080: sprites are compact; longer ink runs are room geometry (rug border, bed, floor edges)

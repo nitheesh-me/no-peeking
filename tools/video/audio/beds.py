@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -60,6 +61,16 @@ def plan_from_edl(edl_path):
             continue
         secs.append((nm, c['start']))
     plan = [(f / 60.0, *SCENE_OF.get(nm, ('build', 0, 1))) for nm, f in secs]
+    # Lights Out clips (shot name, or a note that opens '<level> Lights Out'): the engine's own thin 'lightsout' scene (pedal bass, no drums, no lead, LP 2.6 kHz)
+    # for the clip, then back to the section's scene; the sequencer lands both switches on bar lines
+    for c in e['clips']:
+        if re.search(r'lights.?out', str(c.get('shot', '')), re.I) or re.match(r'\S+ lights out\b', str(c.get('note', '')), re.I):
+            t0, t1 = c['start'] / 60.0, (c['start'] + c['dur']) / 60.0
+            back = next((p for p in reversed(plan) if p[0] <= t0), plan[0])[1:]
+            plan = [p for p in plan if not (t0 <= p[0] < t1)] + [(t0, 'lightsout', 0.5, 0.7)]
+            if not any(abs(p[0] - t1) < 0.05 for p in plan):
+                plan.append((t1, *back))
+            plan.sort(key=lambda p: p[0])
     wins = []
     for c in e['clips']:
         for ev in MX.load_events(c.get('events')):
